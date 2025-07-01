@@ -61,7 +61,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Temporarily suspends all pickup and haul jobs to prevent save conflicts
         /// </summary>
-        private static void SuspendPickupAndHaulJobs()
+        public static void SuspendPickupAndHaulJobs()
         {
             lock (_jobLock)
             {
@@ -128,7 +128,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Restores previously suspended pickup and haul jobs after save completion
         /// </summary>
-        private static void RestorePickupAndHaulJobs()
+        public static void RestorePickupAndHaulJobs()
         {
             lock (_jobLock)
             {

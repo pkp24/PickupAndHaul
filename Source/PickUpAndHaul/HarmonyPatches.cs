@@ -57,6 +57,11 @@ static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.ExposeSmallComponents)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeSmallComponents_Prefix)));
 
+		// Add patches to handle save/load events for job suspension
+		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.ExposeData)),
+			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Prefix)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Postfix)));
+
 
 
 		Verse.Log.Message("PickUpAndHaul v1.1.2¼ welcomes you to RimWorld with pointless logspam.");
@@ -369,5 +374,43 @@ static class HarmonyPatches
 			   componentType.Namespace?.StartsWith("PickUpAndHaul") == true;
 	}
 
+	/// <summary>
+	/// Suspends pickup and haul jobs before saving
+	/// </summary>
+	private static void Game_ExposeData_Prefix(Game __instance)
+	{
+		try
+		{
+			// Only suspend jobs during saving, not loading
+			if (Scribe.mode == LoadSaveMode.Saving)
+			{
+				Verse.Log.Message("[PickUpAndHaul] Save operation starting - suspending pickup and haul jobs");
+				PickupAndHaulSaveLoadLogger.SuspendPickupAndHaulJobs();
+			}
+		}
+		catch (Exception ex)
+		{
+			Verse.Log.Error($"[PickUpAndHaul] Error in Game_ExposeData_Prefix: {ex.Message}");
+		}
+	}
 
+	/// <summary>
+	/// Restores pickup and haul jobs after saving is complete
+	/// </summary>
+	private static void Game_ExposeData_Postfix(Game __instance)
+	{
+		try
+		{
+			// Only restore jobs after saving is complete
+			if (Scribe.mode == LoadSaveMode.Saving)
+			{
+				Verse.Log.Message("[PickUpAndHaul] Save operation complete - restoring pickup and haul jobs");
+				PickupAndHaulSaveLoadLogger.RestorePickupAndHaulJobs();
+			}
+		}
+		catch (Exception ex)
+		{
+			Verse.Log.Error($"[PickUpAndHaul] Error in Game_ExposeData_Postfix: {ex.Message}");
+		}
+	}
 }
