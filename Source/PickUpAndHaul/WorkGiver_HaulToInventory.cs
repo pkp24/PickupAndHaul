@@ -49,10 +49,18 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		=> OkThingToHaul(thing, pawn)
 		&& IsNotCorpseOrAllowed(thing)
 		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
-		&& StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, false);
+		&& StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, false)
+		&& !OverAllowedGearCapacity(pawn)
+		&& !MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1);
 
 	//bulky gear (power armor + minigun) so don't bother.
-	public static bool OverAllowedGearCapacity(Pawn pawn) => MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+	//Updated to include inventory mass, not just gear mass
+	public static bool OverAllowedGearCapacity(Pawn pawn) 
+	{
+		var totalMass = MassUtility.GearAndInventoryMass(pawn);
+		var capacity = MassUtility.Capacity(pawn);
+		return totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+	}
 
 	//pick up stuff until you can't anymore,
 	//while you're up and about, pick up something and haul it
@@ -78,11 +86,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return null;
 		}
 
-		if (OverAllowedGearCapacity(pawn)
-			|| pawn.GetComp<CompHauledToInventory>() is null // Misc. Robots compatibility
-															 // See https://github.com/catgirlfighter/RimWorld_CommonSense/blob/master/Source/CommonSense11/CommonSense/OpportunisticTasks.cs#L129-L140
-			|| !IsNotCorpseOrAllowed(thing) //This WorkGiver gets hijacked by AllowTool and expects us to urgently haul corpses.
-			|| MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1)) //https://github.com/Mehni/PickUpAndHaul/pull/18
+		if (pawn.GetComp<CompHauledToInventory>() is null) // Misc. Robots compatibility
+														   // See https://github.com/catgirlfighter/RimWorld_CommonSense/blob/master/Source/CommonSense11/CommonSense/OpportunisticTasks.cs#L129-L140
 		{
 			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 		}
