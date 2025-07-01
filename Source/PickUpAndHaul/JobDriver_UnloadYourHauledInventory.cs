@@ -9,11 +9,36 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 	public override void ExposeData()
 	{
+		// Don't save any data for this job driver to prevent save corruption
+		// when the mod is removed
+		if (Scribe.mode == LoadSaveMode.Saving)
+		{
+			Log.Message("[PickUpAndHaul] Skipping save data for UnloadYourHauledInventory job driver");
+			return;
+		}
+		
+		// Only load data if we're in loading mode and the mod is active
+		if (Scribe.mode == LoadSaveMode.LoadingVars)
+		{
+			Log.Message("[PickUpAndHaul] Skipping load data for UnloadYourHauledInventory job driver");
+			return;
+		}
+		
+		// Only expose data if we're in a different mode (like copying)
 		base.ExposeData();
 		Scribe_Values.Look<int>(ref _countToDrop, "countToDrop", -1);
 	}
 
-	public override bool TryMakePreToilReservations(bool errorOnFailed) => true;
+	public override bool TryMakePreToilReservations(bool errorOnFailed) 
+	{
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			Log.Message($"[PickUpAndHaul] Skipping UnloadYourHauledInventory job reservations during save operation for {pawn}");
+			return false;
+		}
+		return true;
+	}
 
 	/// <summary>
 	/// Find spot, reserve spot, pull thing out of inventory, go to spot, drop stuff, repeat.
@@ -21,6 +46,14 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
+		// Check if save operation is in progress at the start
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			Log.Message($"[PickUpAndHaul] Ending UnloadYourHauledInventory job during save operation for {pawn}");
+			EndJobWith(JobCondition.InterruptForced);
+			yield break;
+		}
+
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
 			_unloadDuration = 20;
@@ -64,6 +97,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
+				// Check for save operation before releasing reservation
+				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+				{
+					return;
+				}
+
 				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
 				    && !ModCompatibilityCheck.HCSKIsActive)
 				{
@@ -79,6 +118,13 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
+				// Check for save operation before pulling item
+				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+				{
+					EndJobWith(JobCondition.InterruptForced);
+					return;
+				}
+
 				var thing = job.GetTarget(TargetIndex.A).Thing;
 				if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
 				{
@@ -118,6 +164,13 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
+				// Check for save operation before finding target
+				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+				{
+					EndJobWith(JobCondition.InterruptForced);
+					return;
+				}
+
 				var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
 
 				if (unloadableThing.Count == 0)

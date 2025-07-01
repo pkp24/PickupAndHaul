@@ -45,3 +45,97 @@ On the one hand this takes away a frustration of mine, but I can't deny that it 
 Ludeon: https://ludeon.com/forums/index.php?topic=35832  
 Steam: http://steamcommunity.com/sharedfiles/filedetails/?id=1279012058  
 GitHub: https://github.com/Mehni/PickUpAndHaul/releases
+
+## Features
+
+- Pawns can pick up multiple items and carry them in their inventory while hauling
+- Automatic unloading when pawns reach their destination
+- Configurable settings for different races and item types
+- Compatible with various other mods
+
+## Save System
+
+The mod includes a robust save/restore system that prevents errors during save operations:
+
+### How it works
+
+1. **During Save**: When a save operation begins, the mod automatically:
+   - Suspends all active pickup and haul jobs
+   - Stores job information for later restoration
+   - Prevents new jobs from being created
+
+2. **After Save**: When the save operation completes, the mod:
+   - Restores previously suspended jobs
+   - Recreates job queues and reservations
+   - Resumes normal operation
+
+### Safety Features
+
+- **Thread-safe**: Uses proper locking to prevent race conditions
+- **Error handling**: Graceful handling of edge cases and failures
+- **Logging**: Comprehensive logging for debugging
+- **Emergency cleanup**: Manual cleanup methods if needed
+
+### Manual Control
+
+The system provides public methods for external control:
+
+```csharp
+// Check if save is in progress
+bool isSaving = PickupAndHaulSaveLoadLogger.IsSaveInProgress();
+
+// Manually suspend jobs
+PickupAndHaulSaveLoadLogger.ManualSuspendJobs();
+
+// Manually restore jobs
+PickupAndHaulSaveLoadLogger.ManualRestoreJobs();
+
+// Emergency cleanup
+PickupAndHaulSaveLoadLogger.EmergencyCleanup();
+
+// Get current status
+string status = PickupAndHaulSaveLoadLogger.GetSaveStatus();
+```
+
+### Compatibility
+
+The save system is designed to work with:
+- All RimWorld save operations (auto-save, manual save, etc.)
+- Other mods that may interfere with job systems
+- Various game states and scenarios
+
+## Installation
+
+1. Download the mod
+2. Extract to your RimWorld Mods folder
+3. Enable in the mod list
+4. Configure settings as desired
+
+## Configuration
+
+The mod includes various settings to customize behavior:
+- Race restrictions
+- Item type filters
+- Capacity limits
+- And more
+
+## Compatibility
+
+This mod is compatible with:
+- Combat Extended
+- Extended Storage
+- Allow Tool
+- And many other popular mods
+
+## Troubleshooting
+
+If you experience issues:
+
+1. Check the logs for error messages
+2. Verify mod load order
+3. Try disabling conflicting mods
+4. Use the emergency cleanup if needed
+
+## License
+
+[License information here]

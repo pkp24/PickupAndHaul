@@ -3,6 +3,12 @@ public class PawnUnloadChecker
 {
 	public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
 	{
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			return; // Skip unload checking during save operations
+		}
+
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
 		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
 

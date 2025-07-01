@@ -14,7 +14,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| !Settings.IsAllowedRace(pawn.RaceProps)
 		|| pawn.GetComp<CompHauledToInventory>() == null
 		|| pawn.IsQuestLodger()
-		|| OverAllowedGearCapacity(pawn);
+		|| OverAllowedGearCapacity(pawn)
+		|| PickupAndHaulSaveLoadLogger.IsSaveInProgress()
+		|| !PickupAndHaulSaveLoadLogger.IsModActive(); // Skip if mod is not active
 
 	public static bool GoodThingToHaul(Thing t, Pawn pawn)
 		=> OkThingToHaul(t, pawn)
@@ -57,6 +59,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//before you go out, empty your pockets
 	public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			Log.Message($"[PickUpAndHaul] Skipping job creation during save operation for {pawn}");
+			return null;
+		}
+
+		// Check if mod is active
+		if (!PickupAndHaulSaveLoadLogger.IsModActive())
+		{
+			Log.Message($"[PickUpAndHaul] Skipping job creation - mod not active for {pawn}");
+			return null;
+		}
+
 		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
 		{
 			return null;
