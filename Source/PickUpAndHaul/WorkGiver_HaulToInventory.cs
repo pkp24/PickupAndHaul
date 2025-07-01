@@ -118,7 +118,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 			else
 			{
-				Verse.Log.Error("Don't know how to handle HaulToStorageJob for storage " + haulDestination.ToStringSafe() + ". thing=" + thing.ToStringSafe());
+				Log.Error("Don't know how to handle HaulToStorageJob for storage " + haulDestination.ToStringSafe() + ". thing=" + thing.ToStringSafe());
 				return null;
 			}
 		}
@@ -536,7 +536,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (haulDestination2 is not Thing destinationAsThing)
 			{
-				Verse.Log.Error($"{haulDestination2} is not a valid Thing. Pick Up And Haul can't work with this");
+				Log.Error($"{haulDestination2} is not a valid Thing. Pick Up And Haul can't work with this");
 			}
 			else
 			{
@@ -545,7 +545,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (innerInteractableThingOwner is null)
 			{
-				Verse.Log.Error($"{haulDestination2} gave null ThingOwner during lookup in Pick Up And Haul's WorkGiver_HaulToInventory");
+				Log.Error($"{haulDestination2} gave null ThingOwner during lookup in Pick Up And Haul's WorkGiver_HaulToInventory");
 			}
 
 			return true;

@@ -43,7 +43,7 @@ namespace PickUpAndHaul
                 // Don't save any mod-specific data if the mod is being removed
                 if (_modRemoved)
                 {
-                    Verse.Log.Warning("[PickUpAndHaul] Mod removed, skipping operations");
+                    			Log.Warning("[PickUpAndHaul] Mod removed, skipping operations");
                     return;
                 }
             }
@@ -67,7 +67,7 @@ namespace PickUpAndHaul
             {
                 if (_isSaving)
                 {
-                    Verse.Log.Warning("[PickUpAndHaul] Save operation already in progress, skipping job suspension");
+                    			Log.Warning("[PickUpAndHaul] Save operation already in progress, skipping job suspension");
                     return;
                 }
 
@@ -119,7 +119,7 @@ namespace PickUpAndHaul
                 }
                 catch (Exception ex)
                 {
-                    Verse.Log.Error($"[PickUpAndHaul] Error during job suspension: {ex.Message}");
+                    Log.Error($"[PickUpAndHaul] Error during job suspension: {ex.Message}");
                     _isSaving = false;
                 }
             }
@@ -134,7 +134,7 @@ namespace PickUpAndHaul
             {
                 if (!_isSaving)
                 {
-                    Verse.Log.Warning("[PickUpAndHaul] No save operation in progress, skipping job restoration");
+                    Log.Warning("[PickUpAndHaul] No save operation in progress, skipping job restoration");
                     return;
                 }
 
@@ -180,7 +180,7 @@ namespace PickUpAndHaul
                                 }
                                 else
                                 {
-                                    Verse.Log.Warning($"[PickUpAndHaul] Failed to restore job for {jobInfo.Pawn.NameShortColored}: reservation failed");
+                                    Log.Warning($"[PickUpAndHaul] Failed to restore job for {jobInfo.Pawn.NameShortColored}: reservation failed");
                                     failedCount++;
                                 }
                             }
@@ -192,7 +192,7 @@ namespace PickUpAndHaul
                         }
                         else
                         {
-                            Verse.Log.Warning($"[PickUpAndHaul] Could not restore job: pawn no longer spawned or valid");
+                            Log.Warning($"[PickUpAndHaul] Could not restore job: pawn no longer spawned or valid");
                             failedCount++;
                         }
                     }
@@ -201,7 +201,7 @@ namespace PickUpAndHaul
                 }
                 catch (Exception ex)
                 {
-                    Verse.Log.Error($"[PickUpAndHaul] Error during job restoration: {ex.Message}");
+                    Log.Error($"[PickUpAndHaul] Error during job restoration: {ex.Message}");
                 }
                 finally
                 {
@@ -256,7 +256,7 @@ namespace PickUpAndHaul
         {
             lock (_jobLock)
             {
-                Verse.Log.Warning("[PickUpAndHaul] Performing emergency cleanup of save state");
+                Log.Warning("[PickUpAndHaul] Performing emergency cleanup of save state");
                 _suspendedJobs.Clear();
                 _isSaving = false;
             }
@@ -280,7 +280,7 @@ namespace PickUpAndHaul
         {
             lock (_jobLock)
             {
-                Verse.Log.Warning("[PickUpAndHaul] Mod marked as removed, preventing save data corruption");
+                Log.Warning("[PickUpAndHaul] Mod marked as removed, preventing save data corruption");
                 _modRemoved = true;
                 _suspendedJobs.Clear();
                 _isSaving = false;
@@ -313,7 +313,7 @@ namespace PickUpAndHaul
         {
             if (!IsModActive())
             {
-                Verse.Log.Warning("[PickUpAndHaul] Mod appears to be inactive, performing safety cleanup");
+                Log.Warning("[PickUpAndHaul] Mod appears to be inactive, performing safety cleanup");
                 MarkModAsRemoved();
                 
                 // Clear any remaining mod-specific jobs from all pawns
@@ -330,7 +330,7 @@ namespace PickUpAndHaul
                                 var jobDef = pawn.jobs.curJob.def;
                                 if (jobDef.defName == "HaulToInventory" || jobDef.defName == "UnloadYourHauledInventory")
                                 {
-                                    Verse.Log.Warning($"[PickUpAndHaul] Clearing mod-specific job from {pawn.NameShortColored}");
+                                    Log.Warning($"[PickUpAndHaul] Clearing mod-specific job from {pawn.NameShortColored}");
                                     pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, false);
                                 }
                             }
@@ -339,7 +339,7 @@ namespace PickUpAndHaul
                 }
                 catch (Exception ex)
                 {
-                    Verse.Log.Error($"[PickUpAndHaul] Error during safety cleanup: {ex.Message}");
+                    Log.Error($"[PickUpAndHaul] Error during safety cleanup: {ex.Message}");
                 }
             }
         }

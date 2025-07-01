@@ -3,3 +3,5 @@ C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\PickupAndHaul\Source
 C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\PickupAndHaul\Source\PickUpAndHaul\obj\Release\PickUpAndHaul16.AssemblyInfoInputs.cache
 C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\PickupAndHaul\Source\PickUpAndHaul\obj\Release\PickUpAndHaul16.AssemblyInfo.cs
 C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\PickupAndHaul\Source\PickUpAndHaul\obj\Release\PickUpAndHaul16.csproj.CoreCompileInputs.cache
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\PickupAndHaul\1.6\Assemblies\PickUpAndHaul.dll
+C:\Program Files (x86)\Steam\steamapps\common\RimWorld\Mods\PickupAndHaul\Source\PickUpAndHaul\obj\Release\PickUpAndHaul.dll
