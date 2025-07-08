@@ -8,13 +8,11 @@ env:
   DLL_DEST_PATH: 1.6/Assemblies       # final DLL location (repo-root/1.6/Assemblies)
 
 ################################################################################
-# Build on pushes/PRs to main | master
+# Build on pushes/PRs to any branch
 ################################################################################
 on:
   push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
 
 ################################################################################
 # Job: compile → copy DLL → commit & push
