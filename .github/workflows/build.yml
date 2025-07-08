@@ -44,20 +44,23 @@ jobs:
     - name: Build (Release)
       run: dotnet build "${{ env.MOD_SRC_PATH }}" --configuration Release --no-restore
 
-    # 5️⃣ Copy ANY new DLL under Source/1.6 to repo-root/1.6/Assemblies/
-    - name: Copy DLLs to 1.6/Assemblies
+    # 5️⃣ Copy ONLY mod DLLs to 1.6/Assemblies
+    - name: Copy mod DLLs to 1.6/Assemblies
       shell: pwsh
       run: |
         $dest = Join-Path $env:GITHUB_WORKSPACE '${{ env.DLL_DEST_PATH }}'
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
-        $dlls = Get-ChildItem '${{ env.MOD_SRC_PATH }}' -Filter *.dll -Recurse |
-                  Where-Object { $_.FullName -notmatch '\\ref\\' }
-
-        if (-not $dlls) { Write-Error "No DLLs found after build." }
-
-        $dlls | Copy-Item -Destination $dest -Force
-        Write-Host "Copied $($dlls.Count) DLL(s) to $dest"
+        $modDlls = @('PickUpAndHaul.dll', 'IHoldMultipleThings.dll')
+        foreach ($dll in $modDlls) {
+          $src = Join-Path '${{ env.MOD_SRC_PATH }}' $dll
+          if (Test-Path $src) {
+            Copy-Item $src -Destination $dest -Force
+            Write-Host "Copied $dll to $dest"
+          } else {
+            Write-Host "$dll not found in build output, skipping."
+          }
+        }
 
     # 6️⃣ Commit & push the DLL(s) back to the current branch
     - name: Commit built DLLs
