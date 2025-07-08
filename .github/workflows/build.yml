@@ -4,7 +4,7 @@ name: Build & Commit RimWorld DLL
 # Adjust only if you move folders
 ################################################################################
 env:
-  MOD_SRC_PATH: Source/1.6            # .csproj lives here
+  MOD_SRC_PATH: Source/PickUpAndHaul  # .csproj lives here
   DLL_DEST_PATH: 1.6/Assemblies       # final DLL location (repo-root/1.6/Assemblies)
 
 ################################################################################
