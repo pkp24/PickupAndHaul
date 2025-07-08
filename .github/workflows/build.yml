@@ -1,0 +1,82 @@
+name: Build & Commit RimWorld DLL
+
+################################################################################
+# Adjust only if you move folders
+################################################################################
+env:
+  MOD_SRC_PATH: Source/1.6            # .csproj lives here
+  DLL_DEST_PATH: 1.6/Assemblies       # final DLL location (repo-root/1.6/Assemblies)
+
+################################################################################
+# Build on pushes/PRs to main | master
+################################################################################
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+################################################################################
+# Job: compile → copy DLL → commit & push
+# Entire job is skipped if the pusher is github-actions[bot]
+################################################################################
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: windows-latest
+
+    steps:
+    # 1️⃣ Check out code so we can commit later
+    - name: Check out repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true        # we’ll push back with GITHUB_TOKEN
+
+    # 2️⃣ Install .NET SDK 8 (includes .NET Framework ref-packs)
+    - name: Set up .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    # 3️⃣ Restore NuGet packages
+    - name: Restore packages
+      run: dotnet restore "${{ env.MOD_SRC_PATH }}"
+
+    # 4️⃣ Build in Release mode
+    - name: Build (Release)
+      run: dotnet build "${{ env.MOD_SRC_PATH }}" --configuration Release --no-restore
+
+    # 5️⃣ Copy ANY new DLL under Source/1.6 to repo-root/1.6/Assemblies/
+    - name: Copy DLLs to 1.6/Assemblies
+      shell: pwsh
+      run: |
+        $dest = Join-Path $env:GITHUB_WORKSPACE '${{ env.DLL_DEST_PATH }}'
+        New-Item -ItemType Directory -Force -Path $dest | Out-Null
+
+        $dlls = Get-ChildItem '${{ env.MOD_SRC_PATH }}' -Filter *.dll -Recurse |
+                  Where-Object { $_.FullName -notmatch '\\ref\\' }
+
+        if (-not $dlls) { Write-Error "No DLLs found after build." }
+
+        $dlls | Copy-Item -Destination $dest -Force
+        Write-Host "Copied $($dlls.Count) DLL(s) to $dest"
+
+    # 6️⃣ Commit & push the DLL(s) back to the current branch
+    - name: Commit built DLLs
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config user.name  "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        git add ${{ env.DLL_DEST_PATH }}/*.dll
+
+        # commit only if there are changes
+        if ! git diff --cached --quiet; then
+          git commit -m "CI: update built DLL from $GITHUB_SHA"
+          git push origin HEAD:${GITHUB_REF#refs/heads/}
+          echo "DLL committed & pushed."
+        else
+          echo "No DLL changes to commit."
+        fi
