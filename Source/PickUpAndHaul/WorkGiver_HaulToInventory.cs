@@ -9,10 +9,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	private const float SEARCH_FOR_OTHERS_RANGE_FRACTION = 0.5f;
 
 	public override bool ShouldSkip(Pawn pawn, bool forced = false)
-		=> base.ShouldSkip(pawn, forced)
-		|| pawn.Faction != Faction.OfPlayerSilentFail
-		|| !Settings.IsAllowedRace(pawn.RaceProps)
-		|| pawn.GetComp<CompHauledToInventory>() == null
+                => base.ShouldSkip(pawn, forced)
+                || pawn.InMentalState
+                || pawn.Faction != Faction.OfPlayerSilentFail
+                || !Settings.IsAllowedRace(pawn.RaceProps)
+                || pawn.GetComp<CompHauledToInventory>() == null
 		|| pawn.IsQuestLodger()
 		|| OverAllowedGearCapacity(pawn)
 		|| PickupAndHaulSaveLoadLogger.IsSaveInProgress()
@@ -45,9 +46,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		public int Compare(Thing x, Thing y) => (x.Position - rootCell).LengthHorizontalSquared.CompareTo((y.Position - rootCell).LengthHorizontalSquared);
 	}
 
-	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
-		=> OkThingToHaul(thing, pawn)
-		&& IsNotCorpseOrAllowed(thing)
+        public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
+                => !pawn.InMentalState
+                && OkThingToHaul(thing, pawn)
+                && IsNotCorpseOrAllowed(thing)
 		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
 		&& StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, false)
 		&& !OverAllowedGearCapacity(pawn)
@@ -65,14 +67,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//pick up stuff until you can't anymore,
 	//while you're up and about, pick up something and haul it
 	//before you go out, empty your pockets
-	public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			Log.Message($"[PickUpAndHaul] Skipping job creation during save operation for {pawn}");
-			return null;
-		}
+        public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
+        {
+                // Check if save operation is in progress
+                if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+                {
+                        Log.Message($"[PickUpAndHaul] Skipping job creation during save operation for {pawn}");
+                        return null;
+                }
+
+                // Do not create hauling jobs for pawns in a mental state
+                if (pawn.InMentalState)
+                {
+                        return null;
+                }
 
 		// Check if mod is active
 		if (!PickupAndHaulSaveLoadLogger.IsModActive())

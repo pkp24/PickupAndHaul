@@ -1,13 +1,19 @@
 ﻿namespace PickUpAndHaul;
 public class PawnUnloadChecker
 {
-	public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			return; // Skip unload checking during save operations
-		}
+        public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
+        {
+                // Check if save operation is in progress
+                if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+                {
+                        return; // Skip unload checking during save operations
+                }
+
+                // Ignore pawns that are currently in a mental state
+                if (pawn == null || pawn.InMentalState)
+                {
+                        return;
+                }
 
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
 		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
