@@ -39,6 +39,10 @@ static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(JobGiver_Idle), nameof(JobGiver_Idle.TryGiveJob)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)));
 
+		// Add performance profiler update to the main tick
+		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(TickManagerUpdate_Postfix)));
+
 		harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), nameof(ITab_Pawn_Gear.DrawThingRow)),
 			transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
 
@@ -237,6 +241,11 @@ static class HarmonyPatches
 			return; // Skip idle joy postfix during save
 		}
 		PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn, true); 
+	}
+
+	public static void TickManagerUpdate_Postfix()
+	{
+		PerformanceProfiler.Update();
 	}
 
 	public static void DropUnusedInventory_PostFix(Pawn pawn) 

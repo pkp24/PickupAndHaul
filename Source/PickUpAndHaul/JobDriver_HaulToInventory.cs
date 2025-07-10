@@ -23,27 +23,35 @@ public class JobDriver_HaulToInventory : JobDriver
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
+		PerformanceProfiler.StartTimer("TryMakePreToilReservations");
+		
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			Log.Message($"[PickUpAndHaul] Skipping HaulToInventory job reservations during save operation for {pawn}");
+			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 			return false;
 		}
 
 		Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
 		pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
 		pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
-		return pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
+		var result = pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
+		PerformanceProfiler.EndTimer("TryMakePreToilReservations");
+		return result;
 	}
 
 	//get next, goto, take, check for more. Branches off to "all over the place"
 	public override IEnumerable<Toil> MakeNewToils()
 	{
+		PerformanceProfiler.StartTimer("MakeNewToils");
+		
 		// Check if save operation is in progress at the start
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			Log.Message($"[PickUpAndHaul] Ending HaulToInventory job during save operation for {pawn}");
 			EndJobWith(JobCondition.InterruptForced);
+			PerformanceProfiler.EndTimer("MakeNewToils");
 			yield break;
 		}
 
