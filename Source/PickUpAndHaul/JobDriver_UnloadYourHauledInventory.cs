@@ -4,8 +4,9 @@ namespace PickUpAndHaul;
 
 public class JobDriver_UnloadYourHauledInventory : JobDriver
 {
-	private int _countToDrop = -1;
-	private int _unloadDuration = 3;
+        private int _countToDrop = -1;
+        private int _unloadDuration = 3;
+        private IntVec3 _lastDropCell = IntVec3.Invalid;
 
 	public override void ExposeData()
 	{
@@ -55,13 +56,15 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	{
 		PerformanceProfiler.StartTimer("MakeNewToils");
 		// Check if save operation is in progress at the start
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			Log.Message($"[PickUpAndHaul] Ending UnloadYourHauledInventory job during save operation for {pawn}");
-			EndJobWith(JobCondition.InterruptForced);
-			PerformanceProfiler.EndTimer("MakeNewToils");
-			yield break;
-		}
+                if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+                {
+                        Log.Message($"[PickUpAndHaul] Ending UnloadYourHauledInventory job during save operation for {pawn}");
+                        EndJobWith(JobCondition.InterruptForced);
+                        PerformanceProfiler.EndTimer("MakeNewToils");
+                        yield break;
+                }
+
+                _lastDropCell = IntVec3.Invalid;
 
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
@@ -81,25 +84,83 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		// Equivalent to if (TargetB.HasThing)
 		yield return Toils_Jump.JumpIf(carryToCell, TargetIsCell);
 
-		var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
-		yield return carryToContainer;
-		yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
-		yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
-		// Equivalent to jumping out of the else block
-		yield return Toils_Jump.Jump(releaseReservation);
+                var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
+                yield return carryToContainer;
+                yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
+                yield return RememberDropCell();
+                yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
+                // Equivalent to jumping out of the else block
+                yield return Toils_Jump.Jump(releaseReservation);
 
 		// Equivalent to else
-		yield return carryToCell;
-		yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
+                yield return carryToCell;
+                yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
+                yield return RememberDropCell();
 
 		//If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
 		//We still gotta release though, mostly because of Extended Storage.
-		yield return releaseReservation;
-		yield return Toils_Jump.Jump(begin);
-		PerformanceProfiler.EndTimer("MakeNewToils");
-	}
+                yield return releaseReservation;
+                yield return Toils_Jump.Jump(begin);
+                PerformanceProfiler.EndTimer("MakeNewToils");
+        }
 
-	private bool TargetIsCell() => !TargetB.HasThing;
+        private Toil RememberDropCell()
+        {
+                return new()
+                {
+                        initAction = () =>
+                        {
+                                _lastDropCell = job.targetB.HasThing ? job.targetB.Thing.Position : job.targetB.Cell;
+                        }
+                };
+        }
+
+        private bool TargetIsCell() => !TargetB.HasThing;
+
+        private static bool TryFindNearbyBetterStoreCellFor(Thing thing, Pawn pawn, Map map,
+                        StoragePriority currentPriority, Faction faction, IntVec3 near, out IntVec3 foundCell)
+        {
+                var haulDestinations = map.haulDestinationManager.AllGroupsListInPriorityOrder;
+                var bestCell = IntVec3.Invalid;
+                var bestDist = float.MaxValue;
+
+                for (var i = 0; i < haulDestinations.Count; i++)
+                {
+                        var slotGroup = haulDestinations[i];
+                        if (slotGroup.Settings.Priority <= currentPriority || !slotGroup.parent.Accepts(thing))
+                        {
+                                continue;
+                        }
+
+                        var cells = slotGroup.CellsList;
+                        for (var j = 0; j < cells.Count; j++)
+                        {
+                                var cell = cells[j];
+                                var dist = (cell - near).LengthHorizontalSquared;
+                                if (dist >= bestDist || dist > 81f) // limit radius ~9 cells
+                                {
+                                        continue;
+                                }
+                                if (StoreUtility.IsGoodStoreCell(cell, map, thing, pawn, faction))
+                                {
+                                        bestDist = dist;
+                                        bestCell = cell;
+                                        if (dist == 0f)
+                                        {
+                                                break;
+                                        }
+                                }
+                        }
+
+                        if (bestCell.IsValid)
+                        {
+                                break;
+                        }
+                }
+
+                foundCell = bestCell;
+                return bestCell.IsValid;
+        }
 
 	private Toil ReleaseReservation()
 	{
@@ -201,13 +262,38 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					return;
 				}
 
-				var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
-				if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					    pawn.Faction, out var cell, out var destination))
-				{
-					job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-					if (cell == IntVec3.Invalid)
-					{
+                var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
+                                IntVec3 cell;
+                                IHaulDestination destination;
+
+                                if (_lastDropCell.IsValid &&
+                                        TryFindNearbyBetterStoreCellFor(unloadableThing.Thing, pawn, pawn.Map,
+                                                currentPriority, pawn.Faction, _lastDropCell, out cell))
+                                {
+                                        destination = null;
+                                        job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+                                        job.SetTarget(TargetIndex.B, cell);
+
+                                        Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+                                        if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+                                        {
+                                                Log.Message(
+                                                        $"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+                                                pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+                                                        unloadableThing.Thing.stackCount, out _);
+                                                EndJobWith(JobCondition.Incompletable);
+                                                PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                                return;
+                                        }
+                                        _countToDrop = unloadableThing.Thing.stackCount;
+                                        PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                }
+                                else if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
+                                            pawn.Faction, out cell, out destination))
+                                {
+                                        job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+                                        if (cell == IntVec3.Invalid)
+                                        {
 						job.SetTarget(TargetIndex.B, destination as Thing);
 					}
 					else
@@ -248,7 +334,8 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                 var innerPawnContainer = pawn.inventory.innerContainer;
                 Thing best = null;
 
-                foreach (var thing in carriedThings)
+                // Iterate over a copy since the set may be modified as we remove items
+                foreach (var thing in carriedThings.ToList())
                 {
                         // Handle stacks that changed IDs after being picked up
                         if (!innerPawnContainer.Contains(thing))
