@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Collections.Generic;
 
 namespace PickUpAndHaul;
 public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
@@ -57,12 +58,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	//bulky gear (power armor + minigun) so don't bother.
 	//Updated to include inventory mass, not just gear mass
-	public static bool OverAllowedGearCapacity(Pawn pawn) 
-	{
-		var totalMass = MassUtility.GearAndInventoryMass(pawn);
-		var capacity = MassUtility.Capacity(pawn);
-		return totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
-	}
+        private static readonly Dictionary<Pawn, (int tick, bool result)> _encumbranceCache = new();
+
+        public static bool OverAllowedGearCapacity(Pawn pawn)
+        {
+                var currentTick = Find.TickManager.TicksGame;
+
+                if (_encumbranceCache.TryGetValue(pawn, out var cache) && cache.tick == currentTick)
+                {
+                        return cache.result;
+                }
+
+                var totalMass = MassUtility.GearAndInventoryMass(pawn);
+                var capacity = MassUtility.Capacity(pawn);
+                var result = totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+
+                _encumbranceCache[pawn] = (currentTick, result);
+                return result;
+        }
 
 	//pick up stuff until you can't anymore,
 	//while you're up and about, pick up something and haul it
