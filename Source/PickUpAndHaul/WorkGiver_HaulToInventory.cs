@@ -233,9 +233,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var haulUrgentlyDesignation = PickUpAndHaulDesignationDefOf.haulUrgently;
 		var isUrgent = ModCompatibilityCheck.AllowToolIsActive && designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		Comparer.rootCell = thing.Position;
-		haulables.Sort(Comparer);
+                var haulables = ListPool<Thing>.Get();
+                var allHaulables = map.listerHaulables.ThingsPotentiallyNeedingHauling();
+                var searchRadiusSq = distanceToSearchMore * distanceToSearchMore;
+                var root = thing.Position;
+                foreach (var candidate in allHaulables)
+                {
+                        if (candidate == thing)
+                                continue;
+                        if ((candidate.Position - root).LengthHorizontalSquared > searchRadiusSq)
+                                continue;
+                        haulables.Add(candidate);
+                }
+                Comparer.rootCell = root;
+                haulables.Sort(Comparer);
 
 		var nextThing = thing;
 		var lastThing = thing;
@@ -281,14 +292,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		while ((nextThing = GetClosestAndRemove(lastThing.Position, map, haulables, PathEndMode.ClosestTouch,
 			TraverseParms.For(pawn), distanceToSearchMore, Validator)) != null);
 		
-		if (nextThing == null)
-		{
-			skipCells = null;
-			skipThings = null;
-			//skipTargets = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
-			return job;
-		}
+                if (nextThing == null)
+                {
+                        skipCells = null;
+                        skipThings = null;
+                        //skipTargets = null;
+                        PerformanceProfiler.EndTimer("JobOnThing");
+                        ListPool<Thing>.Return(haulables);
+                        return job;
+                }
 
 		//Find what can be carried
 		//this doesn't actually get pickupandhauled, but will hold the reservation so others don't grab what this pawn can carry
@@ -298,12 +310,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (carryCapacity == 0)
 		{
 			Log.Message("Can't carry more, nevermind!");
-			skipCells = null;
-			skipThings = null;
-			//skipTargets = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
-			return job;
-		}
+                skipCells = null;
+                skipThings = null;
+                //skipTargets = null;
+                PerformanceProfiler.EndTimer("JobOnThing");
+                ListPool<Thing>.Return(haulables);
+                return job;
+        }
 		Log.Message($"Looking for more like {nextThing}");
 
 		while ((nextThing = GetClosestAndRemove(nextThing.Position, map, haulables,
@@ -485,12 +498,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		PerformanceProfiler.StartTimer("AllocateThingAtCell");
 		
 		var map = pawn.Map;
-		var allocation = storeCellCapacity.FirstOrDefault(kvp =>
-			kvp.Key is var storeTarget
-			&& (storeTarget.container?.TryGetInnerInteractableThingOwner().CanAcceptAnyOf(nextThing)
-			?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
-			&& Stackable(nextThing, kvp));
-		var storeCell = allocation.Key;
+                StoreTarget storeCell = default;
+                foreach (var kvp in storeCellCapacity)
+                {
+                        var target = kvp.Key;
+                        var owner = target.container?.TryGetInnerInteractableThingOwner();
+                        var accepts = owner?.CanAcceptAnyOf(nextThing)
+                                       ?? target.cell.GetSlotGroup(map).parent.Accepts(nextThing);
+                        if (accepts && Stackable(nextThing, kvp))
+                        {
+                                storeCell = target;
+                                break;
+                        }
+                }
 
 		//Can't stack with allocated cells, find a new cell:
 		if (storeCell == default)
