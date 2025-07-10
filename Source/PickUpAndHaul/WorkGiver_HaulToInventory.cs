@@ -416,13 +416,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return null;
 	}
 
-	public static Thing FindClosestThing(List<Thing> searchSet, IntVec3 center, out int index)
-	{
-		if (!searchSet.Any())
-		{
-			index = -1;
-			return null;
-		}
+        public static Thing FindClosestThing(List<Thing> searchSet, IntVec3 center, out int index)
+        {
+                if (searchSet.Count == 0)
+                {
+                        index = -1;
+                        return null;
+                }
 
 		var closestThing = searchSet[0];
 		index = 0;

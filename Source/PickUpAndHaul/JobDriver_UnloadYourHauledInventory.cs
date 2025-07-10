@@ -242,35 +242,47 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		};
 	}
 
-	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
-	{
-		PerformanceProfiler.StartTimer("FirstUnloadableThing");
-		var innerPawnContainer = pawn.inventory.innerContainer;
+        private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
+        {
+			PerformanceProfiler.StartTimer("FirstUnloadableThing");
+                var innerPawnContainer = pawn.inventory.innerContainer;
+                Thing best = null;
 
-		foreach (var thing in carriedThings.OrderBy(t => t.def.FirstThingCategory?.index).ThenBy(x => x.def.defName))
-		{
-			//find the overlap.
-			if (!innerPawnContainer.Contains(thing))
-			{
-				//merged partially picked up stacks get a different thingID in inventory
-				var stragglerDef = thing.def;
-				carriedThings.Remove(thing);
+                foreach (var thing in carriedThings)
+                {
+                        // Handle stacks that changed IDs after being picked up
+                        if (!innerPawnContainer.Contains(thing))
+                        {
+                                var stragglerDef = thing.def;
+                                carriedThings.Remove(thing);
 
-				//we have no method of grabbing the newly generated thingID. This is the solution to that.
-				for (var i = 0; i < innerPawnContainer.Count; i++)
-				{
-					var dirtyStraggler = innerPawnContainer[i];
-					if (dirtyStraggler.def == stragglerDef)
-					{
-						PerformanceProfiler.EndTimer("FirstUnloadableThing");
-						return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
-					}
-				}
-			}
-			PerformanceProfiler.EndTimer("FirstUnloadableThing");
-			return new ThingCount(thing, thing.stackCount);
-		}
-		PerformanceProfiler.EndTimer("FirstUnloadableThing");
-		return default;
-	}
+                                for (var i = 0; i < innerPawnContainer.Count; i++)
+                                {
+                                        var dirtyStraggler = innerPawnContainer[i];
+                                        if (dirtyStraggler.def == stragglerDef)
+                                        {
+                                                PerformanceProfiler.EndTimer("FirstUnloadableThing");
+                                                return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
+                                        }
+                                }
+                                continue;
+                        }
+
+                        if (best == null || CompareInventoryOrder(best, thing) > 0)
+                        {
+                                best = thing;
+                        }
+                }
+
+                PerformanceProfiler.EndTimer("FirstUnloadableThing");
+                return best != null ? new ThingCount(best, best.stackCount) : default;
+
+                static int CompareInventoryOrder(Thing a, Thing b)
+                {
+                        var catA = a.def.FirstThingCategory?.index ?? int.MaxValue;
+                        var catB = b.def.FirstThingCategory?.index ?? int.MaxValue;
+                        var compare = catA.CompareTo(catB);
+                        return compare != 0 ? compare : string.CompareOrdinal(a.def.defName, b.def.defName);
+                }
+        }
 }
