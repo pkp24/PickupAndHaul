@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
+using System.IO;
 
 namespace PickUpAndHaul
 {
@@ -12,6 +13,7 @@ namespace PickUpAndHaul
         private static readonly Dictionary<string, Stopwatch> _activeTimers = new();
         private static int _lastReportTick = 0;
         private static readonly int REPORT_INTERVAL_TICKS = 6000; // Report every 10 seconds at 60 TPS
+        private static readonly string LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaul_Performance.txt");
 
         public static void StartTimer(string operationName)
         {
@@ -72,12 +74,11 @@ namespace PickUpAndHaul
             }
         }
 
-        private static void GenerateReport()
+        private static string GenerateReportText()
         {
-            if (_metrics.Count == 0)
-                return;
-
-            Log.Message("=== PickUpAndHaul Performance Report ===");
+            var report = "=== PickUpAndHaul Performance Report ===\n";
+            report += $"Generated at: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n";
+            report += $"Game Tick: {Find.TickManager?.TicksGame ?? 0}\n\n";
             
             var sortedMetrics = _metrics.OrderByDescending(kvp => kvp.Value.AverageTicks).ToList();
             
@@ -86,16 +87,51 @@ namespace PickUpAndHaul
                 var metric = kvp.Value;
                 var operationName = kvp.Key;
                 
-                Log.Message($"{operationName}:");
-                Log.Message($"  Calls: {metric.CallCount}");
-                Log.Message($"  Total Ticks: {metric.TotalTicks}");
-                Log.Message($"  Average Ticks: {metric.AverageTicks:F2}");
-                Log.Message($"  Max Ticks: {metric.MaxTicks}");
-                Log.Message($"  Min Ticks: {metric.MinTicks}");
-                Log.Message($"  Calls per 10s: {metric.CallsPerSecond:F2}");
-                Log.Message($"  Ticks per 10s: {metric.TicksPerSecond:F2}");
-                Log.Message("");
+                report += $"{operationName}:\n";
+                report += $"  Calls: {metric.CallCount}\n";
+                report += $"  Total Ticks: {metric.TotalTicks}\n";
+                report += $"  Average Ticks: {metric.AverageTicks:F2}\n";
+                report += $"  Max Ticks: {metric.MaxTicks}\n";
+                report += $"  Min Ticks: {metric.MinTicks}\n";
+                report += $"  Calls per 10s: {metric.CallsPerSecond:F2}\n";
+                report += $"  Ticks per 10s: {metric.TicksPerSecond:F2}\n";
+                report += "\n";
             }
+
+            return report;
+        }
+
+        private static void WriteReportToFile(string report)
+        {
+            try
+            {
+                // Ensure the directory exists
+                var directory = Path.GetDirectoryName(LOG_FILE_PATH);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                // Append to file with timestamp
+                var timestampedReport = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}]\n{report}\n{new string('=', 80)}\n\n";
+                File.AppendAllText(LOG_FILE_PATH, timestampedReport);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning($"[PerformanceProfiler] Failed to write to performance log file: {ex.Message}");
+            }
+        }
+
+        private static void GenerateReport()
+        {
+            if (_metrics.Count == 0)
+                return;
+
+            var report = GenerateReportText();
+            Log.Message(report);
+            
+            // Also write to file
+            WriteReportToFile(report);
 
             // Clear metrics for next reporting period
             _metrics.Clear();
@@ -115,7 +151,25 @@ namespace PickUpAndHaul
                 return;
             }
             
-            GenerateReport();
+            var report = GenerateReportText();
+            Log.Message(report);
+            WriteReportToFile(report);
+        }
+
+        public static void ClearPerformanceLogFile()
+        {
+            try
+            {
+                if (File.Exists(LOG_FILE_PATH))
+                {
+                    File.Delete(LOG_FILE_PATH);
+                    Log.Message("[PerformanceProfiler] Performance log file cleared.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning($"[PerformanceProfiler] Failed to clear performance log file: {ex.Message}");
+            }
         }
 
         private class PerformanceMetric
