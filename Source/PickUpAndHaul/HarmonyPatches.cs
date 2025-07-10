@@ -9,9 +9,11 @@ static class HarmonyPatches
 	static HarmonyPatches()
 	{
 		var harmony = new Harmony("mehni.rimworld.pickupandhaul.main");
-#if DEBUG
-		Harmony.DEBUG = true;
-#endif
+		
+		if (Settings.EnableDebugLogging)
+		{
+			Harmony.DEBUG = true;
+		}
 
 		if (!ModCompatibilityCheck.CombatExtendedIsActive)
 		{
