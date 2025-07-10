@@ -4,15 +4,82 @@ name: Build & Commit RimWorld DLL
 # Adjust only if you move folders
 ################################################################################
 env:
-  MOD_SRC_PATH: Source/PickUpAndHaul  # .csproj lives here
-  DLL_DEST_PATH: 1.6/Assemblies       # final DLL location (repo-root/1.6/Assemblies)
+  IHM_SRC_PATH: Source/IHoldMultipleThings  # IHoldMultipleThings .csproj
+  MOD_SRC_PATH: Source/PickUpAndHaul        # PickUpAndHaul .csproj
+  DLL_DEST_PATH: 1.6/Assemblies             # final DLL location (repo-root/1.6/Assemblies)
 
 ################################################################################
 # Build on pushes/PRs to any branch
 ################################################################################
 on:
   push:
+    paths-ignore:
+      - '1.6/Assemblies/*.dll'
+      - '**/*.dll'
+      - '**/*.xml'
+      - '**/*.png'
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.gif'
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.license'
+      - '**/*.gitignore'
+      - '**/*.gitattributes'
+      - '**/*.editorconfig'
+      - '**/*.vsconfig'
+      - '**/*.vspscc'
+      - '**/*.vssscc'
+      - '**/*.suo'
+      - '**/*.user'
+      - '**/*.cache'
+      - '**/*.log'
+      - '**/*.tmp'
+      - '**/*.temp'
+      - '**/obj/**'
+      - '**/bin/**'
+      - '**/node_modules/**'
+      - '**/.vs/**'
+      - '**/.git/**'
+      - '**/.github/**'
+      - '**/README.md'
+      - '**/LICENSE'
+      - '**/CHANGELOG.md'
+      - '**/CONTRIBUTING.md'
   pull_request:
+    paths-ignore:
+      - '1.6/Assemblies/*.dll'
+      - '**/*.dll'
+      - '**/*.xml'
+      - '**/*.png'
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.gif'
+      - '**/*.md'
+      - '**/*.txt'
+      - '**/*.license'
+      - '**/*.gitignore'
+      - '**/*.gitattributes'
+      - '**/*.editorconfig'
+      - '**/*.vsconfig'
+      - '**/*.vspscc'
+      - '**/*.vssscc'
+      - '**/*.suo'
+      - '**/*.user'
+      - '**/*.cache'
+      - '**/*.log'
+      - '**/*.tmp'
+      - '**/*.temp'
+      - '**/obj/**'
+      - '**/bin/**'
+      - '**/node_modules/**'
+      - '**/.vs/**'
+      - '**/.git/**'
+      - '**/.github/**'
+      - '**/README.md'
+      - '**/LICENSE'
+      - '**/CHANGELOG.md'
+      - '**/CONTRIBUTING.md'
 
 ################################################################################
 # Job: compile → copy DLL → commit & push
@@ -28,7 +95,7 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v4
       with:
-        persist-credentials: true        # we’ll push back with GITHUB_TOKEN
+        persist-credentials: true        # we'll push back with GITHUB_TOKEN
 
     # 2️⃣ Install .NET SDK 8 (includes .NET Framework ref-packs)
     - name: Set up .NET SDK
@@ -36,33 +103,48 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    # 3️⃣ Restore NuGet packages
+    # 3️⃣ Restore NuGet packages for both projects
     - name: Restore packages
-      run: dotnet restore "${{ env.MOD_SRC_PATH }}"
+      run: |
+        dotnet restore "${{ env.IHM_SRC_PATH }}"
+        dotnet restore "${{ env.MOD_SRC_PATH }}"
 
-    # 4️⃣ Build in Release mode
-    - name: Build (Release)
-      run: dotnet build "${{ env.MOD_SRC_PATH }}" --configuration Release --no-restore
+    # 4️⃣ Build IHoldMultipleThings first (dependency)
+    - name: Build IHoldMultipleThings
+      run: dotnet build "${{ env.IHM_SRC_PATH }}" --no-restore
 
-    # 5️⃣ Copy ONLY mod DLLs to 1.6/Assemblies
+    # 5️⃣ Build PickUpAndHaul (depends on IHoldMultipleThings)
+    - name: Build PickUpAndHaul
+      run: dotnet build "${{ env.MOD_SRC_PATH }}" --no-restore
+
+    # 6️⃣ Copy mod DLLs to 1.6/Assemblies from their respective build outputs
     - name: Copy mod DLLs to 1.6/Assemblies
       shell: pwsh
       run: |
         $dest = Join-Path $env:GITHUB_WORKSPACE '${{ env.DLL_DEST_PATH }}'
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
-        $modDlls = @('PickUpAndHaul.dll', 'IHoldMultipleThings.dll')
-        foreach ($dll in $modDlls) {
-          $src = Join-Path '${{ env.MOD_SRC_PATH }}' $dll
-          if (Test-Path $src) {
-            Copy-Item $src -Destination $dest -Force
-            Write-Host "Copied $dll to $dest"
-          } else {
-            Write-Host "$dll not found in build output, skipping."
-          }
+        # Copy IHoldMultipleThings.dll from its build output
+        $ihmSrc = Join-Path '${{ env.IHM_SRC_PATH }}' 'bin\Debug\net48\IHoldMultipleThings.dll'
+        if (Test-Path $ihmSrc) {
+          Copy-Item $ihmSrc -Destination $dest -Force
+          Write-Host "Copied IHoldMultipleThings.dll to $dest"
+        } else {
+          Write-Host "IHoldMultipleThings.dll not found in build output!"
+          exit 1
         }
 
-    # 6️⃣ Commit & push the DLL(s) back to the current branch
+        # Copy PickUpAndHaul.dll from its build output
+        $modSrc = Join-Path '${{ env.MOD_SRC_PATH }}' 'bin\Debug\net48\PickUpAndHaul.dll'
+        if (Test-Path $modSrc) {
+          Copy-Item $modSrc -Destination $dest -Force
+          Write-Host "Copied PickUpAndHaul.dll to $dest"
+        } else {
+          Write-Host "PickUpAndHaul.dll not found in build output!"
+          exit 1
+        }
+
+    # 7️⃣ Commit & push the DLL(s) back to the current branch
     - name: Commit built DLLs
       shell: bash
       env:
