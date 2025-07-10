@@ -117,34 +117,31 @@ jobs:
     - name: Build PickUpAndHaul
       run: dotnet build "${{ env.MOD_SRC_PATH }}" --no-restore
 
-    # 6️⃣ Copy mod DLLs to 1.6/Assemblies from their respective build outputs
-    - name: Copy mod DLLs to 1.6/Assemblies
+    # 6️⃣ Verify DLLs were built to the correct location
+    - name: Verify built DLLs
       shell: pwsh
       run: |
         $dest = Join-Path $env:GITHUB_WORKSPACE '${{ env.DLL_DEST_PATH }}'
-        New-Item -ItemType Directory -Force -Path $dest | Out-Null
-
-        # Copy IHoldMultipleThings.dll from its build output
-        $ihmSrc = Join-Path '${{ env.IHM_SRC_PATH }}' 'bin\Debug\net48\IHoldMultipleThings.dll'
-        if (Test-Path $ihmSrc) {
-          Copy-Item $ihmSrc -Destination $dest -Force
-          Write-Host "Copied IHoldMultipleThings.dll to $dest"
+        
+        # Check if IHoldMultipleThings.dll exists
+        $ihmDll = Join-Path $dest 'IHoldMultipleThings.dll'
+        if (Test-Path $ihmDll) {
+          Write-Host "✓ IHoldMultipleThings.dll found at $ihmDll"
         } else {
-          Write-Host "IHoldMultipleThings.dll not found in build output!"
+          Write-Host "✗ IHoldMultipleThings.dll not found at $ihmDll"
           exit 1
         }
 
-        # Copy PickUpAndHaul.dll from its build output
-        $modSrc = Join-Path '${{ env.MOD_SRC_PATH }}' 'bin\Debug\net48\PickUpAndHaul.dll'
-        if (Test-Path $modSrc) {
-          Copy-Item $modSrc -Destination $dest -Force
-          Write-Host "Copied PickUpAndHaul.dll to $dest"
+        # Check if PickUpAndHaul.dll exists
+        $modDll = Join-Path $dest 'PickUpAndHaul.dll'
+        if (Test-Path $modDll) {
+          Write-Host "✓ PickUpAndHaul.dll found at $modDll"
         } else {
-          Write-Host "PickUpAndHaul.dll not found in build output!"
+          Write-Host "✗ PickUpAndHaul.dll not found at $modDll"
           exit 1
         }
 
-    # 7️⃣ Commit & push the DLL(s) back to the current branch
+    # 7️⃣ Commit & push the built DLL(s) back to the current branch
     - name: Commit built DLLs
       shell: bash
       env:
