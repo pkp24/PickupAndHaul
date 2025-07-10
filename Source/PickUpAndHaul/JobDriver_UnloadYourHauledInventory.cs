@@ -9,11 +9,13 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 	public override void ExposeData()
 	{
+		PerformanceProfiler.StartTimer("ExposeData");
 		// Don't save any data for this job driver to prevent save corruption
 		// when the mod is removed
 		if (Scribe.mode == LoadSaveMode.Saving)
 		{
 			Log.Message("[PickUpAndHaul] Skipping save data for UnloadYourHauledInventory job driver");
+			PerformanceProfiler.EndTimer("ExposeData");
 			return;
 		}
 		
@@ -21,22 +23,27 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
 			Log.Message("[PickUpAndHaul] Skipping load data for UnloadYourHauledInventory job driver");
+			PerformanceProfiler.EndTimer("ExposeData");
 			return;
 		}
 		
 		// Only expose data if we're in a different mode (like copying)
 		base.ExposeData();
 		Scribe_Values.Look<int>(ref _countToDrop, "countToDrop", -1);
+		PerformanceProfiler.EndTimer("ExposeData");
 	}
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed) 
 	{
+		PerformanceProfiler.StartTimer("TryMakePreToilReservations");
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			Log.Message($"[PickUpAndHaul] Skipping UnloadYourHauledInventory job reservations during save operation for {pawn}");
+			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 			return false;
 		}
+		PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 		return true;
 	}
 
@@ -46,11 +53,13 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
+		PerformanceProfiler.StartTimer("MakeNewToils");
 		// Check if save operation is in progress at the start
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			Log.Message($"[PickUpAndHaul] Ending UnloadYourHauledInventory job during save operation for {pawn}");
 			EndJobWith(JobCondition.InterruptForced);
+			PerformanceProfiler.EndTimer("MakeNewToils");
 			yield break;
 		}
 
@@ -87,6 +96,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		//We still gotta release though, mostly because of Extended Storage.
 		yield return releaseReservation;
 		yield return Toils_Jump.Jump(begin);
+		PerformanceProfiler.EndTimer("MakeNewToils");
 	}
 
 	private bool TargetIsCell() => !TargetB.HasThing;
@@ -118,10 +128,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
+				PerformanceProfiler.StartTimer("PullItemFromInventory");
 				// Check for save operation before pulling item
 				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 				{
 					EndJobWith(JobCondition.InterruptForced);
+					PerformanceProfiler.EndTimer("PullItemFromInventory");
 					return;
 				}
 
@@ -130,6 +142,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				{
 					carriedThings.Remove(thing);
 					pawn.jobs.curDriver.JumpToToil(wait);
+					PerformanceProfiler.EndTimer("PullItemFromInventory");
 					return;
 				}
 				if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
@@ -138,6 +151,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
 					EndJobWith(JobCondition.Succeeded);
 					carriedThings.Remove(thing);
+					PerformanceProfiler.EndTimer("PullItemFromInventory");
 				}
 				else
 				{
@@ -146,6 +160,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					job.count = _countToDrop;
 					job.SetTarget(TargetIndex.A, thing);
 					carriedThings.Remove(thing);
+					PerformanceProfiler.EndTimer("PullItemFromInventory");
 				}
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
@@ -154,6 +169,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 
 				thing.SetForbidden(false, false);
+				PerformanceProfiler.EndTimer("PullItemFromInventory");
 			}
 		};
 	}
@@ -164,10 +180,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
+				PerformanceProfiler.StartTimer("FindTargetOrDrop");
 				// Check for save operation before finding target
 				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 				{
 					EndJobWith(JobCondition.InterruptForced);
+					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 					return;
 				}
 
@@ -179,6 +197,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					{
 						EndJobWith(JobCondition.Succeeded);
 					}
+					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 					return;
 				}
 
@@ -204,9 +223,11 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 							unloadableThing.Thing.stackCount, out _);
 						EndJobWith(JobCondition.Incompletable);
+						PerformanceProfiler.EndTimer("FindTargetOrDrop");
 						return;
 					}
 					_countToDrop = unloadableThing.Thing.stackCount;
+					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 				}
 				else
 				{
@@ -215,6 +236,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 						unloadableThing.Thing.stackCount, out _);
 					EndJobWith(JobCondition.Succeeded);
+					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 				}
 			}
 		};
@@ -222,6 +244,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
         private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
         {
+			PerformanceProfiler.StartTimer("FirstUnloadableThing");
                 var innerPawnContainer = pawn.inventory.innerContainer;
                 Thing best = null;
 
@@ -238,6 +261,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                                         var dirtyStraggler = innerPawnContainer[i];
                                         if (dirtyStraggler.def == stragglerDef)
                                         {
+                                                PerformanceProfiler.EndTimer("FirstUnloadableThing");
                                                 return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
                                         }
                                 }
@@ -250,6 +274,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                         }
                 }
 
+                PerformanceProfiler.EndTimer("FirstUnloadableThing");
                 return best != null ? new ThingCount(best, best.stackCount) : default;
 
                 static int CompareInventoryOrder(Thing a, Thing b)
