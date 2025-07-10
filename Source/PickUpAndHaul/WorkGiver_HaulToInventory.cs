@@ -157,11 +157,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 		}
 
-		var map = pawn.Map;
-		var designationManager = map.designationManager;
-		var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
-		ThingOwner nonSlotGroupThingOwner = null;
-		StoreTarget storeTarget;
+                var map = pawn.Map;
+                var designationManager = map.designationManager;
+                var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
+                var traverseParms = TraverseParms.For(pawn);
+                var capacity = MassUtility.Capacity(pawn);
+                var encumberance = MassUtility.GearAndInventoryMass(pawn) / capacity;
+                ThingOwner nonSlotGroupThingOwner = null;
+                StoreTarget storeTarget;
 		if (StoreUtility.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, true))
 		{
 			if (haulDestination is ISlotGroupParent)
@@ -213,8 +216,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		Log.Message($"{pawn} job found to haul: {thing} to {storeTarget}:{capacityStoreCell}, looking for more now");
 
 		//Find what fits in inventory, set nextThingLeftOverCount to be 
-		var nextThingLeftOverCount = 0;
-		var encumberance = MassUtility.EncumbrancePercent(pawn);
+                var nextThingLeftOverCount = 0;
 		job.targetQueueA = new List<LocalTargetInfo>(); //more things
 		job.targetQueueB = new List<LocalTargetInfo>(); //more storage; keep in mind the job doesn't use it, but reserve it so you don't over-haul
 		job.countQueue = new List<int>();//thing counts
@@ -264,22 +266,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		do
 		{
-			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
-			{
-				lastThing = nextThing;
-				encumberance += AddedEncumberance(pawn, nextThing);
+                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
+                        {
+                                lastThing = nextThing;
+                                encumberance += AddedEncumberance(pawn, nextThing, capacity);
 
-				if (encumberance > 1 || ceOverweight)
-				{
-					//can't CountToPickUpUntilOverEncumbered here, pawn doesn't actually hold these things yet
-					nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance);
-					Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
-					break;
-				}
-			}
-		}
-		while ((nextThing = GetClosestAndRemove(lastThing.Position, map, haulables, PathEndMode.ClosestTouch,
-			TraverseParms.For(pawn), distanceToSearchMore, Validator)) != null);
+                                if (encumberance > 1 || ceOverweight)
+                                {
+                                        //can't CountToPickUpUntilOverEncumbered here, pawn doesn't actually hold these things yet
+                                        nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance, capacity);
+                                        Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
+                                        break;
+                                }
+                        }
+                }
+                while ((nextThing = GetClosestAndRemove(lastThing.Position, map, haulables, PathEndMode.ClosestTouch,
+                        traverseParms, distanceToSearchMore, Validator)) != null);
 		
 		if (nextThing == null)
 		{
@@ -306,10 +308,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 		Log.Message($"Looking for more like {nextThing}");
 
-		while ((nextThing = GetClosestAndRemove(nextThing.Position, map, haulables,
-			   PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, Validator)) != null)
-		{
-			carryCapacity -= nextThing.stackCount;
+                while ((nextThing = GetClosestAndRemove(nextThing.Position, map, haulables,
+                           PathEndMode.ClosestTouch, traverseParms, 8f, Validator)) != null)
+                {
+                        carryCapacity -= nextThing.stackCount;
 
 			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
 			{
@@ -484,19 +486,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		PerformanceProfiler.StartTimer("AllocateThingAtCell");
 		
-		var map = pawn.Map;
-		var allocation = storeCellCapacity.FirstOrDefault(kvp =>
-			kvp.Key is var storeTarget
-			&& (storeTarget.container?.TryGetInnerInteractableThingOwner().CanAcceptAnyOf(nextThing)
-			?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
-			&& Stackable(nextThing, kvp));
+                var map = pawn.Map;
+                var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
+                var allocation = storeCellCapacity.FirstOrDefault(kvp =>
+                        kvp.Key is var storeTarget
+                        && (storeTarget.container?.TryGetInnerInteractableThingOwner().CanAcceptAnyOf(nextThing)
+                        ?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
+                        && Stackable(nextThing, kvp));
 		var storeCell = allocation.Key;
 
 		//Can't stack with allocated cells, find a new cell:
 		if (storeCell == default)
 		{
-			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-			if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
+                        if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
 			{
 				if (innerInteractableThingOwner is null)
 				{
@@ -549,8 +551,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				break;  //don't find new cell, might not have more of this thing to haul
 			}
 
-			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-			if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
+                        if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
 			{
 				if (innerInteractableThingOwner is null)
 				{
@@ -677,11 +678,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return false;
 	}
 
-	public static float AddedEncumberance(Pawn pawn, Thing thing)
-		=> thing.stackCount * thing.GetStatValue(StatDefOf.Mass) / MassUtility.Capacity(pawn);
+        public static float AddedEncumberance(Pawn pawn, Thing thing, float capacity)
+                => thing.stackCount * thing.GetStatValue(StatDefOf.Mass) / capacity;
 
-	public static int CountPastCapacity(Pawn pawn, Thing thing, float encumberance)
-		=> (int)Math.Ceiling((encumberance - 1) * MassUtility.Capacity(pawn) / thing.GetStatValue(StatDefOf.Mass));
+        public static int CountPastCapacity(Pawn pawn, Thing thing, float encumberance, float capacity)
+                => (int)Math.Ceiling((encumberance - 1) * capacity / thing.GetStatValue(StatDefOf.Mass));
 
 	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
 	{
