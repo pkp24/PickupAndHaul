@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace PickUpAndHaul;
 public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
@@ -226,16 +227,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			ceOverweight = CompatHelper.CeOverweight(pawn);
 		}
 
-		var distanceToHaul = (storeTarget.Position - thing.Position).LengthHorizontal * SEARCH_FOR_OTHERS_RANGE_FRACTION;
-		var distanceToSearchMore = Math.Max(12f, distanceToHaul);
+                var distanceToHaul = (storeTarget.Position - thing.Position).LengthHorizontal * SEARCH_FOR_OTHERS_RANGE_FRACTION;
+                var distanceToSearchMore = Math.Max(12f, distanceToHaul);
+                var traverseParams = TraverseParms.For(pawn);
 
 		//Find extra things than can be hauled to inventory, queue to reserve them
 		var haulUrgentlyDesignation = PickUpAndHaulDesignationDefOf.haulUrgently;
 		var isUrgent = ModCompatibilityCheck.AllowToolIsActive && designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		Comparer.rootCell = thing.Position;
-		haulables.Sort(Comparer);
+                var haulables = TempHaulableThings;
+                haulables.Clear();
+                haulables.AddRange(map.listerHaulables.ThingsPotentiallyNeedingHauling());
+                Comparer.rootCell = thing.Position;
+                haulables.Sort(Comparer);
 
 		var nextThing = thing;
 		var lastThing = thing;
@@ -278,8 +282,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				}
 			}
 		}
-		while ((nextThing = GetClosestAndRemove(lastThing.Position, map, haulables, PathEndMode.ClosestTouch,
-			TraverseParms.For(pawn), distanceToSearchMore, Validator)) != null);
+                while ((nextThing = GetClosestAndRemove(lastThing.Position, map, haulables, PathEndMode.ClosestTouch,
+                        traverseParams, distanceToSearchMore, Validator)) != null);
 		
 		if (nextThing == null)
 		{
@@ -306,8 +310,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 		Log.Message($"Looking for more like {nextThing}");
 
-		while ((nextThing = GetClosestAndRemove(nextThing.Position, map, haulables,
-			   PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, Validator)) != null)
+                while ((nextThing = GetClosestAndRemove(nextThing.Position, map, haulables,
+                           PathEndMode.ClosestTouch, traverseParams, 8f, Validator)) != null)
 		{
 			carryCapacity -= nextThing.stackCount;
 
@@ -379,7 +383,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		PerformanceProfiler.StartTimer("GetClosestAndRemove");
 		
-		if (searchSet == null || !searchSet.Any())
+                if (searchSet == null || searchSet.Count == 0)
 		{
 			PerformanceProfiler.EndTimer("GetClosestAndRemove");
 			return null;
@@ -485,12 +489,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		PerformanceProfiler.StartTimer("AllocateThingAtCell");
 		
 		var map = pawn.Map;
-		var allocation = storeCellCapacity.FirstOrDefault(kvp =>
-			kvp.Key is var storeTarget
-			&& (storeTarget.container?.TryGetInnerInteractableThingOwner().CanAcceptAnyOf(nextThing)
-			?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
-			&& Stackable(nextThing, kvp));
-		var storeCell = allocation.Key;
+                KeyValuePair<StoreTarget, CellAllocation>? allocation = null;
+                foreach (var kvp in storeCellCapacity)
+                {
+                        var st = kvp.Key;
+                        var canAccept = st.container?.TryGetInnerInteractableThingOwner().CanAcceptAnyOf(nextThing)
+                                        ?? st.cell.GetSlotGroup(map).parent.Accepts(nextThing);
+                        if (canAccept && Stackable(nextThing, kvp))
+                        {
+                                allocation = kvp;
+                                break;
+                        }
+                }
+                var storeCell = allocation?.Key ?? default;
 
 		//Can't stack with allocated cells, find a new cell:
 		if (storeCell == default)
@@ -590,9 +601,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return true;
 	}
 
-	//public static HashSet<StoreTarget> skipTargets;
-	public static HashSet<IntVec3> skipCells;
-	public static HashSet<Thing> skipThings;
+        //public static HashSet<StoreTarget> skipTargets;
+        public static HashSet<IntVec3> skipCells;
+        public static HashSet<Thing> skipThings;
+        private static List<Thing> TempHaulableThings { get; } = new();
 
 	public static bool TryFindBestBetterStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner)
 	{
