@@ -89,17 +89,30 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	//bulky gear (power armor + minigun) so don't bother.
 	//Updated to include inventory mass, not just gear mass
-	public static bool OverAllowedGearCapacity(Pawn pawn) 
-	{
-		PerformanceProfiler.StartTimer("OverAllowedGearCapacity");
-		
-		var totalMass = MassUtility.GearAndInventoryMass(pawn);
-		var capacity = MassUtility.Capacity(pawn);
-		var result = totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
-		
-		PerformanceProfiler.EndTimer("OverAllowedGearCapacity");
-		return result;
-	}
+
+        private static readonly Dictionary<Pawn, (int tick, bool result)> _encumbranceCache = new();
+
+        public static bool OverAllowedGearCapacity(Pawn pawn)
+        {
+                PerformanceProfiler.StartTimer("OverAllowedGearCapacity");
+                
+                var currentTick = Find.TickManager.TicksGame;
+
+                if (_encumbranceCache.TryGetValue(pawn, out var cache) && cache.tick == currentTick)
+                {
+                        PerformanceProfiler.EndTimer("OverAllowedGearCapacity");
+                        return cache.result;
+                }
+
+                var totalMass = MassUtility.GearAndInventoryMass(pawn);
+                var capacity = MassUtility.Capacity(pawn);
+                var result = totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+
+                _encumbranceCache[pawn] = (currentTick, result);
+                
+                PerformanceProfiler.EndTimer("OverAllowedGearCapacity");
+                return result;
+        }
 
 	//pick up stuff until you can't anymore,
 	//while you're up and about, pick up something and haul it
