@@ -9,7 +9,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	private const float SEARCH_FOR_OTHERS_RANGE_FRACTION = 0.5f;
 
 	public override bool ShouldSkip(Pawn pawn, bool forced = false)
-                => base.ShouldSkip(pawn, forced)
+	{
+		PerformanceProfiler.StartTimer("ShouldSkip");
+		
+		var result = base.ShouldSkip(pawn, forced)
                 || pawn.InMentalState
                 || pawn.Faction != Faction.OfPlayerSilentFail
                 || !Settings.IsAllowedRace(pawn.RaceProps)
@@ -18,24 +21,46 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| OverAllowedGearCapacity(pawn)
 		|| PickupAndHaulSaveLoadLogger.IsSaveInProgress()
 		|| !PickupAndHaulSaveLoadLogger.IsModActive(); // Skip if mod is not active
+		
+		PerformanceProfiler.EndTimer("ShouldSkip");
+		return result;
+	}
 
 	public static bool GoodThingToHaul(Thing t, Pawn pawn)
-		=> OkThingToHaul(t, pawn)
+	{
+		PerformanceProfiler.StartTimer("GoodThingToHaul");
+		
+		var result = OkThingToHaul(t, pawn)
 		&& IsNotCorpseOrAllowed(t)
 		&& !t.IsInValidBestStorage();
+		
+		PerformanceProfiler.EndTimer("GoodThingToHaul");
+		return result;
+	}
 
 	public static bool OkThingToHaul(Thing t, Pawn pawn)
-		=> t.Spawned
+	{
+		PerformanceProfiler.StartTimer("OkThingToHaul");
+		
+		var result = t.Spawned
 		&& pawn.CanReserve(t)
 		&& !t.IsForbidden(pawn);
+		
+		PerformanceProfiler.EndTimer("OkThingToHaul");
+		return result;
+	}
 
 	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
 
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
 	{
+		PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
+		
 		var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
 		Comparer.rootCell = pawn.Position;
 		list.Sort(Comparer);
+		
+		PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
 		return list;
 	}
 
@@ -47,21 +72,33 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	}
 
         public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
-                => !pawn.InMentalState
+	{
+		PerformanceProfiler.StartTimer("HasJobOnThing");
+		
+		var result = !pawn.InMentalState
                 && OkThingToHaul(thing, pawn)
                 && IsNotCorpseOrAllowed(thing)
 		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
 		&& StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, false)
 		&& !OverAllowedGearCapacity(pawn)
 		&& !MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1);
+		
+		PerformanceProfiler.EndTimer("HasJobOnThing");
+		return result;
+	}
 
 	//bulky gear (power armor + minigun) so don't bother.
 	//Updated to include inventory mass, not just gear mass
 	public static bool OverAllowedGearCapacity(Pawn pawn) 
 	{
+		PerformanceProfiler.StartTimer("OverAllowedGearCapacity");
+		
 		var totalMass = MassUtility.GearAndInventoryMass(pawn);
 		var capacity = MassUtility.Capacity(pawn);
-		return totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+		var result = totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+		
+		PerformanceProfiler.EndTimer("OverAllowedGearCapacity");
+		return result;
 	}
 
 	//pick up stuff until you can't anymore,
@@ -69,16 +106,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//before you go out, empty your pockets
         public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
         {
+		PerformanceProfiler.StartTimer("JobOnThing");
+		
                 // Check if save operation is in progress
                 if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
                 {
                         Log.Message($"[PickUpAndHaul] Skipping job creation during save operation for {pawn}");
+			PerformanceProfiler.EndTimer("JobOnThing");
                         return null;
                 }
 
                 // Do not create hauling jobs for pawns in a mental state
                 if (pawn.InMentalState)
                 {
+			PerformanceProfiler.EndTimer("JobOnThing");
                         return null;
                 }
 
@@ -86,17 +127,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (!PickupAndHaulSaveLoadLogger.IsModActive())
 		{
 			Log.Message($"[PickUpAndHaul] Skipping job creation - mod not active for {pawn}");
+			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 
 		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
 		{
+			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 
 		if (pawn.GetComp<CompHauledToInventory>() is null) // Misc. Robots compatibility
 														   // See https://github.com/catgirlfighter/RimWorld_CommonSense/blob/master/Source/CommonSense11/CommonSense/OpportunisticTasks.cs#L129-L140
 		{
+			PerformanceProfiler.EndTimer("JobOnThing");
 			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 		}
 
@@ -113,6 +157,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				//Don't multi-haul food to hoppers.
 				if (HaulToHopperJob(thing, targetCell, map))
 				{
+					PerformanceProfiler.EndTimer("JobOnThing");
 					return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 				}
 				else
@@ -127,12 +172,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			else
 			{
 				Log.Error("Don't know how to handle HaulToStorageJob for storage " + haulDestination.ToStringSafe() + ". thing=" + thing.ToStringSafe());
+				PerformanceProfiler.EndTimer("JobOnThing");
 				return null;
 			}
 		}
 		else
 		{
 			JobFailReason.Is("NoEmptyPlaceLower".Translate());
+			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 
@@ -143,6 +190,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		if (capacityStoreCell == 0)
 		{
+			PerformanceProfiler.EndTimer("JobOnThing");
 			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 		}
 
@@ -225,6 +273,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			skipCells = null;
 			skipThings = null;
 			//skipTargets = null;
+			PerformanceProfiler.EndTimer("JobOnThing");
 			return job;
 		}
 
@@ -239,6 +288,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			skipCells = null;
 			skipThings = null;
 			//skipTargets = null;
+			PerformanceProfiler.EndTimer("JobOnThing");
 			return job;
 		}
 		Log.Message($"Looking for more like {nextThing}");
@@ -265,6 +315,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		skipCells = null;
 		skipThings = null;
 		//skipTargets = null;
+		PerformanceProfiler.EndTimer("JobOnThing");
 		return job;
 	}
 
@@ -313,8 +364,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static Thing GetClosestAndRemove(IntVec3 center, Map map, List<Thing> searchSet, PathEndMode peMode, TraverseParms traverseParams, float maxDistance = 9999f, Predicate<Thing> validator = null)
 	{
+		PerformanceProfiler.StartTimer("GetClosestAndRemove");
+		
 		if (searchSet == null || !searchSet.Any())
 		{
+			PerformanceProfiler.EndTimer("GetClosestAndRemove");
 			return null;
 		}
 
@@ -340,10 +394,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (validator == null || validator(closestThing))
 			{
+				PerformanceProfiler.EndTimer("GetClosestAndRemove");
 				return closestThing;
 			}
 		}
 
+		PerformanceProfiler.EndTimer("GetClosestAndRemove");
 		return null;
 	}
 
@@ -409,6 +465,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
 	{
+		PerformanceProfiler.StartTimer("AllocateThingAtCell");
+		
 		var map = pawn.Map;
 		var allocation = storeCellCapacity.FirstOrDefault(kvp =>
 			kvp.Key is var storeTarget
@@ -452,6 +510,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					job.targetQueueA.Add(nextThing);
 				}
 
+				PerformanceProfiler.EndTimer("AllocateThingAtCell");
 				return false;
 			}
 		}
@@ -504,11 +563,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				count -= capacityOver;
 				job.countQueue.Add(count);
 				Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
+				PerformanceProfiler.EndTimer("AllocateThingAtCell");
 				return false;
 			}
 		}
 		job.countQueue.Add(count);
 		Log.Message($"{nextThing}:{count} allocated");
+		PerformanceProfiler.EndTimer("AllocateThingAtCell");
 		return true;
 	}
 
