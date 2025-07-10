@@ -3,15 +3,19 @@ public class PawnUnloadChecker
 {
         public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
         {
+		PerformanceProfiler.StartTimer("CheckIfPawnShouldUnloadInventory");
+		
                 // Check if save operation is in progress
                 if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
                 {
+			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
                         return; // Skip unload checking during save operations
                 }
 
                 // Ignore pawns that are currently in a mental state
                 if (pawn == null || pawn.InMentalState)
                 {
+			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
                         return;
                 }
 
@@ -20,6 +24,7 @@ public class PawnUnloadChecker
 
 		if (itemsTakenToInventory == null)
 		{
+			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
@@ -29,6 +34,7 @@ public class PawnUnloadChecker
 			|| carriedThing == null || carriedThing.Count == 0
 			|| pawn.inventory.innerContainer is not { } inventoryContainer || inventoryContainer.Count == 0)
 		{
+			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
@@ -37,6 +43,7 @@ public class PawnUnloadChecker
 			&& job.TryMakePreToilReservations(pawn, false)))
 		{
 			pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
+			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
@@ -49,10 +56,13 @@ public class PawnUnloadChecker
 				if (compRottable?.TicksUntilRotAtCurrentTemp < 30000)
 				{
 					pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
+					PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 					return;
 				}
 			}
 		}
+		
+		PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 
 		if (Find.TickManager.TicksGame % 50 == 0 && inventoryContainer.Count < carriedThing.Count)
 		{
