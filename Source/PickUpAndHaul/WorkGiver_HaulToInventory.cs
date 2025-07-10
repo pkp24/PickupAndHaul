@@ -292,7 +292,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		//Find what can be carried
 		//this doesn't actually get pickupandhauled, but will hold the reservation so others don't grab what this pawn can carry
-		haulables.RemoveAll(t => !t.CanStackWith(nextThing));
+                for (var i = haulables.Count - 1; i >= 0; i--)
+                {
+                        if (!haulables[i].CanStackWith(nextThing))
+                        {
+                                haulables.RemoveAt(i);
+                        }
+                }
 
 		var carryCapacity = pawn.carryTracker.MaxStackSpaceEver(nextThing.def) - nextThingLeftOverCount;
 		if (carryCapacity == 0)
@@ -485,12 +491,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		PerformanceProfiler.StartTimer("AllocateThingAtCell");
 		
 		var map = pawn.Map;
-		var allocation = storeCellCapacity.FirstOrDefault(kvp =>
-			kvp.Key is var storeTarget
-			&& (storeTarget.container?.TryGetInnerInteractableThingOwner().CanAcceptAnyOf(nextThing)
-			?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
-			&& Stackable(nextThing, kvp));
-		var storeCell = allocation.Key;
+                var storeCell = default(StoreTarget);
+                foreach (var kvp in storeCellCapacity)
+                {
+                        var storeTarget = kvp.Key;
+                        var accepts = storeTarget.container?.TryGetInnerInteractableThingOwner()?.CanAcceptAnyOf(nextThing)
+                                ?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing);
+
+                        if (accepts && Stackable(nextThing, kvp))
+                        {
+                                storeCell = storeTarget;
+                                break;
+                        }
+                }
 
 		//Can't stack with allocated cells, find a new cell:
 		if (storeCell == default)
