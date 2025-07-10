@@ -311,12 +311,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		public static implicit operator LocalTargetInfo(StoreTarget target) => target.container != null ? target.container : target.cell;
 	}
 
-	public static Thing GetClosestAndRemove(IntVec3 center, Map map, List<Thing> searchSet, PathEndMode peMode, TraverseParms traverseParams, float maxDistance = 9999f, Predicate<Thing> validator = null)
-	{
-		if (searchSet == null || !searchSet.Any())
-		{
-			return null;
-		}
+        public static Thing GetClosestAndRemove(IntVec3 center, Map map, List<Thing> searchSet, PathEndMode peMode, TraverseParms traverseParams, float maxDistance = 9999f, Predicate<Thing> validator = null)
+        {
+                if (searchSet == null || searchSet.Count == 0)
+                {
+                        return null;
+                }
 
 		var maxDistanceSquared = maxDistance * maxDistance;
 
@@ -347,13 +347,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return null;
 	}
 
-	public static Thing FindClosestThing(List<Thing> searchSet, IntVec3 center, out int index)
-	{
-		if (!searchSet.Any())
-		{
-			index = -1;
-			return null;
-		}
+        public static Thing FindClosestThing(List<Thing> searchSet, IntVec3 center, out int index)
+        {
+                if (searchSet.Count == 0)
+                {
+                        index = -1;
+                        return null;
+                }
 
 		var closestThing = searchSet[0];
 		index = 0;
