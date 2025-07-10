@@ -220,31 +220,53 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		};
 	}
 
-	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
-	{
-		var innerPawnContainer = pawn.inventory.innerContainer;
+        private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
+        {
+                var innerPawnContainer = pawn.inventory.innerContainer;
 
-		foreach (var thing in carriedThings.OrderBy(t => t.def.FirstThingCategory?.index).ThenBy(x => x.def.defName))
-		{
-			//find the overlap.
-			if (!innerPawnContainer.Contains(thing))
-			{
-				//merged partially picked up stacks get a different thingID in inventory
-				var stragglerDef = thing.def;
-				carriedThings.Remove(thing);
+                Thing bestThing = null;
+                int bestCategory = int.MaxValue;
+                string bestName = null;
+                Thing removeFromSet = null;
 
-				//we have no method of grabbing the newly generated thingID. This is the solution to that.
-				for (var i = 0; i < innerPawnContainer.Count; i++)
-				{
-					var dirtyStraggler = innerPawnContainer[i];
-					if (dirtyStraggler.def == stragglerDef)
-					{
-						return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
-					}
-				}
-			}
-			return new ThingCount(thing, thing.stackCount);
-		}
-		return default;
-	}
+                foreach (var thing in carriedThings)
+                {
+                        if (!innerPawnContainer.Contains(thing))
+                        {
+                                removeFromSet = thing;
+                                var stragglerDef = thing.def;
+                                for (var i = 0; i < innerPawnContainer.Count; i++)
+                                {
+                                        var dirtyStraggler = innerPawnContainer[i];
+                                        if (dirtyStraggler.def == stragglerDef)
+                                        {
+                                                if (removeFromSet != null)
+                                                {
+                                                        carriedThings.Remove(removeFromSet);
+                                                }
+                                                return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
+                                        }
+                                }
+                        }
+                        else
+                        {
+                                var categoryIndex = thing.def.FirstThingCategory?.index ?? int.MaxValue;
+                                if (bestThing == null
+                                        || categoryIndex < bestCategory
+                                        || (categoryIndex == bestCategory && string.CompareOrdinal(thing.def.defName, bestName) < 0))
+                                {
+                                        bestThing = thing;
+                                        bestCategory = categoryIndex;
+                                        bestName = thing.def.defName;
+                                }
+                        }
+                }
+
+                if (removeFromSet != null)
+                {
+                        carriedThings.Remove(removeFromSet);
+                }
+
+                return bestThing != null ? new ThingCount(bestThing, bestThing.stackCount) : default;
+        }
 }

@@ -311,41 +311,45 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		public static implicit operator LocalTargetInfo(StoreTarget target) => target.container != null ? target.container : target.cell;
 	}
 
-	public static Thing GetClosestAndRemove(IntVec3 center, Map map, List<Thing> searchSet, PathEndMode peMode, TraverseParms traverseParams, float maxDistance = 9999f, Predicate<Thing> validator = null)
-	{
-		if (searchSet == null || !searchSet.Any())
-		{
-			return null;
-		}
+        public static Thing GetClosestAndRemove(IntVec3 center, Map map, List<Thing> searchSet, PathEndMode peMode, TraverseParms traverseParams, float maxDistance = 9999f, Predicate<Thing> validator = null)
+        {
+                if (searchSet == null || searchSet.Count == 0)
+                {
+                        return null;
+                }
 
-		var maxDistanceSquared = maxDistance * maxDistance;
+                var maxDistanceSquared = maxDistance * maxDistance;
+                for (var i = 0; i < searchSet.Count; i++)
+                {
+                        var thing = searchSet[i];
 
-		while (FindClosestThing(searchSet, center, out var i) is { } closestThing)
-		{
-			searchSet.RemoveAt(i);
-			if (!closestThing.Spawned)
-			{
-				continue;
-			}
+                        if (!thing.Spawned)
+                        {
+                                searchSet.RemoveAt(i--);
+                                continue;
+                        }
 
-			if ((center - closestThing.Position).LengthHorizontalSquared > maxDistanceSquared)
-			{
-				break;
-			}
+                        if ((center - thing.Position).LengthHorizontalSquared > maxDistanceSquared)
+                        {
+                                // list is distance sorted; everything beyond this will also be too far
+                                searchSet.RemoveRange(i, searchSet.Count - i);
+                                break;
+                        }
 
-			if (!map.reachability.CanReach(center, closestThing, peMode, traverseParams))
-			{
-				continue;
-			}
+                        if (!map.reachability.CanReach(center, thing, peMode, traverseParams))
+                        {
+                                continue;
+                        }
 
-			if (validator == null || validator(closestThing))
-			{
-				return closestThing;
-			}
-		}
+                        if (validator == null || validator(thing))
+                        {
+                                searchSet.RemoveAt(i);
+                                return thing;
+                        }
+                }
 
-		return null;
-	}
+                return null;
+        }
 
 	public static Thing FindClosestThing(List<Thing> searchSet, IntVec3 center, out int index)
 	{
