@@ -1,4 +1,5 @@
-﻿using System.Linq;
+using System;
+using System.Linq;
 
 namespace PickUpAndHaul;
 
@@ -113,11 +114,15 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					return;
 				}
 
-				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
-				    && !ModCompatibilityCheck.HCSKIsActive)
-				{
-					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
-				}
+                                if (job.targetB.HasThing)
+                                {
+                                        StorageContainerReservationManager.Release(job.targetB.Thing, _countToDrop);
+                                }
+                                else if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
+                                         && !ModCompatibilityCheck.HCSKIsActive)
+                                {
+                                        pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
+                                }
 			}
 		};
 	}
@@ -215,20 +220,49 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						job.SetTarget(TargetIndex.B, cell);
 					}
 
-					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-					if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
-					{
-						Log.Message(
-							$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-							unloadableThing.Thing.stackCount, out _);
-						EndJobWith(JobCondition.Incompletable);
-						PerformanceProfiler.EndTimer("FindTargetOrDrop");
-						return;
-					}
-					_countToDrop = unloadableThing.Thing.stackCount;
-					PerformanceProfiler.EndTimer("FindTargetOrDrop");
-				}
+                                        Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+                                        if (job.targetB.HasThing)
+                                        {
+                                                var destThing = job.targetB.Thing;
+                                                var dropCount = unloadableThing.Thing.stackCount;
+                                                if (HoldMultipleThings_Support.CapacityAt(unloadableThing.Thing, destThing.Position, pawn.Map, out var cap))
+                                                {
+                                                        dropCount = Math.Min(dropCount, cap - StorageContainerReservationManager.GetReserved(destThing));
+                                                }
+                                                else if (destThing.TryGetInnerInteractableThingOwner() is ThingOwner owner)
+                                                {
+                                                        dropCount = Math.Min(dropCount, owner.GetCountCanAccept(unloadableThing.Thing) - StorageContainerReservationManager.GetReserved(destThing));
+                                                }
+
+                                                if (dropCount <= 0 || !StorageContainerReservationManager.TryReserve(destThing, unloadableThing.Thing, dropCount))
+                                                {
+                                                        Log.Message($"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+                                                        pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+                                                                unloadableThing.Thing.stackCount, out _);
+                                                        EndJobWith(JobCondition.Incompletable);
+                                                        PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                                        return;
+                                                }
+
+                                                _countToDrop = dropCount;
+                                        }
+                                        else
+                                        {
+                                                if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+                                                {
+                                                        Log.Message(
+                                                                $"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+                                                        pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+                                                                unloadableThing.Thing.stackCount, out _);
+                                                        EndJobWith(JobCondition.Incompletable);
+                                                        PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                                        return;
+                                                }
+
+                                                _countToDrop = unloadableThing.Thing.stackCount;
+                                        }
+                                        PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                }
 				else
 				{
 					Log.Message(
