@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace PickUpAndHaul;
 
@@ -226,7 +227,23 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						PerformanceProfiler.EndTimer("FindTargetOrDrop");
 						return;
 					}
-					_countToDrop = unloadableThing.Thing.stackCount;
+
+					// Calculate how much can actually be stored at the destination
+					var availableSpace = GetAvailableStorageSpace(destination, cell, unloadableThing.Thing);
+					_countToDrop = Math.Min(unloadableThing.Thing.stackCount, availableSpace);
+					
+					// If no space is available, drop the item instead of trying to transfer 0 items
+					if (_countToDrop <= 0)
+					{
+						Log.Message($"No space available at destination {job.targetB}, dropping {unloadableThing.Thing}");
+						pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
+						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+							unloadableThing.Thing.stackCount, out _);
+						EndJobWith(JobCondition.Succeeded);
+						PerformanceProfiler.EndTimer("FindTargetOrDrop");
+						return;
+					}
+					
 					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 				}
 				else
@@ -242,47 +259,112 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		};
 	}
 
-        private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
-        {
-			PerformanceProfiler.StartTimer("FirstUnloadableThing");
-                var innerPawnContainer = pawn.inventory.innerContainer;
-                Thing best = null;
+	private static int GetAvailableStorageSpace(Thing destination, IntVec3 cell, Thing thingToStore)
+	{
+		// If destination is a container (like a shelf or stockpile zone building)
+		if (destination != null && destination.TryGetComp<CompDeepStorage>() != null)
+		{
+			// For deep storage, calculate available space
+			var deepStorageComp = destination.TryGetComp<CompDeepStorage>();
+			if (deepStorageComp != null)
+			{
+				var maxStacks = deepStorageComp.maxNumberStacks;
+				var currentStacks = destination.GetInnerContainer().Count;
+				if (currentStacks >= maxStacks)
+				{
+					// Check if we can add to existing stacks
+					var existingStack = destination.GetInnerContainer().FirstOrDefault(t => t.def == thingToStore.def && t.stackCount < t.def.stackLimit);
+					if (existingStack != null)
+					{
+						return existingStack.def.stackLimit - existingStack.stackCount;
+					}
+					return 0;
+				}
+				return thingToStore.def.stackLimit; // Can create new stack
+			}
+		}
+		
+		// For regular storage (shelves, containers, etc.)
+		if (destination != null && destination.TryGetInnerContainer() != null)
+		{
+			var container = destination.TryGetInnerContainer();
+			var existingStack = container.FirstOrDefault(t => t.def == thingToStore.def && t.stackCount < t.def.stackLimit);
+			if (existingStack != null)
+			{
+				return existingStack.def.stackLimit - existingStack.stackCount;
+			}
+			
+			// Check if container has space for new stack
+			if (container.Count < container.maxCount)
+			{
+				return thingToStore.def.stackLimit;
+			}
+			return 0;
+		}
+		
+		// For ground storage (stockpile zones)
+		if (cell != IntVec3.Invalid)
+		{
+			var existingThings = cell.GetThingList(thingToStore.Map);
+			var existingStack = existingThings.FirstOrDefault(t => t.def == thingToStore.def && t.stackCount < t.def.stackLimit);
+			if (existingStack != null)
+			{
+				return existingStack.def.stackLimit - existingStack.stackCount;
+			}
+			
+			// Check if cell can accept new stack
+			if (existingThings.Count(t => t.def.category == ThingCategory.Item) < cell.GetMaxItemsAllowedInCell(thingToStore.Map))
+			{
+				return thingToStore.def.stackLimit;
+			}
+			return 0;
+		}
+		
+		// Default case - assume full stack can be stored
+		return thingToStore.def.stackLimit;
+	}
 
-                foreach (var thing in carriedThings)
-                {
-                        // Handle stacks that changed IDs after being picked up
-                        if (!innerPawnContainer.Contains(thing))
-                        {
-                                var stragglerDef = thing.def;
-                                carriedThings.Remove(thing);
+	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
+	{
+		PerformanceProfiler.StartTimer("FirstUnloadableThing");
+		var innerPawnContainer = pawn.inventory.innerContainer;
+		Thing best = null;
 
-                                for (var i = 0; i < innerPawnContainer.Count; i++)
-                                {
-                                        var dirtyStraggler = innerPawnContainer[i];
-                                        if (dirtyStraggler.def == stragglerDef)
-                                        {
-                                                PerformanceProfiler.EndTimer("FirstUnloadableThing");
-                                                return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
-                                        }
-                                }
-                                continue;
-                        }
+		foreach (var thing in carriedThings)
+		{
+			// Handle stacks that changed IDs after being picked up
+			if (!innerPawnContainer.Contains(thing))
+			{
+				var stragglerDef = thing.def;
+				carriedThings.Remove(thing);
 
-                        if (best == null || CompareInventoryOrder(best, thing) > 0)
-                        {
-                                best = thing;
-                        }
-                }
+				for (var i = 0; i < innerPawnContainer.Count; i++)
+				{
+					var dirtyStraggler = innerPawnContainer[i];
+					if (dirtyStraggler.def == stragglerDef)
+					{
+						PerformanceProfiler.EndTimer("FirstUnloadableThing");
+						return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
+					}
+				}
+				continue;
+			}
 
-                PerformanceProfiler.EndTimer("FirstUnloadableThing");
-                return best != null ? new ThingCount(best, best.stackCount) : default;
+			if (best == null || CompareInventoryOrder(best, thing) > 0)
+			{
+				best = thing;
+			}
+		}
 
-                static int CompareInventoryOrder(Thing a, Thing b)
-                {
-                        var catA = a.def.FirstThingCategory?.index ?? int.MaxValue;
-                        var catB = b.def.FirstThingCategory?.index ?? int.MaxValue;
-                        var compare = catA.CompareTo(catB);
-                        return compare != 0 ? compare : string.CompareOrdinal(a.def.defName, b.def.defName);
-                }
-        }
+		PerformanceProfiler.EndTimer("FirstUnloadableThing");
+		return best != null ? new ThingCount(best, best.stackCount) : default;
+
+		static int CompareInventoryOrder(Thing a, Thing b)
+		{
+			var catA = a.def.FirstThingCategory?.index ?? int.MaxValue;
+			var catB = b.def.FirstThingCategory?.index ?? int.MaxValue;
+			var compare = catA.CompareTo(catB);
+			return compare != 0 ? compare : string.CompareOrdinal(a.def.defName, b.def.defName);
+		}
+	}
 }
