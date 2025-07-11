@@ -115,54 +115,44 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                 };
         }
 
-        private bool TargetIsCell() => !TargetB.HasThing;
+       private bool TargetIsCell() => !TargetB.HasThing;
 
-        private const float NearbySearchRadius = 25f; // squared distance (~5 cells)
+       private const int MaxNearbySearchRadius = 10;
 
-        private static bool TryFindNearbyBetterStoreCellFor(Thing thing, Pawn pawn, Map map,
-                        StoragePriority currentPriority, Faction faction, IntVec3 near, out IntVec3 foundCell)
-        {
-                var haulDestinations = map.haulDestinationManager.AllGroupsListInPriorityOrder;
-                var bestCell = IntVec3.Invalid;
-                var bestDist = float.MaxValue;
+       private static bool TryFindNearbyBetterStoreCellFor(Thing thing, Pawn pawn, Map map,
+                       StoragePriority currentPriority, Faction faction, IntVec3 near, out IntVec3 foundCell)
+       {
+               for (var radius = 1; radius <= MaxNearbySearchRadius; radius++)
+               {
+                       var start = GenRadial.NumCellsInRadius(radius - 1);
+                       var end = GenRadial.NumCellsInRadius(radius);
 
-                for (var i = 0; i < haulDestinations.Count; i++)
-                {
-                        var slotGroup = haulDestinations[i];
-                        if (slotGroup.Settings.Priority <= currentPriority || !slotGroup.parent.Accepts(thing))
-                        {
-                                continue;
-                        }
+                       for (var i = start; i < end; i++)
+                       {
+                               var cell = near + GenRadial.RadialPattern[i];
+                               if (!cell.InBounds(map))
+                               {
+                                       continue;
+                               }
 
-                        var cells = slotGroup.CellsList;
-                        for (var j = 0; j < cells.Count; j++)
-                        {
-                                var cell = cells[j];
-                                var dist = (cell - near).LengthHorizontalSquared;
-                                if (dist >= bestDist || dist > NearbySearchRadius)
-                                {
-                                        continue;
-                                }
-                                if (StoreUtility.IsGoodStoreCell(cell, map, thing, pawn, faction))
-                                {
-                                        bestDist = dist;
-                                        bestCell = cell;
-                                        if (dist == 0f)
-                                        {
-                                                break;
-                                        }
-                                }
-                        }
+                               var slotGroup = map.haulDestinationManager.SlotGroupAt(cell);
+                               if (slotGroup == null || slotGroup.Settings.Priority <= currentPriority ||
+                                       !slotGroup.parent.Accepts(thing))
+                               {
+                                       continue;
+                               }
 
-                        if (bestCell.IsValid)
-                        {
-                                break;
-                        }
-                }
+                               if (StoreUtility.IsGoodStoreCell(cell, map, thing, pawn, faction))
+                               {
+                                       foundCell = cell;
+                                       return true;
+                               }
+                       }
+               }
 
-                foundCell = bestCell;
-                return bestCell.IsValid;
-        }
+               foundCell = IntVec3.Invalid;
+               return false;
+       }
 
 	private Toil ReleaseReservation()
 	{
