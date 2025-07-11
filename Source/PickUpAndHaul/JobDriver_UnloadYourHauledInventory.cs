@@ -226,7 +226,36 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						PerformanceProfiler.EndTimer("FindTargetOrDrop");
 						return;
 					}
-					_countToDrop = unloadableThing.Thing.stackCount;
+					// Check destination capacity to prevent failed transfers
+					var capacity = 0;
+					if (cell != IntVec3.Invalid)
+					{
+						// Cell destination
+						capacity = WorkGiver_HaulToInventory.CapacityAt(unloadableThing.Thing, cell, pawn.Map);
+					}
+					else if (destination != null)
+					{
+						// Container destination
+						var containerOwner = (destination as Thing)?.TryGetInnerInteractableThingOwner();
+						if (containerOwner != null)
+						{
+							capacity = containerOwner.GetCountCanAccept(unloadableThing.Thing);
+						}
+					}
+
+					// Fix: Set _countToDrop to 0 when destination is full, or limit to available capacity
+					if (capacity <= 0)
+					{
+						_countToDrop = 0;
+					}
+					else if (capacity < unloadableThing.Thing.stackCount)
+					{
+						_countToDrop = capacity;
+					}
+					else
+					{
+						_countToDrop = unloadableThing.Thing.stackCount;
+					}
 					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 				}
 				else
