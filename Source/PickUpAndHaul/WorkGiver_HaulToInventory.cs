@@ -466,6 +466,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return capacity;
 		}
 
+		// Check for inner ThingOwner (container) instead of defaulting to thing.def.stackLimit
+		var thingsAtCell = storeCell.GetThingList(map);
+		for (int i = 0; i < thingsAtCell.Count; i++)
+		{
+			var containerThing = thingsAtCell[i];
+			var innerThingOwner = containerThing.TryGetInnerInteractableThingOwner();
+			if (innerThingOwner != null)
+			{
+				// Use the container's actual capacity
+				return innerThingOwner.GetCountCanAccept(thing);
+			}
+		}
+
+		// For regular storage cells (not containers), use the standard logic
 		capacity = thing.def.stackLimit;
 
 		var preExistingThing = map.thingGrid.ThingAt(storeCell, thing.def);
