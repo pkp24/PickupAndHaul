@@ -33,10 +33,89 @@ public class JobDriver_HaulToInventory : JobDriver
 			return false;
 		}
 
-		Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
-		pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
-		pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
-		var result = pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
+		// EXTENSIVE DEBUGGING - Track job state
+		Log.Message($"[PickUpAndHaul] DEBUG: {pawn} starting HaulToInventory job reservations");
+		Log.Message($"[PickUpAndHaul] DEBUG: Job targetA: {job.targetA.ToStringSafe()}");
+		Log.Message($"[PickUpAndHaul] DEBUG: Job targetB: {job.targetB.ToStringSafe()}");
+		Log.Message($"[PickUpAndHaul] DEBUG: Job targetQueueA count: {job.targetQueueA?.Count ?? 0}");
+		Log.Message($"[PickUpAndHaul] DEBUG: Job targetQueueB count: {job.targetQueueB?.Count ?? 0}");
+		Log.Message($"[PickUpAndHaul] DEBUG: Job countQueue count: {job.countQueue?.Count ?? 0}");
+		
+		if (job.targetQueueA != null)
+		{
+			Log.Message($"[PickUpAndHaul] DEBUG: targetQueueA contents: {string.Join(", ", job.targetQueueA.Select(t => t.ToStringSafe()))}");
+		}
+		if (job.targetQueueB != null)
+		{
+			Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB contents: {string.Join(", ", job.targetQueueB.Select(t => t.ToStringSafe()))}");
+		}
+		if (job.countQueue != null)
+		{
+			Log.Message($"[PickUpAndHaul] DEBUG: countQueue contents: {string.Join(", ", job.countQueue)}");
+		}
+
+		// Validate queue synchronization
+		if (job.targetQueueA != null && job.countQueue != null && job.targetQueueA.Count != job.countQueue.Count)
+		{
+			Log.Error($"[PickUpAndHaul] CRITICAL: Queue synchronization error! targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) for {pawn}");
+			Log.Error($"[PickUpAndHaul] CRITICAL: This indicates a bug in AllocateThingAtCell or job creation logic");
+		}
+
+		// Validate job integrity before proceeding
+		WorkGiver_HaulToInventory.ValidateJobQueues(job, pawn, "PreToilReservations");
+
+		// Reserve as many as possible from queues
+		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
+		{
+			Log.Message($"[PickUpAndHaul] DEBUG: Reserving {job.targetQueueA.Count} items from targetQueueA");
+			pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
+		}
+		else
+		{
+			Log.Warning($"[PickUpAndHaul] WARNING: targetQueueA is null or empty for {pawn}");
+		}
+
+		if (job.targetQueueB != null && job.targetQueueB.Count > 0)
+		{
+			Log.Message($"[PickUpAndHaul] DEBUG: Reserving {job.targetQueueB.Count} items from targetQueueB");
+			pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
+		}
+		else
+		{
+			Log.Warning($"[PickUpAndHaul] WARNING: targetQueueB is null or empty for {pawn}");
+		}
+
+		// FIXED: Add bounds checking before accessing targetQueueA[0]
+		bool targetAReserved = false;
+		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
+		{
+			Log.Message($"[PickUpAndHaul] DEBUG: Reserving targetQueueA[0]: {job.targetQueueA[0]}");
+			targetAReserved = pawn.Reserve(job.targetQueueA[0], job);
+		}
+		else
+		{
+			Log.Error($"[PickUpAndHaul] ERROR: Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
+			Log.Error($"[PickUpAndHaul] ERROR: This job should not have been created with empty targetQueueA");
+			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
+			return false;
+		}
+
+		bool targetBReserved = false;
+		if (job.targetB != null)
+		{
+			Log.Message($"[PickUpAndHaul] DEBUG: Reserving targetB: {job.targetB}");
+			targetBReserved = pawn.Reserve(job.targetB, job);
+		}
+		else
+		{
+			Log.Error($"[PickUpAndHaul] ERROR: targetB is null for {pawn}");
+			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
+			return false;
+		}
+
+		var result = targetAReserved && targetBReserved;
+		Log.Message($"[PickUpAndHaul] DEBUG: Reservation result: {result} (targetA: {targetAReserved}, targetB: {targetBReserved})");
+		
 		PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 		return result;
 	}

@@ -68,6 +68,14 @@ static class HarmonyPatches
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Prefix)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Postfix)));
 
+		// Add patch to handle pawn death and job interruption for storage allocation cleanup
+		harmony.Patch(original: AccessTools.Method(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.EndCurrentJob)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_JobTracker_EndCurrentJob_Postfix)));
+
+		// Add patch to handle pawn death for storage allocation cleanup
+		harmony.Patch(original: AccessTools.Method(typeof(Pawn), nameof(Pawn.Kill)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_Kill_Postfix)));
+
 
 
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
@@ -423,5 +431,40 @@ static class HarmonyPatches
 		{
 			Log.Error($"[PickUpAndHaul] Error in Game_ExposeData_Postfix: {ex.Message}");
 		}
+	}
+
+	/// <summary>
+	/// Clean up storage allocations when a job ends
+	/// </summary>
+	private static void Pawn_JobTracker_EndCurrentJob_Postfix(Pawn_JobTracker __instance, JobCondition condition, bool startNewJob = true, bool canReturnToPool = true)
+	{
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			return; // Skip cleanup during save
+		}
+
+		// Clean up storage allocations for the pawn
+		if (__instance.pawn != null)
+		{
+			StorageAllocationTracker.CleanupPawnAllocations(__instance.pawn);
+			Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
+		}
+	}
+
+	/// <summary>
+	/// Clean up storage allocations when a pawn dies
+	/// </summary>
+	private static void Pawn_Kill_Postfix(Pawn __instance, DamageInfo? dinfo, Hediff exactCulprit = null)
+	{
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			return; // Skip cleanup during save
+		}
+
+		// Clean up storage allocations for the dead pawn
+		StorageAllocationTracker.CleanupPawnAllocations(__instance);
+		Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
 	}
 }
