@@ -288,7 +288,10 @@ namespace PickUpAndHaul
                     var stuff = itemDef.defaultStuff ?? GenStuff.DefaultStuffFor(itemDef);
                     if (stuff != null)
                     {
-                        return ThingMaker.MakeThing(itemDef, stuff);
+                        var temp = ThingMaker.MakeThing(itemDef, stuff);
+                        // Ensure stackCount reflects maximum stack size for accurate capacity checks
+                        temp.stackCount = itemDef.stackLimit;
+                        return temp;
                     }
                     else
                     {
@@ -298,7 +301,10 @@ namespace PickUpAndHaul
                 }
                 else
                 {
-                    return ThingMaker.MakeThing(itemDef);
+                    var temp = ThingMaker.MakeThing(itemDef);
+                    // Ensure stackCount reflects maximum stack size for accurate capacity checks
+                    temp.stackCount = itemDef.stackLimit;
+                    return temp;
                 }
             }
             catch (Exception ex)
