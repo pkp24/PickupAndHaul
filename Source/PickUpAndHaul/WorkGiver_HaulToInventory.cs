@@ -493,51 +493,48 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         && (storeTarget.container?.TryGetInnerInteractableThingOwner().CanAcceptAnyOf(nextThing)
                         ?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
                         && Stackable(nextThing, kvp));
-		var storeCell = allocation.Key;
+                var storeCell = allocation.Key;
+                var addedTargetB = false;
 
-		//Can't stack with allocated cells, find a new cell:
-		if (storeCell == default)
-		{
+                //Can't stack with allocated cells, find a new cell:
+                if (storeCell == default)
+                {
                         if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
-			{
-				if (innerInteractableThingOwner is null)
-				{
-					storeCell = new(nextStoreCell);
-					job.targetQueueB.Add(nextStoreCell);
+                        {
+                                if (innerInteractableThingOwner is null)
+                                {
+                                        storeCell = new(nextStoreCell);
+                                        job.targetQueueB.Add(nextStoreCell);
+                                        addedTargetB = true;
 
-					storeCellCapacity[storeCell] = new(nextThing, CapacityAt(nextThing, nextStoreCell, map));
+                                        storeCellCapacity[storeCell] = new(nextThing, CapacityAt(nextThing, nextStoreCell, map));
 
-					Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
-				}
-				else
-				{
-					var destinationAsThing = (Thing)haulDestination;
-					storeCell = new(destinationAsThing);
-					job.targetQueueB.Add(destinationAsThing);
+                                        Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
+                                }
+                                else
+                                {
+                                        var destinationAsThing = (Thing)haulDestination;
+                                        storeCell = new(destinationAsThing);
+                                        job.targetQueueB.Add(destinationAsThing);
+                                        addedTargetB = true;
 
-					storeCellCapacity[storeCell] = new(nextThing, innerInteractableThingOwner.GetCountCanAccept(nextThing));
+                                        storeCellCapacity[storeCell] = new(nextThing, innerInteractableThingOwner.GetCountCanAccept(nextThing));
 
-					Log.Message($"New haulDestination for unstackable {nextThing} = {haulDestination}");
-				}
-			}
-			else
-			{
-				Log.Message($"{nextThing} can't stack with allocated cells");
+                                        Log.Message($"New haulDestination for unstackable {nextThing} = {haulDestination}");
+                                }
+                        }
+                        else
+                        {
+                                Log.Message($"{nextThing} can't stack with allocated cells");
 
-				if (job.targetQueueA.NullOrEmpty())
-				{
-					job.targetQueueA.Add(nextThing);
-				}
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                }
 
-				PerformanceProfiler.EndTimer("AllocateThingAtCell");
-				return false;
-			}
-		}
-
-		job.targetQueueA.Add(nextThing);
-		var count = nextThing.stackCount;
-		storeCellCapacity[storeCell].capacity -= count;
-		Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
+                var count = nextThing.stackCount;
+                storeCellCapacity[storeCell].capacity -= count;
+                Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
 
 		while (storeCellCapacity[storeCell].capacity <= 0)
 		{
@@ -576,20 +573,39 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					Log.Message($"New haulDestination {nextHaulDestination}:{capacity}, allocated extra {capacityOver}");
 				}
 			}
-			else
-			{
-				count -= capacityOver;
-				job.countQueue.Add(count);
-				Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
-				PerformanceProfiler.EndTimer("AllocateThingAtCell");
-				return false;
-			}
-		}
-		job.countQueue.Add(count);
-		Log.Message($"{nextThing}:{count} allocated");
-		PerformanceProfiler.EndTimer("AllocateThingAtCell");
-		return true;
-	}
+                        else
+                        {
+                                count -= capacityOver;
+                                if (count <= 0)
+                                {
+                                        if (addedTargetB && job.targetQueueB.Count > 0)
+                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                        Log.Message($"Nowhere else to store, skipping {nextThing} due to zero capacity");
+                                        return false;
+                                }
+                                job.countQueue.Add(count);
+                                Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                }
+
+                if (count <= 0)
+                {
+                        if (addedTargetB && job.targetQueueB.Count > 0)
+                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                        Log.Message($"Skipping {nextThing} due to zero capacity");
+                        return false;
+                }
+
+                job.targetQueueA.Add(nextThing);
+                job.countQueue.Add(count);
+                Log.Message($"{nextThing}:{count} allocated");
+                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                return true;
+        }
 
 	//public static HashSet<StoreTarget> skipTargets;
 	public static HashSet<IntVec3> skipCells;
