@@ -219,14 +219,15 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		};
 	}
 
-	private Toil FindTargetOrDrop(HashSet<Thing> carriedThings)
+	private Toil FindTargetOrDrop(HashSet carriedThings)
 	{
 		return new()
 		{
 			initAction = () =>
 			{
 				PerformanceProfiler.StartTimer("FindTargetOrDrop");
-				// Check for save operation before finding target
+
+				// Abort cleanly if a save is running
 				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 				{
 					EndJobWith(JobCondition.InterruptForced);
@@ -235,51 +236,51 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 
 				var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
-
 				if (unloadableThing.Count == 0)
 				{
 					if (carriedThings.Count == 0)
-					{
 						EndJobWith(JobCondition.Succeeded);
-					}
+
 					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 					return;
 				}
 
-				var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
-				if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					    pawn.Faction, out var cell, out var destination))
+				var currentPriority = StoragePriority.Unstored; // still in inventory
+				if (StoreUtility.TryFindBestBetterStorageFor(
+						unloadableThing.Thing, pawn, pawn.Map, currentPriority,
+						pawn.Faction, out var cell, out var destination))
 				{
 					job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-					if (cell == IntVec3.Invalid)
-					{
-						job.SetTarget(TargetIndex.B, destination as Thing);
-					}
-					else
-					{
-						job.SetTarget(TargetIndex.B, cell);
-					}
 
-                                        Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-                                        if (!ReserveStorage(job.targetB, unloadableThing.Thing))
-                                        {
-                                                Log.Message(
-                                                        $"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-                                                pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-                                                        unloadableThing.Thing.stackCount, out _);
+					if (cell == IntVec3.Invalid)
+						job.SetTarget(TargetIndex.B, destination as Thing);
+					else
+						job.SetTarget(TargetIndex.B, cell);
+
+					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+
+					if (!ReserveStorage(job.targetB, unloadableThing.Thing))
+					{
+						Log.Message($"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+						pawn.inventory.innerContainer.TryDrop(
+							unloadableThing.Thing, ThingPlaceMode.Near,
+							unloadableThing.Thing.stackCount, out _);
+
 						EndJobWith(JobCondition.Incompletable);
 						PerformanceProfiler.EndTimer("FindTargetOrDrop");
 						return;
 					}
-					_countToDrop = unloadableThing.Thing.stackCount;
+
+					// _countToDrop is already set by ReserveStorage – don’t overwrite it here!
 					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 				}
 				else
 				{
-					Log.Message(
-						$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
-					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+					Log.Message($"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
+					pawn.inventory.innerContainer.TryDrop(
+						unloadableThing.Thing, ThingPlaceMode.Near,
 						unloadableThing.Thing.stackCount, out _);
+
 					EndJobWith(JobCondition.Succeeded);
 					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 				}
@@ -287,47 +288,48 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		};
 	}
 
-        private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
-        {
-			PerformanceProfiler.StartTimer("FirstUnloadableThing");
-                var innerPawnContainer = pawn.inventory.innerContainer;
-                Thing best = null;
 
-                foreach (var thing in carriedThings)
-                {
-                        // Handle stacks that changed IDs after being picked up
-                        if (!innerPawnContainer.Contains(thing))
-                        {
-                                var stragglerDef = thing.def;
-                                carriedThings.Remove(thing);
+	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
+	{
+		PerformanceProfiler.StartTimer("FirstUnloadableThing");
+			var innerPawnContainer = pawn.inventory.innerContainer;
+			Thing best = null;
 
-                                for (var i = 0; i < innerPawnContainer.Count; i++)
-                                {
-                                        var dirtyStraggler = innerPawnContainer[i];
-                                        if (dirtyStraggler.def == stragglerDef)
-                                        {
-                                                PerformanceProfiler.EndTimer("FirstUnloadableThing");
-                                                return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
-                                        }
-                                }
-                                continue;
-                        }
+			foreach (var thing in carriedThings)
+			{
+					// Handle stacks that changed IDs after being picked up
+					if (!innerPawnContainer.Contains(thing))
+					{
+							var stragglerDef = thing.def;
+							carriedThings.Remove(thing);
 
-                        if (best == null || CompareInventoryOrder(best, thing) > 0)
-                        {
-                                best = thing;
-                        }
-                }
+							for (var i = 0; i < innerPawnContainer.Count; i++)
+							{
+									var dirtyStraggler = innerPawnContainer[i];
+									if (dirtyStraggler.def == stragglerDef)
+									{
+											PerformanceProfiler.EndTimer("FirstUnloadableThing");
+											return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
+									}
+							}
+							continue;
+					}
 
-                PerformanceProfiler.EndTimer("FirstUnloadableThing");
-                return best != null ? new ThingCount(best, best.stackCount) : default;
+					if (best == null || CompareInventoryOrder(best, thing) > 0)
+					{
+							best = thing;
+					}
+			}
 
-                static int CompareInventoryOrder(Thing a, Thing b)
-                {
-                        var catA = a.def.FirstThingCategory?.index ?? int.MaxValue;
-                        var catB = b.def.FirstThingCategory?.index ?? int.MaxValue;
-                        var compare = catA.CompareTo(catB);
-                        return compare != 0 ? compare : string.CompareOrdinal(a.def.defName, b.def.defName);
-                }
-        }
+			PerformanceProfiler.EndTimer("FirstUnloadableThing");
+			return best != null ? new ThingCount(best, best.stackCount) : default;
+
+			static int CompareInventoryOrder(Thing a, Thing b)
+			{
+					var catA = a.def.FirstThingCategory?.index ?? int.MaxValue;
+					var catB = b.def.FirstThingCategory?.index ?? int.MaxValue;
+					var compare = catA.CompareTo(catB);
+					return compare != 0 ? compare : string.CompareOrdinal(a.def.defName, b.def.defName);
+			}
+	}
 }
