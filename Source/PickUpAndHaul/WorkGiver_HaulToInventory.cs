@@ -391,10 +391,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		Log.Message($"[PickUpAndHaul] DEBUG: Initial item {thing} allocated successfully");
 
 		// Skip the initial allocation loop since we already allocated the initial item
-		// Just calculate encumbrance for the initial item
-                currentMass += thing.GetStatValue(StatDefOf.Mass) * thing.stackCount;
-                encumberance = currentMass / capacity;
-                Log.Message($"[PickUpAndHaul] DEBUG: Initial item encumbrance: {encumberance}");
+		// Note: currentMass is already updated by AllocateThingAtCell, so no need to add it again
+		encumberance = currentMass / capacity;
+		Log.Message($"[PickUpAndHaul] DEBUG: Initial item encumbrance: {encumberance}");
 
 		// Now try to allocate additional items
 		do
