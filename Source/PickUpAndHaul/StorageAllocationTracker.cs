@@ -90,8 +90,10 @@ namespace PickUpAndHaul
             }
         }
 
+
+
         /// <summary>
-        /// Reserve storage capacity for a pending hauling job
+        /// Reserve storage capacity for a pending hauling job (backward compatibility)
         /// </summary>
         public static bool ReserveCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
         {
@@ -305,6 +307,8 @@ namespace PickUpAndHaul
                 return null;
             }
         }
+
+
 
         /// <summary>
         /// Get the amount of pending allocations for a specific item at a location
