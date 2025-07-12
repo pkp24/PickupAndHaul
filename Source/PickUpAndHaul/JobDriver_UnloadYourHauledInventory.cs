@@ -97,17 +97,21 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 	private bool TargetIsCell() => !TargetB.HasThing;
 
-        // JobDriver_UnloadYourHauledInventory.cs
+        // ─────────────────────────────────────────────────────────────────────────
+		// JobDriver_UnloadYourHauledInventory.cs  –  REPLACE THE OLD IMPLEMENTATION
+		// ─────────────────────────────────────────────────────────────────────────
+
 		private bool ReserveStorage(LocalTargetInfo target, Thing thing)
 		{
-			// ── STORAGE BUILDING (e.g. Neat-Storage crate) ─────────────────────────
+			// ── STORAGE BUILDING (Neat-Storage / Extended Storage, etc.) ──────────
 			if (target.HasThing)
 			{
-				int toReserve = thing.stackCount;   // reserve entire stack
+				int toReserve = thing.stackCount;                 // reserve whole stack
+
 				if (!pawn.Map.reservationManager.Reserve(
 						pawn, job, target,
 						int.MaxValue,          // maxPawns
-						toReserve))            // stackCount  ✔ (no longer int.MaxValue)
+						toReserve))            // stackCount (correct)
 					return false;
 
 				StorageReservationManager.Reserve(target.Thing, toReserve);
@@ -117,12 +121,13 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				return true;
 			}
 
-			// ── STOCKPILE CELL ─────────────────────────────────────────────────────
-			int capacity   = WorkGiver_HaulToInventory.CapacityAt(thing, target.Cell, pawn.Map);
-			int reserved   = StorageReservationManager.Reserved(target.Cell);
-			if (reserved >= capacity) return false;
+			// ── STOCKPILE CELL (keeps vanilla capacity rules) ────────────────────
+			int cellCapacity = WorkGiver_HaulToInventory.CapacityAt(thing, target.Cell, pawn.Map);
+			int alreadyReserved = StorageReservationManager.Reserved(target.Cell);
+			if (alreadyReserved >= cellCapacity) return false;
 
-			int toReserveCell = Mathf.Min(thing.stackCount, capacity - reserved);
+			int toReserveCell = Mathf.Min(thing.stackCount, cellCapacity - alreadyReserved);
+
 			if (!pawn.Map.reservationManager.Reserve(
 					pawn, job, target,
 					int.MaxValue,
@@ -135,6 +140,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			_countToDrop = toReserveCell;
 			return true;
 		}
+
 
 
 	private Toil PullItemFromInventory(HashSet<Thing> carriedThings, Toil wait)
