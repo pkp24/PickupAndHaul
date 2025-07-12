@@ -397,17 +397,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			Log.Message($"[PickUpAndHaul] DEBUG: No more things to allocate, final job state:");
 			Log.Message($"[PickUpAndHaul] DEBUG: targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
-			// If nothing was allocated, don't return a job
-			if (job.targetQueueA.Count == 0)
-			{
-				Log.Message($"[PickUpAndHaul] DEBUG: No items allocated, returning null job");
-				// Release reserved capacity
-				StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, thing.stackCount, pawn);
-				skipCells = null;
-				skipThings = null;
-				PerformanceProfiler.EndTimer("JobOnThing");
-				return null;
-			}
+			// At this point, we always have at least the initial item allocated since it was validated earlier
+			// No need to check if targetQueueA is empty - that's logically impossible here
 			skipCells = null;
 			skipThings = null;
 			//skipTargets = null;

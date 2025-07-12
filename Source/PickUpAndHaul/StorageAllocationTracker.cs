@@ -208,9 +208,18 @@ namespace PickUpAndHaul
                     var tempThing = CreateTempThing(itemDef);
                     if (tempThing != null)
                     {
-                        var capacity = thingOwner.GetCountCanAccept(tempThing);
-                        tempThing.Destroy(DestroyMode.Vanish);
-                        return capacity;
+                        try
+                        {
+                            var capacity = thingOwner.GetCountCanAccept(tempThing);
+                            return capacity;
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at container {location.Container}: {ex.Message}");
+                            // Return stack limit as fallback
+                            return itemDef.stackLimit;
+                        }
+                        // Note: No need to call Destroy() on unspawned temporary objects - they will be garbage collected
                     }
                     else
                     {
@@ -225,9 +234,26 @@ namespace PickUpAndHaul
                 var tempThing = CreateTempThing(itemDef);
                 if (tempThing != null)
                 {
-                    var capacity = WorkGiver_HaulToInventory.CapacityAt(tempThing, location.Cell, map);
-                    tempThing.Destroy(DestroyMode.Vanish);
-                    return capacity;
+                    try
+                    {
+                        var capacity = WorkGiver_HaulToInventory.CapacityAt(tempThing, location.Cell, map);
+                        return capacity;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at cell {location.Cell}: {ex.Message}");
+                        // Fallback: check if there's already an item at the location and calculate remaining capacity
+                        var existingThing = map.thingGrid.ThingAt(location.Cell, itemDef);
+                        if (existingThing != null)
+                        {
+                            return itemDef.stackLimit - existingThing.stackCount;
+                        }
+                        else
+                        {
+                            return itemDef.stackLimit;
+                        }
+                    }
+                    // Note: No need to call Destroy() on unspawned temporary objects - they will be garbage collected
                 }
                 else
                 {
