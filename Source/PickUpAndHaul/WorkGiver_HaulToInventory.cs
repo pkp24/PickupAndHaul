@@ -496,14 +496,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var storeCell = allocation.Key;
 
 		//Can't stack with allocated cells, find a new cell:
-		if (storeCell == default)
-		{
+                if (storeCell == default)
+                {
                         if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
-			{
-				if (innerInteractableThingOwner is null)
-				{
-					storeCell = new(nextStoreCell);
-					job.targetQueueB.Add(nextStoreCell);
+                        {
+                                if (innerInteractableThingOwner is null)
+                                {
+                                        storeCell = new(nextStoreCell);
+                                        job.targetQueueB.Add(nextStoreCell);
 
 					storeCellCapacity[storeCell] = new(nextThing, CapacityAt(nextThing, nextStoreCell, map));
 
@@ -522,25 +522,26 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 			else
 			{
-				Log.Message($"{nextThing} can't stack with allocated cells");
+                                Log.Message($"{nextThing} can't stack with allocated cells");
 
-				if (job.targetQueueA.NullOrEmpty())
-				{
-					job.targetQueueA.Add(nextThing);
-				}
+                                if (job.targetQueueA.NullOrEmpty())
+                                {
+                                        job.targetQueueA.Add(nextThing);
+                                        job.countQueue.Add(1);
+                                }
 
-				PerformanceProfiler.EndTimer("AllocateThingAtCell");
-				return false;
-			}
-		}
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                }
 
-		job.targetQueueA.Add(nextThing);
-		var count = nextThing.stackCount;
-		storeCellCapacity[storeCell].capacity -= count;
-		Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
+                var startBCount = job.targetQueueB.Count;
+                var count = nextThing.stackCount;
+                storeCellCapacity[storeCell].capacity -= count;
+                Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
 
-		while (storeCellCapacity[storeCell].capacity <= 0)
-		{
+                while (storeCellCapacity[storeCell].capacity <= 0)
+                {
 			var capacityOver = -storeCellCapacity[storeCell].capacity;
 			storeCellCapacity.Remove(storeCell);
 
@@ -578,18 +579,40 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 			else
 			{
-				count -= capacityOver;
-				job.countQueue.Add(count);
-				Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
-				PerformanceProfiler.EndTimer("AllocateThingAtCell");
-				return false;
-			}
-		}
-		job.countQueue.Add(count);
-		Log.Message($"{nextThing}:{count} allocated");
-		PerformanceProfiler.EndTimer("AllocateThingAtCell");
-		return true;
-	}
+                                count -= capacityOver;
+                                if (count <= 0)
+                                {
+                                        while (job.targetQueueB.Count > startBCount)
+                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+
+                                        Log.Message($"Nowhere else to store, skipping {nextThing}");
+                                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                        return false;
+                                }
+
+                                Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
+                                job.targetQueueA.Add(nextThing);
+                                job.countQueue.Add(count);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return true;
+                        }
+                }
+                if (count <= 0)
+                {
+                        while (job.targetQueueB.Count > startBCount)
+                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+
+                        Log.Message($"Skipping {nextThing} due to zero capacity");
+                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                        return false;
+                }
+
+                job.targetQueueA.Add(nextThing);
+                job.countQueue.Add(count);
+                Log.Message($"{nextThing}:{count} allocated");
+                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                return true;
+        }
 
 	//public static HashSet<StoreTarget> skipTargets;
 	public static HashSet<IntVec3> skipCells;
