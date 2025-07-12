@@ -215,23 +215,40 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						job.SetTarget(TargetIndex.B, cell);
 					}
 
-					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-					if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
-					{
-						Log.Message(
-							$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-							unloadableThing.Thing.stackCount, out _);
-						EndJobWith(JobCondition.Incompletable);
-						PerformanceProfiler.EndTimer("FindTargetOrDrop");
-						return;
-					}
-					_countToDrop = unloadableThing.Thing.stackCount;
-					PerformanceProfiler.EndTimer("FindTargetOrDrop");
-				}
-				else
-				{
-					Log.Message(
+                                        var plannedDrop = unloadableThing.Thing.stackCount;
+                                        if (cell == IntVec3.Invalid)
+                                        {
+                                                if (destination is Thing destThing)
+                                                {
+                                                        var owner = destThing.TryGetInnerInteractableThingOwner();
+                                                        if (owner != null)
+                                                        {
+                                                                plannedDrop = Mathf.Min(plannedDrop, owner.GetCountCanAccept(unloadableThing.Thing));
+                                                        }
+                                                }
+                                        }
+                                        else if (HoldMultipleThings_Support.CapacityAt(unloadableThing.Thing, cell, pawn.Map, out var capacity))
+                                        {
+                                                plannedDrop = Mathf.Min(plannedDrop, capacity);
+                                        }
+                                        _countToDrop = plannedDrop;
+
+                                        Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+                                        if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB, int.MaxValue, _countToDrop))
+                                        {
+                                                Log.Message(
+                                                        $"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+                                                pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+                                                        unloadableThing.Thing.stackCount, out _);
+                                                EndJobWith(JobCondition.Incompletable);
+                                                PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                                return;
+                                        }
+                                        PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                }
+                                else
+                                {
+                                        Log.Message(
 						$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
 					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 						unloadableThing.Thing.stackCount, out _);
