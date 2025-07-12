@@ -55,16 +55,27 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
         private static readonly Dictionary<Pawn, (int tick, List<Thing> list)> _potentialWorkCache = new();
         private const int CacheDuration = 30; // ticks
+        private static int _lastCacheCleanupTick = 0;
+        private const int CacheCleanupInterval = 2500; // Clean up every ~1 minute
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
                 PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
 
                 var currentTick = Find.TickManager.TicksGame;
+                
+                // Periodic cleanup to prevent memory leaks
+                if (currentTick - _lastCacheCleanupTick > CacheCleanupInterval)
+                {
+                        CleanupPotentialWorkCache(currentTick);
+                        _lastCacheCleanupTick = currentTick;
+                }
+
                 if (_potentialWorkCache.TryGetValue(pawn, out var cached) && currentTick - cached.tick <= CacheDuration)
                 {
                         PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
-                        return cached.list;
+                        // Return a copy to prevent cache corruption
+                        return new List<Thing>(cached.list);
                 }
 
                 var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
@@ -74,7 +85,38 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 _potentialWorkCache[pawn] = (currentTick, list);
 
                 PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
-                return list;
+                // Return a copy to prevent cache corruption
+                return new List<Thing>(list);
+        }
+
+        /// <summary>
+        /// Cleans up the potential work cache to prevent memory leaks
+        /// </summary>
+        private static void CleanupPotentialWorkCache(int currentTick)
+        {
+                var keysToRemove = new List<Pawn>();
+                
+                foreach (var kvp in _potentialWorkCache)
+                {
+                        var pawn = kvp.Key;
+                        var (tick, _) = kvp.Value;
+                        
+                        // Remove entries for dead/destroyed pawns or expired entries
+                        if (pawn == null || pawn.Destroyed || !pawn.Spawned || currentTick - tick > CacheDuration * 2)
+                        {
+                                keysToRemove.Add(pawn);
+                        }
+                }
+                
+                foreach (var key in keysToRemove)
+                {
+                        _potentialWorkCache.Remove(key);
+                }
+                
+                if (keysToRemove.Count > 0)
+                {
+                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up {keysToRemove.Count} entries from potential work cache");
+                }
         }
 
 	private static ThingPositionComparer Comparer { get; } = new();
@@ -139,12 +181,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//Updated to include inventory mass, not just gear mass
 
         private static readonly Dictionary<Pawn, (int tick, bool result)> _encumbranceCache = new();
+        private static int _lastEncumbranceCacheCleanupTick = 0;
 
         public static bool OverAllowedGearCapacity(Pawn pawn)
         {
                 PerformanceProfiler.StartTimer("OverAllowedGearCapacity");
                 
                 var currentTick = Find.TickManager.TicksGame;
+
+                // Periodic cleanup to prevent memory leaks
+                if (currentTick - _lastEncumbranceCacheCleanupTick > CacheCleanupInterval)
+                {
+                        CleanupEncumbranceCache(currentTick);
+                        _lastEncumbranceCacheCleanupTick = currentTick;
+                }
 
                 if (_encumbranceCache.TryGetValue(pawn, out var cache) && cache.tick == currentTick)
                 {
@@ -160,6 +210,36 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 
                 PerformanceProfiler.EndTimer("OverAllowedGearCapacity");
                 return result;
+        }
+
+        /// <summary>
+        /// Cleans up the encumbrance cache to prevent memory leaks
+        /// </summary>
+        private static void CleanupEncumbranceCache(int currentTick)
+        {
+                var keysToRemove = new List<Pawn>();
+                
+                foreach (var kvp in _encumbranceCache)
+                {
+                        var pawn = kvp.Key;
+                        var (tick, _) = kvp.Value;
+                        
+                        // Remove entries for dead/destroyed pawns or stale entries (older than 1 tick)
+                        if (pawn == null || pawn.Destroyed || !pawn.Spawned || currentTick - tick > 1)
+                        {
+                                keysToRemove.Add(pawn);
+                        }
+                }
+                
+                foreach (var key in keysToRemove)
+                {
+                        _encumbranceCache.Remove(key);
+                }
+                
+                if (keysToRemove.Count > 0)
+                {
+                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up {keysToRemove.Count} entries from encumbrance cache");
+                }
         }
 
 	//pick up stuff until you can't anymore,
