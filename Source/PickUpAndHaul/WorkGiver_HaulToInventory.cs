@@ -580,21 +580,27 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 count -= capacityOver;
                                 if (count <= 0)
                                 {
-                                        if (addedTargetB && job.targetQueueB.Count > 0)
+                                        // Clean up all targets added during this method execution
+                                        for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
                                                 job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
                                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                         Log.Message($"Nowhere else to store, skipping {nextThing} due to zero capacity");
                                         return false;
                                 }
-                                // Don't add to countQueue here - only add when we successfully add to targetQueueA
-                                Log.Message($"Nowhere else to store, will try to allocate {nextThing}:{count}");
-                                break;
+                                // Don't add to countQueue here - this would desynchronize the queues
+                                Log.Message($"Nowhere else to store, skipping {nextThing}:{count}");
+                                // Clean up all targets added during this method execution
+                                for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
+                                        job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
                         }
                 }
 
                 if (count <= 0)
                 {
-                        if (addedTargetB && job.targetQueueB.Count > 0)
+                        // Clean up all targets added during this method execution
+                        for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
                                 job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                         Log.Message($"Skipping {nextThing} due to zero capacity");
