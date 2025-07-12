@@ -101,8 +101,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					: new StorageAllocationTracker.StorageLocation(foundCell);
 				
 				// Check available capacity using the storage allocation tracker
-				var minRequiredCapacity = Math.Max(1, thing.stackCount / 2);
-				if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, thing.def, minRequiredCapacity, pawn.Map))
+				// Use full stack count to match allocation behavior
+				if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, thing.def, thing.stackCount, pawn.Map))
 				{
 					Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Insufficient available capacity for {thing} at {storageLocation}, returning false");
 					result = false;
@@ -334,8 +334,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			: new StorageAllocationTracker.StorageLocation(storeTarget.cell);
 		
 		// Reserve capacity for the initial item
-		var minRequiredCapacity = Math.Max(1, thing.stackCount / 2);
-		if (!StorageAllocationTracker.ReserveCapacity(storageLocation, thing.def, minRequiredCapacity, pawn))
+		// Use full stack count to match allocation behavior
+		if (!StorageAllocationTracker.ReserveCapacity(storageLocation, thing.def, thing.stackCount, pawn))
 		{
 			Log.Warning($"[PickUpAndHaul] WARNING: Cannot reserve capacity for {thing} at {storageLocation} - insufficient available capacity");
 			skipCells = null;
@@ -350,15 +350,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
 			// Release reserved capacity
-			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, minRequiredCapacity, pawn);
+			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, thing.stackCount, pawn);
 			skipCells = null;
 			skipThings = null;
 			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 		Log.Message($"[PickUpAndHaul] DEBUG: Initial item {thing} allocated successfully");
-
-		haulables.Remove(thing);
 
 		// Skip the initial allocation loop since we already allocated the initial item
 		// Just calculate encumbrance for the initial item
@@ -404,7 +402,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			{
 				Log.Message($"[PickUpAndHaul] DEBUG: No items allocated, returning null job");
 				// Release reserved capacity
-				StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, minRequiredCapacity, pawn);
+				StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, thing.stackCount, pawn);
 				skipCells = null;
 				skipThings = null;
 				PerformanceProfiler.EndTimer("JobOnThing");
