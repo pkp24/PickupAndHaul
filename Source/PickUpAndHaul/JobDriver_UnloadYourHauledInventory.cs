@@ -75,7 +75,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		yield return FindTargetOrDrop(carriedThings);
 		yield return PullItemFromInventory(carriedThings, begin);
 
-		var releaseReservation = ReleaseReservation();
 		var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
 
 		// Equivalent to if (TargetB.HasThing)
@@ -86,86 +85,57 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
 		yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
 		// Equivalent to jumping out of the else block
-		yield return Toils_Jump.Jump(releaseReservation);
+		yield return Toils_Jump.Jump(begin);
 
 		// Equivalent to else
 		yield return carryToCell;
 		yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
 
-		//If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
-		//We still gotta release though, mostly because of Extended Storage.
-		yield return releaseReservation;
 		yield return Toils_Jump.Jump(begin);
 		PerformanceProfiler.EndTimer("MakeNewToils");
 	}
 
 	private bool TargetIsCell() => !TargetB.HasThing;
 
-        private Toil ReleaseReservation()
-        {
-                return new()
-                {
-                        initAction = () =>
-                        {
-				// Check for save operation before releasing reservation
-				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-				{
-					return;
-				}
+        // JobDriver_UnloadYourHauledInventory.cs
+		private bool ReserveStorage(LocalTargetInfo target, Thing thing)
+		{
+			// ── STORAGE BUILDING (e.g. Neat-Storage crate) ─────────────────────────
+			if (target.HasThing)
+			{
+				int toReserve = thing.stackCount;   // reserve entire stack
+				if (!pawn.Map.reservationManager.Reserve(
+						pawn, job, target,
+						int.MaxValue,          // maxPawns
+						toReserve))            // stackCount  ✔ (no longer int.MaxValue)
+					return false;
 
-                                if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
-                                    && !ModCompatibilityCheck.HCSKIsActive)
-                                {
-                                        pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
-                                }
+				StorageReservationManager.Reserve(target.Thing, toReserve);
+				AddFinishAction(() => StorageReservationManager.Release(target.Thing, toReserve));
 
-                                if (job.targetB.HasThing)
-                                {
-                                        StorageReservationManager.Release(job.targetB.Thing, _countToDrop);
-                                }
-                                else
-                                {
-                                        StorageReservationManager.Release(job.targetB.Cell, _countToDrop);
-                                }
-                        }
-                };
-        }
+				_countToDrop = toReserve;
+				return true;
+			}
 
-        private bool ReserveStorage(LocalTargetInfo target, Thing thing)
-        {
-                int capacity;
-                if (target.HasThing)
-                {
-                        var container = target.Thing;
-                        capacity = WorkGiver_HaulToInventory.CapacityAt(thing, container.Position, pawn.Map);
-                        var reserved = StorageReservationManager.Reserved(container);
+			// ── STOCKPILE CELL ─────────────────────────────────────────────────────
+			int capacity   = WorkGiver_HaulToInventory.CapacityAt(thing, target.Cell, pawn.Map);
+			int reserved   = StorageReservationManager.Reserved(target.Cell);
+			if (reserved >= capacity) return false;
 
-                        if (reserved >= capacity)
-                                return false;
+			int toReserveCell = Mathf.Min(thing.stackCount, capacity - reserved);
+			if (!pawn.Map.reservationManager.Reserve(
+					pawn, job, target,
+					int.MaxValue,
+					toReserveCell))
+				return false;
 
-                        var toReserve = Mathf.Min(thing.stackCount, capacity - reserved);
-                        if (!pawn.Map.reservationManager.Reserve(pawn, job, target, int.MaxValue, toReserve))
-                                return false;
+			StorageReservationManager.Reserve(target.Cell, toReserveCell);
+			AddFinishAction(() => StorageReservationManager.Release(target.Cell, toReserveCell));
 
-                        StorageReservationManager.Reserve(container, toReserve);
-                        _countToDrop = toReserve;
-                        return true;
-                }
+			_countToDrop = toReserveCell;
+			return true;
+		}
 
-                capacity = WorkGiver_HaulToInventory.CapacityAt(thing, target.Cell, pawn.Map);
-                var reservedCell = StorageReservationManager.Reserved(target.Cell);
-
-                if (reservedCell >= capacity)
-                        return false;
-
-                var reserveCount = Mathf.Min(thing.stackCount, capacity - reservedCell);
-                if (!pawn.Map.reservationManager.Reserve(pawn, job, target, int.MaxValue, reserveCount))
-                        return false;
-
-                StorageReservationManager.Reserve(target.Cell, reserveCount);
-                _countToDrop = reserveCount;
-                return true;
-        }
 
 	private Toil PullItemFromInventory(HashSet<Thing> carriedThings, Toil wait)
 	{
