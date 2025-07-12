@@ -52,19 +52,30 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
 
-	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
-	{
-		PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
-		
-		var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		Comparer.rootCell = pawn.Position;
-		list.Sort(Comparer);
-		
-		PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
-		return list;
-	}
+        private static readonly Dictionary<Pawn, (int tick, List<Thing> list)> _workListCache = new();
 
-	private static ThingPositionComparer Comparer { get; } = new();
+        public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
+        {
+                PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
+
+                var currentTick = Find.TickManager.TicksGame;
+                if (!_workListCache.TryGetValue(pawn, out var cache) || cache.tick != currentTick)
+                {
+                        cache.list ??= new List<Thing>();
+                        cache.list.Clear();
+                        cache.list.AddRange(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
+                        Comparer.rootCell = pawn.Position;
+                        cache.list.Sort(Comparer);
+                        _workListCache[pawn] = (currentTick, cache.list);
+                }
+
+                PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
+                return cache.list;
+        }
+
+        private static ThingPositionComparer Comparer { get; } = new();
+        private static readonly List<Thing> TempHaulablesList = new();
+        private static readonly List<Thing> TempItemsWithStorage = new();
 	public class ThingPositionComparer : IComparer<Thing>
 	{
 		public IntVec3 rootCell;
@@ -276,15 +287,18 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var haulUrgentlyDesignation = PickUpAndHaulDesignationDefOf.haulUrgently;
 		var isUrgent = ModCompatibilityCheck.AllowToolIsActive && designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		Comparer.rootCell = thing.Position;
-		haulables.Sort(Comparer);
+                var haulables = TempHaulablesList;
+                haulables.Clear();
+                haulables.AddRange(map.listerHaulables.ThingsPotentiallyNeedingHauling());
+                Comparer.rootCell = thing.Position;
+                haulables.Sort(Comparer);
 		
 		Log.Message($"[PickUpAndHaul] DEBUG: Found {haulables.Count} haulable items to consider");
 
-		// Pre-filter items that have available storage to avoid allocation failures
-		var itemsWithStorage = new List<Thing>();
-		itemsWithStorage.Add(thing); // Always include the initial item
+                // Pre-filter items that have available storage to avoid allocation failures
+                var itemsWithStorage = TempItemsWithStorage;
+                itemsWithStorage.Clear();
+                itemsWithStorage.Add(thing); // Always include the initial item
 		
 		foreach (var haulable in haulables)
 		{
@@ -347,6 +361,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         Log.Warning($"[PickUpAndHaul] WARNING: Pawn {pawn} cannot carry any of {thing} due to encumbrance");
                         skipCells = null;
                         skipThings = null;
+                        TempHaulablesList.Clear();
+                        TempItemsWithStorage.Clear();
                         PerformanceProfiler.EndTimer("JobOnThing");
                         return null;
                 }
@@ -356,6 +372,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         Log.Warning($"[PickUpAndHaul] WARNING: Cannot reserve capacity for {actualCarriableAmount} of {thing} at {storageLocation} - insufficient available capacity");
                         skipCells = null;
                         skipThings = null;
+                        TempHaulablesList.Clear();
+                        TempItemsWithStorage.Clear();
                         PerformanceProfiler.EndTimer("JobOnThing");
                         return null;
                 }
@@ -369,6 +387,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, actualCarriableAmount, pawn);
                         skipCells = null;
                         skipThings = null;
+                        TempHaulablesList.Clear();
+                        TempItemsWithStorage.Clear();
                         PerformanceProfiler.EndTimer("JobOnThing");
                         return null;
                 }
@@ -415,11 +435,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Message($"[PickUpAndHaul] DEBUG: targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 			// At this point, we always have at least the initial item allocated since it was validated earlier
 			// No need to check if targetQueueA is empty - that's logically impossible here
-			skipCells = null;
-			skipThings = null;
-			//skipTargets = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
-			return job;
+                        skipCells = null;
+                        skipThings = null;
+                        //skipTargets = null;
+                        TempHaulablesList.Clear();
+                        TempItemsWithStorage.Clear();
+                        PerformanceProfiler.EndTimer("JobOnThing");
+                        return job;
 		}
 
 		//Find what can be carried
@@ -431,11 +453,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			Log.Message($"[PickUpAndHaul] DEBUG: Can't carry more, nevermind!");
 			Log.Message($"[PickUpAndHaul] DEBUG: Final job state - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
-			skipCells = null;
-			skipThings = null;
-			//skipTargets = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
-			return job;
+                        skipCells = null;
+                        skipThings = null;
+                        //skipTargets = null;
+                        TempHaulablesList.Clear();
+                        TempItemsWithStorage.Clear();
+                        PerformanceProfiler.EndTimer("JobOnThing");
+                        return job;
 		}
 		Log.Message($"[PickUpAndHaul] DEBUG: Looking for more like {nextThing}, carryCapacity: {carryCapacity}");
 
@@ -466,12 +490,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Validate job before returning
 		ValidateJobQueues(job, pawn, "Job Return");
 		
-		skipCells = null;
-		skipThings = null;
-		//skipTargets = null;
-		PerformanceProfiler.EndTimer("JobOnThing");
-		return job;
-	}
+                skipCells = null;
+                skipThings = null;
+                //skipTargets = null;
+                TempHaulablesList.Clear();
+                TempItemsWithStorage.Clear();
+                PerformanceProfiler.EndTimer("JobOnThing");
+                return job;
+        }
 
 	private static bool HaulToHopperJob(Thing thing, IntVec3 targetCell, Map map)
 	{

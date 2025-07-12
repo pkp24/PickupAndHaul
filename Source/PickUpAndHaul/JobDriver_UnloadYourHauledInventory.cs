@@ -301,13 +301,18 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 
 
+        private static readonly List<Thing> _tmpThingList = new();
+
         private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
         {
-			PerformanceProfiler.StartTimer("FirstUnloadableThing");
+                        PerformanceProfiler.StartTimer("FirstUnloadableThing");
                 var innerPawnContainer = pawn.inventory.innerContainer;
                 Thing best = null;
 
-                foreach (var thing in carriedThings)
+                _tmpThingList.Clear();
+                _tmpThingList.AddRange(carriedThings);
+
+                foreach (var thing in _tmpThingList)
                 {
                         // Handle stacks that changed IDs after being picked up
                         if (!innerPawnContainer.Contains(thing))
