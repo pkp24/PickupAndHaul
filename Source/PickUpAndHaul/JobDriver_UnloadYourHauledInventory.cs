@@ -101,26 +101,71 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 	private bool TargetIsCell() => !TargetB.HasThing;
 
-	private Toil ReleaseReservation()
-	{
-		return new()
-		{
-			initAction = () =>
-			{
+        private Toil ReleaseReservation()
+        {
+                return new()
+                {
+                        initAction = () =>
+                        {
 				// Check for save operation before releasing reservation
 				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 				{
 					return;
 				}
 
-				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
-				    && !ModCompatibilityCheck.HCSKIsActive)
-				{
-					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
-				}
-			}
-		};
-	}
+                                if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
+                                    && !ModCompatibilityCheck.HCSKIsActive)
+                                {
+                                        pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
+                                }
+
+                                if (job.targetB.HasThing)
+                                {
+                                        StorageReservationManager.Release(job.targetB.Thing, _countToDrop);
+                                }
+                                else
+                                {
+                                        StorageReservationManager.Release(job.targetB.Cell, _countToDrop);
+                                }
+                        }
+                };
+        }
+
+        private bool ReserveStorage(LocalTargetInfo target, Thing thing)
+        {
+                int capacity;
+                if (target.HasThing)
+                {
+                        var container = target.Thing;
+                        capacity = WorkGiver_HaulToInventory.CapacityAt(thing, container.Position, pawn.Map);
+                        var reserved = StorageReservationManager.Reserved(container);
+
+                        if (reserved >= capacity)
+                                return false;
+
+                        var toReserve = Mathf.Min(thing.stackCount, capacity - reserved);
+                        if (!pawn.Map.reservationManager.Reserve(pawn, job, target, int.MaxValue, toReserve))
+                                return false;
+
+                        StorageReservationManager.Reserve(container, toReserve);
+                        _countToDrop = toReserve;
+                        return true;
+                }
+
+                capacity = WorkGiver_HaulToInventory.CapacityAt(thing, target.Cell, pawn.Map);
+                var reservedCell = StorageReservationManager.Reserved(target.Cell);
+
+                if (reservedCell >= capacity)
+                        return false;
+
+                var reserveCount = Mathf.Min(thing.stackCount, capacity - reservedCell);
+                if (!pawn.Map.reservationManager.Reserve(pawn, job, target, int.MaxValue, reserveCount))
+                        return false;
+
+                StorageReservationManager.Reserve(target.Cell, reserveCount);
+                _countToDrop = reserveCount;
+                return true;
+        }
 
 	private Toil PullItemFromInventory(HashSet<Thing> carriedThings, Toil wait)
 	{
@@ -215,13 +260,13 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						job.SetTarget(TargetIndex.B, cell);
 					}
 
-					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-					if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
-					{
-						Log.Message(
-							$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-							unloadableThing.Thing.stackCount, out _);
+                                        Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+                                        if (!ReserveStorage(job.targetB, unloadableThing.Thing))
+                                        {
+                                                Log.Message(
+                                                        $"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+                                                pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+                                                        unloadableThing.Thing.stackCount, out _);
 						EndJobWith(JobCondition.Incompletable);
 						PerformanceProfiler.EndTimer("FindTargetOrDrop");
 						return;
