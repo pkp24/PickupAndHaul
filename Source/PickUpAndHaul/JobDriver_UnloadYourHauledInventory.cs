@@ -5,7 +5,6 @@ namespace PickUpAndHaul;
 public class JobDriver_UnloadYourHauledInventory : JobDriver
 {
 	private int _countToDrop = -1;
-	private int _unloadDuration = 3;
 
 	public override void ExposeData()
 	{
@@ -64,7 +63,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			yield break;
 		}
 
-		var carriedComp   = pawn.TryGetComp<CompHauledInventory>();
+		var carriedComp   = pawn.TryGetComp<CompHauledToInventory>();
 		var waitShort     = Toils_General.Wait(2);
 
 		/* pull first thing/count from the queued lists */
@@ -177,6 +176,49 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		PerformanceProfiler.EndTimer("MakeNewToils");
 	}
 
+	/// <summary>
+	/// the workgiver checks for encumbered, this is purely extra for CE
+	/// </summary>
+	/// <returns></returns>
+	public Toil CheckForOverencumberedForCombatExtended()
+	{
+		var toil = new Toil();
+
+		if (!ModCompatibilityCheck.CombatExtendedIsActive)
+		{
+			return toil;
+		}
+
+		toil.initAction = () =>
+		{
+			// Check for save operation before checking encumbrance
+			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+			{
+				EndJobWith(JobCondition.InterruptForced);
+				return;
+			}
+
+			var actor = toil.actor;
+			var curJob = actor.jobs.curJob;
+			var nextThing = curJob.targetA.Thing;
+
+			var ceOverweight = CompatHelper.CeOverweight(pawn);
+
+			if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f && !ceOverweight))
+			{
+				var haul = HaulAIUtility.HaulToStorageJob(actor, nextThing, false);
+				if (haul?.TryMakePreToilReservations(actor, false) ?? false)
+				{
+					//note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
+					actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
+					EndJobWith(JobCondition.Succeeded);
+				}
+			}
+		};
+
+		return toil;
+	}
+
 
 	private bool TargetIsCell() => !TargetB.HasThing;
 
@@ -239,7 +281,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 							thing, ThingPlaceMode.Near, _countToDrop, out var dropped);
 						dropped?.SetForbidden(false, false);
 
-						if (pawn.Map.reservationManager.ReservedBy(pawn, job.targetB))
+						if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
 							pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
 
 						EndJobWith(JobCondition.Succeeded);
@@ -260,7 +302,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						thing, ThingPlaceMode.Near, _countToDrop, out var dropped);
 					dropped?.SetForbidden(false, false);
 
-					if (pawn.Map.reservationManager.ReservedBy(pawn, job.targetB))
+					if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
 						pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
 
 					EndJobWith(JobCondition.Succeeded);
@@ -279,7 +321,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						thing, ThingPlaceMode.Near, _countToDrop, out carried);
 					carried?.SetForbidden(false, false);
 
-					if (pawn.Map.reservationManager.ReservedBy(pawn, job.targetB))
+					if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
 						pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
 
 					EndJobWith(JobCondition.Succeeded);
@@ -349,7 +391,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 
 				/* choose targetB */
-				var targetB = cell == IntVec3.Invalid ? (LocalTargetInfo)dest : cell;
+				var targetB = cell == IntVec3.Invalid ? ((Thing)dest).Position : cell;
 				job.SetTarget(TargetIndex.A, unloadable.Thing);
 				job.SetTarget(TargetIndex.B, targetB);
 
