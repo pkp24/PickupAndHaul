@@ -212,6 +212,7 @@ namespace PickUpAndHaul
                     {
                         try
                         {
+                            tempThing.stackCount = itemDef.stackLimit;
                             var capacity = thingOwner.GetCountCanAccept(tempThing);
                             return capacity;
                         }
@@ -238,6 +239,7 @@ namespace PickUpAndHaul
                 {
                     try
                     {
+                        tempThing.stackCount = itemDef.stackLimit;
                         var capacity = WorkGiver_HaulToInventory.CapacityAt(tempThing, location.Cell, map);
                         return capacity;
                     }
@@ -288,7 +290,9 @@ namespace PickUpAndHaul
                     var stuff = itemDef.defaultStuff ?? GenStuff.DefaultStuffFor(itemDef);
                     if (stuff != null)
                     {
-                        return ThingMaker.MakeThing(itemDef, stuff);
+                        var thing = ThingMaker.MakeThing(itemDef, stuff);
+                        thing.stackCount = itemDef.stackLimit;
+                        return thing;
                     }
                     else
                     {
@@ -298,7 +302,9 @@ namespace PickUpAndHaul
                 }
                 else
                 {
-                    return ThingMaker.MakeThing(itemDef);
+                    var thing = ThingMaker.MakeThing(itemDef);
+                    thing.stackCount = itemDef.stackLimit;
+                    return thing;
                 }
             }
             catch (Exception ex)
