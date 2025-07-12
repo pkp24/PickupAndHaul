@@ -580,9 +580,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 count -= capacityOver;
                                 if (count <= 0)
                                 {
+
                                         // Remove all targets added by this execution
                                         if (targetsAddedCount > 0 && job.targetQueueB.Count >= targetsAddedCount)
                                                 job.targetQueueB.RemoveRange(job.targetQueueB.Count - targetsAddedCount, targetsAddedCount);
+
                                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                         Log.Message($"Nowhere else to store, skipping {nextThing} due to zero capacity");
                                         return false;
@@ -595,9 +597,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 if (count <= 0)
                 {
+
                         // Remove all targets added by this execution
                         if (targetsAddedCount > 0 && job.targetQueueB.Count >= targetsAddedCount)
                                 job.targetQueueB.RemoveRange(job.targetQueueB.Count - targetsAddedCount, targetsAddedCount);
+
                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                         Log.Message($"Skipping {nextThing} due to zero capacity");
                         return false;
