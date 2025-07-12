@@ -6,7 +6,6 @@ namespace PickUpAndHaul;
 public class JobDriver_UnloadYourHauledInventory : JobDriver
 {
 	private int _countToDrop = -1;
-	private int _unloadDuration = 3;
 
 	public override void ExposeData()
 	{
@@ -55,53 +54,221 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	public override IEnumerable<Toil> MakeNewToils()
 	{
 		PerformanceProfiler.StartTimer("MakeNewToils");
-		// Check if save operation is in progress at the start
+
+		/* ----- Hard exit if a save is happening -------------------------------- */
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
-			Log.Message($"[PickUpAndHaul] Ending UnloadYourHauledInventory job during save operation for {pawn}");
+			Log.Message($"[PickUpAndHaul] Ending HaulToInventory job during save operation for {pawn}");
 			EndJobWith(JobCondition.InterruptForced);
 			PerformanceProfiler.EndTimer("MakeNewToils");
 			yield break;
 		}
 
-		if (ModCompatibilityCheck.ExtendedStorageIsActive)
+		var takenToInventory = pawn.TryGetComp<CompHauledToInventory>();          // existing helper
+		var wait             = Toils_General.Wait(2);
+
+		/* ----------------------------------------------------------------------- */
+		/* 1. Pull next queue entry – this also sets job.count from countQueue     */
+		/* ----------------------------------------------------------------------- */
+		var extractNext = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A);
+		yield return extractNext;
+
+		/* Extra CE encumbrance guard (unchanged) */
+		yield return CheckForOverencumberedForCombatExtended();
+
+		/* ----------------------------------------------------------------------- */
+		/* 2. Go to thing                                                          */
+		/* ----------------------------------------------------------------------- */
+		var gotoThing = new Toil
 		{
-			_unloadDuration = 20;
+			initAction = () =>
+			{
+				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+				{
+					EndJobWith(JobCondition.InterruptForced);
+					return;
+				}
+				pawn.pather.StartPath(TargetThingA, PathEndMode.ClosestTouch);
+			},
+			defaultCompleteMode = ToilCompleteMode.PatherArrival
+		};
+		gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
+		yield return gotoThing;
+
+		/* ----------------------------------------------------------------------- */
+		/* 3. Pick it up (fixed count handling)                                    */
+		/* ----------------------------------------------------------------------- */
+		var takeThing = new Toil
+		{
+			initAction = () =>
+			{
+				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+				{
+					EndJobWith(JobCondition.InterruptForced);
+					return;
+				}
+
+				var actor = pawn;
+				var thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
+
+				/* -------- determine a safe number to take ---------------------- */
+				int requested       = actor.jobs.curJob.count <= 0 ? thing.stackCount
+																: actor.jobs.curJob.count;
+				int countToPickUp   = Mathf.Min(requested,
+												MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
+
+				if (ModCompatibilityCheck.CombatExtendedIsActive)
+					countToPickUp = Mathf.Min(countToPickUp, CompatHelper.CanFitInInventory(pawn, thing));
+
+				/* nothing at all fits – bail out gracefully */
+				if (countToPickUp <= 0)
+				{
+					EndJobWith(JobCondition.Incompletable);
+					return;
+				}
+
+				/* set official job count BEFORE Verse’s safety check */
+				actor.jobs.curJob.count = countToPickUp;
+				Toils_Haul.ErrorCheckForCarry(actor, thing);   // no more “count = 0” warnings
+
+				Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
+
+				/* do the actual split & inventory merge */
+				var splitThing  = thing.SplitOff(countToPickUp);
+				bool shouldMerge = takenToInventory.GetHashSet().Any(x => x.def == thing.def);
+
+				actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
+				takenToInventory.RegisterHauledItem(splitThing);
+
+				if (ModCompatibilityCheck.CombatExtendedIsActive)
+					CompatHelper.UpdateInventory(pawn);
+
+				/* if part of the stack remains on the ground, queue a normal haul */
+				if (thing.Spawned)
+				{
+					var haul = HaulAIUtility.HaulToStorageJob(actor, thing, false);
+					if (haul?.TryMakePreToilReservations(actor, false) ?? false)
+						actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
+
+					actor.jobs.curDriver.JumpToToil(wait);   // continue our own job smoothly
+				}
+			}
+		};
+		yield return takeThing;
+
+		/* Loop back for more queued targets */
+		yield return Toils_Jump.JumpIf(extractNext, () => !job.targetQueueA.NullOrEmpty());
+
+		/* ----------------------------------------------------------------------- */
+		/* 4. Opportunistic extra hauling (unchanged)                              */
+		/* ----------------------------------------------------------------------- */
+		yield return new Toil
+		{
+			initAction = () =>
+			{
+				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+				{
+					EndJobWith(JobCondition.InterruptForced);
+					return;
+				}
+
+				var haulables = TempListForThings;
+				haulables.Clear();
+				haulables.AddRange(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
+
+				var haulMoreWork = DefDatabase<WorkGiverDef>.AllDefsListForReading
+								.First(wg => wg.Worker is WorkGiver_HaulToInventory)
+								.Worker as WorkGiver_HaulToInventory;
+
+				Job  haulMoreJob  = null;
+				var  haulMoreThing = WorkGiver_HaulToInventory.GetClosestAndRemove(
+										pawn.Position, pawn.Map, haulables,
+										PathEndMode.ClosestTouch, TraverseParms.For(pawn), 12,
+										t => (haulMoreJob = haulMoreWork.JobOnThing(pawn, t)) != null);
+
+				if (haulMoreThing != null && haulMoreJob.TryMakePreToilReservations(pawn, false))
+				{
+					pawn.jobs.jobQueue.EnqueueFirst(haulMoreJob, JobTag.Misc);
+					EndJobWith(JobCondition.Succeeded);
+				}
+			}
+		};
+
+		/* ----------------------------------------------------------------------- */
+		/* 5. Walk to destination and enqueue unload-inventory job                 */
+		/* ----------------------------------------------------------------------- */
+		yield return TargetB.HasThing
+			? Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.ClosestTouch)
+			: Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
+
+		yield return new Toil
+		{
+			initAction = () =>
+			{
+				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+				{
+					EndJobWith(JobCondition.InterruptForced);
+					return;
+				}
+
+				var unloadJob = JobMaker.MakeJob(
+									PickUpAndHaulJobDefOf.UnloadYourHauledInventory,
+									job.targetB);
+
+				if (unloadJob.TryMakePreToilReservations(pawn, false))
+				{
+					pawn.jobs.jobQueue.EnqueueFirst(unloadJob, JobTag.Misc);
+					EndJobWith(JobCondition.Succeeded);
+				}
+			}
+		};
+
+		yield return wait;
+	}
+
+	private static List<Thing> TempListForThings { get; } = new();
+
+	/// <summary>
+	/// the workgiver checks for encumbered, this is purely extra for CE
+	/// </summary>
+	/// <returns></returns>
+	public Toil CheckForOverencumberedForCombatExtended()
+	{
+		var toil = new Toil();
+
+		if (!ModCompatibilityCheck.CombatExtendedIsActive)
+		{
+			return toil;
 		}
 
-                var begin = Toils_General.Wait(_unloadDuration);
-                yield return begin;
+		toil.initAction = () =>
+		{
+			// Check for save operation before checking encumbrance
+			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+			{
+				EndJobWith(JobCondition.InterruptForced);
+				return;
+			}
 
-                var carriedThings = pawn.TryGetComp<CompHauledToInventory>().GetHashSet();
-                yield return FindTargetOrDrop(carriedThings);
-                yield return PullItemFromInventory(carriedThings, begin);
+			var actor = toil.actor;
+			var curJob = actor.jobs.curJob;
+			var nextThing = curJob.targetA.Thing;
 
-                var releaseReservation = ReleaseReservation();
-                var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
+			var ceOverweight = CompatHelper.CeOverweight(pawn);
 
-                // Equivalent to if (TargetB.HasThing)
-                yield return Toils_Jump.JumpIf(carryToCell, TargetIsCell);
+			if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f && !ceOverweight))
+			{
+				var haul = HaulAIUtility.HaulToStorageJob(actor, nextThing, false);
+				if (haul?.TryMakePreToilReservations(actor, false) ?? false)
+				{
+					//note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
+					actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
+					EndJobWith(JobCondition.Succeeded);
+				}
+			}
+		};
 
-                var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
-                var adjustDropCountContainer = AdjustDropCount(begin);
-                yield return carryToContainer;
-                yield return adjustDropCountContainer;
-                yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
-                yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
-                // Equivalent to jumping out of the else block
-                yield return Toils_Jump.Jump(releaseReservation);
-
-                // Equivalent to else
-                var adjustDropCountCell = AdjustDropCount(begin);
-                yield return carryToCell;
-                yield return adjustDropCountCell;
-                yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
-
-                //If the original cell is full, PlaceHauledThingInCell will set a different TargetIndex resulting in errors on yield return Toils_Reserve.Release.
-                //We still gotta release though, mostly because of Extended Storage.
-                yield return releaseReservation;
-                yield return Toils_Jump.Jump(begin);
-		PerformanceProfiler.EndTimer("MakeNewToils");
+		return toil;
 	}
 
 	private bool TargetIsCell() => !TargetB.HasThing;
