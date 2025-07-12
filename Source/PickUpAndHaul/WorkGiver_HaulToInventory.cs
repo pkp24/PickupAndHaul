@@ -52,17 +52,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
 
-	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
-	{
-		PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
-		
-		var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		Comparer.rootCell = pawn.Position;
-		list.Sort(Comparer);
-		
-		PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
-		return list;
-	}
+        private static readonly List<Thing> _workList = new();
+
+        public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
+        {
+                PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
+
+                _workList.Clear();
+                _workList.AddRange(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
+                Comparer.rootCell = pawn.Position;
+                _workList.Sort(Comparer);
+
+                PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
+                return _workList;
+        }
 
 	private static ThingPositionComparer Comparer { get; } = new();
 	public class ThingPositionComparer : IComparer<Thing>
@@ -276,31 +279,34 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var haulUrgentlyDesignation = PickUpAndHaulDesignationDefOf.haulUrgently;
 		var isUrgent = ModCompatibilityCheck.AllowToolIsActive && designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		Comparer.rootCell = thing.Position;
-		haulables.Sort(Comparer);
+                var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
+                Comparer.rootCell = thing.Position;
+                haulables.Sort(Comparer);
 		
 		Log.Message($"[PickUpAndHaul] DEBUG: Found {haulables.Count} haulable items to consider");
 
-		// Pre-filter items that have available storage to avoid allocation failures
-		var itemsWithStorage = new List<Thing>();
-		itemsWithStorage.Add(thing); // Always include the initial item
+                // Pre-filter items that have available storage to avoid allocation failures
+                var itemsWithStorage = new List<Thing>();
+                var storageCache = new Dictionary<Thing, StoreTarget>();
+                itemsWithStorage.Add(thing); // Always include the initial item
+                storageCache[thing] = storeTarget;
 		
 		foreach (var haulable in haulables)
 		{
 			if (haulable == thing) continue; // Skip the initial item
 			
 			// Check if this item has available storage
-			var itemPriority = StoreUtility.CurrentStoragePriorityOf(haulable);
-			if (StoreUtility.TryFindBestBetterStorageFor(haulable, pawn, map, itemPriority, pawn.Faction, out _, out _, false))
-			{
-				itemsWithStorage.Add(haulable);
-				Log.Message($"[PickUpAndHaul] DEBUG: {haulable} has available storage, adding to consideration");
-			}
-			else
-			{
-				Log.Message($"[PickUpAndHaul] DEBUG: {haulable} has no available storage, skipping");
-			}
+                        var itemPriority = StoreUtility.CurrentStoragePriorityOf(haulable);
+                        if (StoreUtility.TryFindBestBetterStorageFor(haulable, pawn, map, itemPriority, pawn.Faction, out var cCell, out var cDest, false))
+                        {
+                                itemsWithStorage.Add(haulable);
+                                storageCache[haulable] = cDest is Thing destThing ? new StoreTarget(destThing) : new StoreTarget(cCell);
+                                Log.Message($"[PickUpAndHaul] DEBUG: {haulable} has available storage, adding to consideration");
+                        }
+                        else
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: {haulable} has no available storage, skipping");
+                        }
 		}
 		
 		Log.Message($"[PickUpAndHaul] DEBUG: After storage filtering: {itemsWithStorage.Count} items have available storage");
@@ -362,7 +368,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 
                 Log.Message($"[PickUpAndHaul] DEBUG: Reserved capacity for {actualCarriableAmount} of {thing} at {storageLocation}");
 		
-		                if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job))
+                                if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job, storageCache))
                 {
                         Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
                         // Release reserved capacity
@@ -387,7 +393,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         if (nextThing == null) break;
 
                         Log.Message($"[PickUpAndHaul] DEBUG: Attempting to allocate additional item {nextThing} to job");
-                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
+                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, storageCache))
                         {
                                 lastThing = nextThing;
                                 encumberance += AddedEncumberance(pawn, nextThing, capacity);
@@ -445,7 +451,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         carryCapacity -= nextThing.stackCount;
                         Log.Message($"[PickUpAndHaul] DEBUG: Found similar thing {nextThing}, carryCapacity now: {carryCapacity}");
 
-			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
+                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, storageCache))
 			{
                                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated similar thing {nextThing}");
 				break;
@@ -621,8 +627,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| allocation.Value.allocated.CanStackWith(nextThing)
 		|| HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key.cell, nextThing.Map);
 
-	public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
-	{
+        public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job, Dictionary<Thing, StoreTarget> storageCache = null)
+        {
 		PerformanceProfiler.StartTimer("AllocateThingAtCell");
 		
 		// DEBUG: Log initial state
@@ -631,12 +637,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		
                 var map = pawn.Map;
                 var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
+                IntVec3 nextStoreCell = IntVec3.Invalid;
+                IHaulDestination haulDestination = null;
+                ThingOwner innerInteractableThingOwner = null;
                 var allocation = storeCellCapacity.FirstOrDefault(kvp =>
                         kvp.Key is var storeTarget
                         && (storeTarget.container?.TryGetInnerInteractableThingOwner().CanAcceptAnyOf(nextThing)
                         ?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
                         && Stackable(nextThing, kvp));
                 var storeCell = allocation.Key;
+
+                if (storeCell == default && storageCache != null && storageCache.TryGetValue(nextThing, out var cachedTarget))
+                {
+                        storeCell = cachedTarget;
+                }
                 
                 // Track reservations and targets added during this method call
                 var reservationsMade = new List<(StorageAllocationTracker.StorageLocation location, ThingDef def, int count)>();
@@ -658,7 +672,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 if (storeCell == default)
                 {
                         Log.Message($"[PickUpAndHaul] DEBUG: No existing cell found for {nextThing}, searching for new storage");
-                        if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
+                        if (storageCache != null && storageCache.TryGetValue(nextThing, out var cached2))
+                        {
+                                storeCell = cached2;
+                                haulDestination = cached2.container as IHaulDestination;
+                                innerInteractableThingOwner = cached2.container?.TryGetInnerInteractableThingOwner();
+                                nextStoreCell = cached2.cell;
+                        }
+                        else if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out nextStoreCell, out haulDestination, out innerInteractableThingOwner))
                         {
                                 if (innerInteractableThingOwner is null)
                                 {
@@ -799,8 +820,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				break;  //don't find new cell, might not have more of this thing to haul
 			}
 
-                        if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
-			{
+                        if (storageCache != null && storageCache.TryGetValue(nextThing, out var cached3))
+                        {
+                                nextStoreCell = cached3.cell;
+                                haulDestination = cached3.container as IHaulDestination;
+                                innerInteractableThingOwner = cached3.container?.TryGetInnerInteractableThingOwner();
+                        }
+                        else if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out nextStoreCell, out haulDestination, out innerInteractableThingOwner))
+                        {
 				if (innerInteractableThingOwner is null)
 				{
 					                        storeCell = new(nextStoreCell);
@@ -860,7 +887,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				}
 				else
 				{
-					                        var destinationAsThing = (Thing)nextHaulDestination;
+                        var destinationAsThing = (Thing)haulDestination;
                         storeCell = new(destinationAsThing);
                         job.targetQueueB.Add(destinationAsThing);
                         targetsAdded.Add(destinationAsThing);
@@ -868,7 +895,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
                         if (capacity <= 0)
                         {
-                                Log.Message($"[PickUpAndHaul] DEBUG: New overflow haulDestination {nextHaulDestination} has capacity {capacity} <= 0 after overflow, skipping");
+                        Log.Message($"[PickUpAndHaul] DEBUG: New overflow haulDestination {haulDestination} has capacity {capacity} <= 0 after overflow, skipping");
                                 // Clean up targets and reservations
                                 CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
                                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
@@ -913,7 +940,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					
 					storeCellCapacity[storeCell] = new(nextThing, capacity);
 
-					                        Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {nextHaulDestination}:{capacity}, allocated extra {actualOverflowAmount}, targetsAdded = {targetsAdded.Count}");
+                        Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {haulDestination}:{capacity}, allocated extra {actualOverflowAmount}, targetsAdded = {targetsAdded.Count}");
                         Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
 				}
 			}
