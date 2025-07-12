@@ -494,7 +494,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         ?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
                         && Stackable(nextThing, kvp));
                 var storeCell = allocation.Key;
-                var addedTargetB = false;
+                var targetsAddedCount = 0;
 
                 //Can't stack with allocated cells, find a new cell:
                 if (storeCell == default)
@@ -505,7 +505,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 {
                                         storeCell = new(nextStoreCell);
                                         job.targetQueueB.Add(nextStoreCell);
-                                        addedTargetB = true;
+                                        targetsAddedCount++;
 
                                         storeCellCapacity[storeCell] = new(nextThing, CapacityAt(nextThing, nextStoreCell, map));
 
@@ -516,7 +516,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                         var destinationAsThing = (Thing)haulDestination;
                                         storeCell = new(destinationAsThing);
                                         job.targetQueueB.Add(destinationAsThing);
-                                        addedTargetB = true;
+                                        targetsAddedCount++;
 
                                         storeCellCapacity[storeCell] = new(nextThing, innerInteractableThingOwner.GetCountCanAccept(nextThing));
 
@@ -554,6 +554,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				{
 					storeCell = new(nextStoreCell);
 					job.targetQueueB.Add(nextStoreCell);
+					targetsAddedCount++;
 
 					var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
 					storeCellCapacity[storeCell] = new(nextThing, capacity);
@@ -565,6 +566,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					var destinationAsThing = (Thing)nextHaulDestination;
 					storeCell = new(destinationAsThing);
 					job.targetQueueB.Add(destinationAsThing);
+					targetsAddedCount++;
 
 					var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
 
@@ -578,23 +580,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 count -= capacityOver;
                                 if (count <= 0)
                                 {
-                                        if (addedTargetB && job.targetQueueB.Count > 0)
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                                        // Remove all targets added by this execution
+                                        if (targetsAddedCount > 0 && job.targetQueueB.Count >= targetsAddedCount)
+                                                job.targetQueueB.RemoveRange(job.targetQueueB.Count - targetsAddedCount, targetsAddedCount);
                                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                         Log.Message($"Nowhere else to store, skipping {nextThing} due to zero capacity");
                                         return false;
                                 }
-                                job.countQueue.Add(count);
-                                Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
-                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                return false;
+                                // Don't add to countQueue here - only add when we successfully add to targetQueueA
+                                Log.Message($"Nowhere else to store, will try to allocate {nextThing}:{count}");
+                                break;
                         }
                 }
 
                 if (count <= 0)
                 {
-                        if (addedTargetB && job.targetQueueB.Count > 0)
-                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                        // Remove all targets added by this execution
+                        if (targetsAddedCount > 0 && job.targetQueueB.Count >= targetsAddedCount)
+                                job.targetQueueB.RemoveRange(job.targetQueueB.Count - targetsAddedCount, targetsAddedCount);
                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                         Log.Message($"Skipping {nextThing} due to zero capacity");
                         return false;
