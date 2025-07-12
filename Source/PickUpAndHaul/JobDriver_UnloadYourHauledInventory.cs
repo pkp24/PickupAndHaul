@@ -219,7 +219,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		};
 	}
 
-	private Toil FindTargetOrDrop(HashSet carriedThings)
+	private Toil FindTargetOrDrop(HashSet<Thing> carriedThings)
 	{
 		return new()
 		{
