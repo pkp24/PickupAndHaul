@@ -137,31 +137,46 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					return;
 				}
 
-				var thing = job.GetTarget(TargetIndex.A).Thing;
-				if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
-				{
-					carriedThings.Remove(thing);
-					pawn.jobs.curDriver.JumpToToil(wait);
-					PerformanceProfiler.EndTimer("PullItemFromInventory");
-					return;
-				}
-				if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
-				{
-					Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
-					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
-					EndJobWith(JobCondition.Succeeded);
-					carriedThings.Remove(thing);
-					PerformanceProfiler.EndTimer("PullItemFromInventory");
-				}
-				else
-				{
-					pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer,
-						_countToDrop, out thing);
-					job.count = _countToDrop;
-					job.SetTarget(TargetIndex.A, thing);
-					carriedThings.Remove(thing);
-					PerformanceProfiler.EndTimer("PullItemFromInventory");
-				}
+                                var thing = job.GetTarget(TargetIndex.A).Thing;
+                                if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
+                                {
+                                        carriedThings.Remove(thing);
+                                        pawn.jobs.curDriver.JumpToToil(wait);
+                                        PerformanceProfiler.EndTimer("PullItemFromInventory");
+                                        return;
+                                }
+
+                                var destCell = TargetB.HasThing ? job.targetB.Thing.Position : job.targetB.Cell;
+                                if (destCell.IsValid && HoldMultipleThings_Support.CapacityAt(thing, destCell, pawn.Map, out var cap))
+                                {
+                                        if (cap <= 0)
+                                        {
+                                                pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, thing.stackCount, out _);
+                                                EndJobWith(JobCondition.Succeeded);
+                                                carriedThings.Remove(thing);
+                                                PerformanceProfiler.EndTimer("PullItemFromInventory");
+                                                return;
+                                        }
+                                        _countToDrop = Math.Min(_countToDrop, cap);
+                                }
+
+                                if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
+                                {
+                                        Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
+                                        pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
+                                        EndJobWith(JobCondition.Succeeded);
+                                        carriedThings.Remove(thing);
+                                        PerformanceProfiler.EndTimer("PullItemFromInventory");
+                                }
+                                else
+                                {
+                                        pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer,
+                                                _countToDrop, out thing);
+                                        job.count = _countToDrop;
+                                        job.SetTarget(TargetIndex.A, thing);
+                                        carriedThings.Remove(thing);
+                                        PerformanceProfiler.EndTimer("PullItemFromInventory");
+                                }
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
 				{
@@ -201,33 +216,48 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					return;
 				}
 
-				var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
-				if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					    pawn.Faction, out var cell, out var destination))
-				{
-					job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-					if (cell == IntVec3.Invalid)
-					{
-						job.SetTarget(TargetIndex.B, destination as Thing);
-					}
-					else
-					{
-						job.SetTarget(TargetIndex.B, cell);
-					}
+                                var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
+                                if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
+                                            pawn.Faction, out var cell, out var destination))
+                                {
+                                        job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+                                        bool skipReservation = false;
+                                        int capacity = unloadableThing.Thing.stackCount;
+                                        IntVec3 targetCell;
+                                        if (cell == IntVec3.Invalid)
+                                        {
+                                                job.SetTarget(TargetIndex.B, destination as Thing);
+                                                targetCell = (destination as Thing)?.Position ?? IntVec3.Invalid;
+                                                if (targetCell.IsValid && HoldMultipleThings_Support.CapacityAt(unloadableThing.Thing, targetCell, pawn.Map, out var cap))
+                                                {
+                                                        capacity = Math.Min(capacity, cap);
+                                                        skipReservation = true;
+                                                }
+                                        }
+                                        else
+                                        {
+                                                job.SetTarget(TargetIndex.B, cell);
+                                                targetCell = cell;
+                                                if (HoldMultipleThings_Support.CapacityAt(unloadableThing.Thing, cell, pawn.Map, out var cap))
+                                                {
+                                                        capacity = Math.Min(capacity, cap);
+                                                        skipReservation = true;
+                                                }
+                                        }
 
-					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-					if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
-					{
-						Log.Message(
-							$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-							unloadableThing.Thing.stackCount, out _);
-						EndJobWith(JobCondition.Incompletable);
-						PerformanceProfiler.EndTimer("FindTargetOrDrop");
-						return;
-					}
-					_countToDrop = unloadableThing.Thing.stackCount;
-					PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                        Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+                                        if (!skipReservation && !pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+                                        {
+                                                Log.Message(
+                                                        $"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+                                                pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+                                                        unloadableThing.Thing.stackCount, out _);
+                                                EndJobWith(JobCondition.Incompletable);
+                                                PerformanceProfiler.EndTimer("FindTargetOrDrop");
+                                                return;
+                                        }
+                                        _countToDrop = Math.Min(unloadableThing.Thing.stackCount, capacity);
+                                        PerformanceProfiler.EndTimer("FindTargetOrDrop");
 				}
 				else
 				{
