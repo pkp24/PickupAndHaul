@@ -127,41 +127,62 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                 };
         }
 
-        private Toil AdjustDropCount(Toil jumpTo)
-        {
-                return new()
-                {
-                        initAction = () =>
-                        {
-                                var carried = pawn.carryTracker.CarriedThing;
-                                if (carried == null)
-                                {
-                                        return;
-                                }
+        /// <summary>
+		/// After the pawn has picked the item up, decide how many to drop
+		/// and deal gracefully with “no capacity” cases.
+		/// </summary>
+		private void AdjustDropCount(Toil jumpTo)
+		{
+			PerformanceProfiler.StartTimer("AdjustDropCount");
 
-                                int capacity;
-                                if (TargetB.HasThing)
-                                {
-                                        var owner = TargetB.Thing?.TryGetInnerInteractableThingOwner();
-                                        capacity = owner?.GetCountCanAccept(carried) ?? 0;
-                                }
-                                else
-                                {
-                                        capacity = WorkGiver_HaulToInventory.CapacityAt(carried, TargetB.Cell, pawn.Map);
-                                }
+			// Nothing carried – just bail out.
+			if (pawn.carryTracker.CarriedThing is not Thing carried)
+			{
+				EndJobWith(JobCondition.Succeeded);
+				PerformanceProfiler.EndTimer("AdjustDropCount");
+				return;
+			}
 
-                                if (capacity <= 0)
-                                {
-                                        pawn.jobs.curDriver.JumpToToil(jumpTo);
-                                        return;
-                                }
+			/*------------------------------------------------------------
+			* Re-calculate how many we can store in the target.  
+			* We do it here once and use the result consistently.
+			*-----------------------------------------------------------*/
+			int capacity;
+			if (TargetB.HasThing)                                            // unloading into a container
+			{
+				var owner = TargetB.Thing.TryGetInnerInteractableThingOwner();
+				capacity = owner?.GetCountCanAccept(carried) ?? 0;
+			}
+			else                                                             // unloading into a cell
+			{
+				capacity = WorkGiver_HaulToInventory.CapacityAt(
+							carried, TargetB.Cell, pawn.Map);
+			}
 
-                                var dropCount = Mathf.Min(capacity, carried.stackCount);
-                                job.count = dropCount;
-                                _countToDrop = dropCount;
-                        }
-                };
-        }
+			/*------------------------------------------------------------
+			* If no room is left, drop the item and end cleanly – 
+			* prevents the carryTracker ↔ inventory mismatch loop.
+			*-----------------------------------------------------------*/
+			if (capacity <= 0)
+			{
+				pawn.carryTracker.TryDropCarriedThing(
+					pawn.Position,
+					ThingPlaceMode.Near,
+					out _);
+
+				EndJobWith(JobCondition.Incompletable);
+				PerformanceProfiler.EndTimer("AdjustDropCount");
+				return;
+			}
+
+			/*------------------------------------------------------------
+			* Otherwise limit the drop to the space we actually have.
+			*-----------------------------------------------------------*/
+			_countToDrop = Mathf.Min(carried.stackCount, capacity);
+			job.count    = _countToDrop;
+
+			PerformanceProfiler.EndTimer("AdjustDropCount");
+		}
 
 	private Toil PullItemFromInventory(HashSet<Thing> carriedThings, Toil wait)
 	{
