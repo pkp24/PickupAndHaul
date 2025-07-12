@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace PickUpAndHaul;
 public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
@@ -52,17 +53,29 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
 
-	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
-	{
-		PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
-		
-		var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		Comparer.rootCell = pawn.Position;
-		list.Sort(Comparer);
-		
-		PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
-		return list;
-	}
+        private static readonly Dictionary<Pawn, (int tick, List<Thing> list)> _potentialWorkCache = new();
+        private const int CacheDuration = 30; // ticks
+
+        public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
+        {
+                PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
+
+                var currentTick = Find.TickManager.TicksGame;
+                if (_potentialWorkCache.TryGetValue(pawn, out var cached) && currentTick - cached.tick <= CacheDuration)
+                {
+                        PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
+                        return cached.list;
+                }
+
+                var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
+                Comparer.rootCell = pawn.Position;
+                list.Sort(Comparer);
+
+                _potentialWorkCache[pawn] = (currentTick, list);
+
+                PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
+                return list;
+        }
 
 	private static ThingPositionComparer Comparer { get; } = new();
 	public class ThingPositionComparer : IComparer<Thing>
@@ -102,7 +115,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				
 				                // Check available capacity using the storage allocation tracker
                 // Use actual carriable amount instead of full stack count to avoid blocking valid partial-stack hauling
-                var actualCarriableAmount = CalculateActualCarriableAmount(pawn, thing);
+                var currentMass = MassUtility.GearAndInventoryMass(pawn);
+                var capacity = MassUtility.Capacity(pawn);
+                var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
                 if (actualCarriableAmount <= 0)
                 {
                         Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} cannot carry any of {thing} due to encumbrance, returning false");
@@ -195,7 +210,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
                 var traverseParms = TraverseParms.For(pawn);
                 var capacity = MassUtility.Capacity(pawn);
-                var encumberance = MassUtility.GearAndInventoryMass(pawn) / capacity;
+                float currentMass = MassUtility.GearAndInventoryMass(pawn);
+                var encumberance = currentMass / capacity;
                 ThingOwner nonSlotGroupThingOwner = null;
                 StoreTarget storeTarget;
 		if (StoreUtility.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, true))
@@ -341,7 +357,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		
 		                // Reserve capacity for the initial item
                 // Use actual carriable amount instead of full stack count to avoid over-reservation
-                var actualCarriableAmount = CalculateActualCarriableAmount(pawn, thing);
+                var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
                 if (actualCarriableAmount <= 0)
                 {
                         Log.Warning($"[PickUpAndHaul] WARNING: Pawn {pawn} cannot carry any of {thing} due to encumbrance");
@@ -361,8 +377,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 }
                 
                 Log.Message($"[PickUpAndHaul] DEBUG: Reserved capacity for {actualCarriableAmount} of {thing} at {storageLocation}");
-		
-		                if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job))
+
+                                if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job, ref currentMass, capacity))
                 {
                         Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
                         // Release reserved capacity
@@ -376,8 +392,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		// Skip the initial allocation loop since we already allocated the initial item
 		// Just calculate encumbrance for the initial item
-		encumberance += AddedEncumberance(pawn, thing, capacity);
-		Log.Message($"[PickUpAndHaul] DEBUG: Initial item encumbrance: {encumberance}");
+                currentMass += thing.GetStatValue(StatDefOf.Mass) * thing.stackCount;
+                encumberance = currentMass / capacity;
+                Log.Message($"[PickUpAndHaul] DEBUG: Initial item encumbrance: {encumberance}");
 
 		// Now try to allocate additional items
 		do
@@ -387,10 +404,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         if (nextThing == null) break;
 
                         Log.Message($"[PickUpAndHaul] DEBUG: Attempting to allocate additional item {nextThing} to job");
-                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
+                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, ref currentMass, capacity))
                         {
                                 lastThing = nextThing;
-                                encumberance += AddedEncumberance(pawn, nextThing, capacity);
+                                encumberance = currentMass / capacity;
 
                                 if (encumberance > 1 || ceOverweight)
                                 {
@@ -445,7 +462,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         carryCapacity -= nextThing.stackCount;
                         Log.Message($"[PickUpAndHaul] DEBUG: Found similar thing {nextThing}, carryCapacity now: {carryCapacity}");
 
-			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
+                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, ref currentMass, capacity))
 			{
                                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated similar thing {nextThing}");
 				break;
@@ -621,7 +638,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| allocation.Value.allocated.CanStackWith(nextThing)
 		|| HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key.cell, nextThing.Map);
 
-	public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
+        public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job, ref float currentMass, float capacity)
 	{
 		PerformanceProfiler.StartTimer("AllocateThingAtCell");
 		
@@ -678,7 +695,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                         
                                                                 // Check if we can reserve capacity for this item
                         var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
-                        var actualCarriableAmount = CalculateActualCarriableAmount(pawn, nextThing);
+                        var actualCarriableAmount = CalculateActualCarriableAmount(nextThing, currentMass, capacity);
                         if (actualCarriableAmount <= 0)
                         {
                                 Log.Message($"[PickUpAndHaul] DEBUG: Pawn {pawn} cannot carry any of {nextThing} due to encumbrance, skipping");
@@ -734,7 +751,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         
                         // Check if we can reserve capacity for this item
                         var storageLocation = new StorageAllocationTracker.StorageLocation(destinationAsThing);
-                        var actualCarriableAmount = CalculateActualCarriableAmount(pawn, nextThing);
+                        var actualCarriableAmount = CalculateActualCarriableAmount(nextThing, currentMass, capacity);
                         if (actualCarriableAmount <= 0)
                         {
                                 Log.Message($"[PickUpAndHaul] DEBUG: Pawn {pawn} cannot carry any of {nextThing} due to encumbrance, skipping");
@@ -807,10 +824,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         job.targetQueueB.Add(nextStoreCell);
                         targetsAdded.Add(nextStoreCell);
 
-                        var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
-                        if (capacity <= 0)
+                        var newCapacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
+                        if (newCapacity <= 0)
                         {
-                                Log.Message($"[PickUpAndHaul] DEBUG: New overflow cell {nextStoreCell} has capacity {capacity} <= 0 after overflow, skipping");
+                                Log.Message($"[PickUpAndHaul] DEBUG: New overflow cell {nextStoreCell} has capacity {newCapacity} <= 0 after overflow, skipping");
                                 // Clean up targets and reservations
                                 CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
                                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
@@ -819,7 +836,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         
                         // Check if we can reserve capacity for the overflow amount
                         var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
-                        var actualCarriableAmount = CalculateActualCarriableAmount(pawn, nextThing);
+                        var actualCarriableAmount = CalculateActualCarriableAmount(nextThing, currentMass, capacity);
                         var actualOverflowAmount = Math.Min(capacityOver, actualCarriableAmount);
                         
                         if (actualOverflowAmount <= 0)
@@ -853,9 +870,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         // Track this reservation
                         reservationsMade.Add((storageLocation, nextThing.def, actualOverflowAmount));
 					
-					storeCellCapacity[storeCell] = new(nextThing, capacity);
+                                        storeCellCapacity[storeCell] = new(nextThing, newCapacity);
 
-					                        Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell}:{capacity}, allocated extra {actualOverflowAmount}, targetsAdded = {targetsAdded.Count}");
+                                                                Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell}:{newCapacity}, allocated extra {actualOverflowAmount}, targetsAdded = {targetsAdded.Count}");
                         Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
 				}
 				else
@@ -865,10 +882,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         job.targetQueueB.Add(destinationAsThing);
                         targetsAdded.Add(destinationAsThing);
 
-                        var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
-                        if (capacity <= 0)
+                        var newCapacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
+                        if (newCapacity <= 0)
                         {
-                                Log.Message($"[PickUpAndHaul] DEBUG: New overflow haulDestination {nextHaulDestination} has capacity {capacity} <= 0 after overflow, skipping");
+                                Log.Message($"[PickUpAndHaul] DEBUG: New overflow haulDestination {nextHaulDestination} has capacity {newCapacity} <= 0 after overflow, skipping");
                                 // Clean up targets and reservations
                                 CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
                                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
@@ -877,7 +894,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         
                         // Check if we can reserve capacity for the overflow amount
                         var storageLocation = new StorageAllocationTracker.StorageLocation(destinationAsThing);
-                        var actualCarriableAmount = CalculateActualCarriableAmount(pawn, nextThing);
+                        var actualCarriableAmount = CalculateActualCarriableAmount(nextThing, currentMass, capacity);
                         var actualOverflowAmount = Math.Min(capacityOver, actualCarriableAmount);
                         
                         if (actualOverflowAmount <= 0)
@@ -911,9 +928,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         // Track this reservation
                         reservationsMade.Add((storageLocation, nextThing.def, actualOverflowAmount));
 					
-					storeCellCapacity[storeCell] = new(nextThing, capacity);
+                                        storeCellCapacity[storeCell] = new(nextThing, newCapacity);
 
-					                        Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {nextHaulDestination}:{capacity}, allocated extra {actualOverflowAmount}, targetsAdded = {targetsAdded.Count}");
+                                                                Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {nextHaulDestination}:{newCapacity}, allocated extra {actualOverflowAmount}, targetsAdded = {targetsAdded.Count}");
                         Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
 				}
 			}
@@ -951,6 +968,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 job.targetQueueA.Add(nextThing);
                 job.countQueue.Add(count);
+                currentMass += nextThing.GetStatValue(StatDefOf.Mass) * count;
                 Log.Message($"[PickUpAndHaul] DEBUG: {nextThing}:{count} allocated successfully");
                 Log.Message($"[PickUpAndHaul] DEBUG: Final job queues - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
@@ -1079,31 +1097,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
         /// <summary>
         /// Calculates the actual amount of a thing that a pawn can carry considering encumbrance limits
         /// </summary>
-        public static int CalculateActualCarriableAmount(Pawn pawn, Thing thing)
+        public static int CalculateActualCarriableAmount(Thing thing, float currentMass, float capacity)
         {
-                var capacity = MassUtility.Capacity(pawn);
-                var currentMass = MassUtility.GearAndInventoryMass(pawn);
-                var currentEncumbrance = currentMass / capacity;
-                
-                // If already at or over capacity, can't carry anything
-                if (currentEncumbrance >= 1.0f)
+                if (currentMass >= capacity)
                 {
                         return 0;
                 }
-                
+
                 var remainingCapacity = capacity - currentMass;
                 var thingMass = thing.GetStatValue(StatDefOf.Mass);
-                
-                // If the thing has no mass, can carry the full stack
+
                 if (thingMass <= 0)
                 {
                         return thing.stackCount;
                 }
-                
-                // Calculate how many of this thing can fit in the remaining capacity
+
                 var maxCarriable = (int)Math.Floor(remainingCapacity / thingMass);
-                
-                // Return the minimum of what we can carry and what's available
                 return Math.Min(maxCarriable, thing.stackCount);
         }
 
