@@ -111,7 +111,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					return false;
 
 				StorageReservationManager.Reserve(target.Thing, toReserve);
-				AddFinishAction(() => StorageReservationManager.Release(target.Thing, toReserve));
+				AddFinishAction((JobCondition condition) => StorageReservationManager.Release(target.Thing, toReserve));
 
 				_countToDrop = toReserve;
 				return true;
@@ -130,7 +130,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				return false;
 
 			StorageReservationManager.Reserve(target.Cell, toReserveCell);
-			AddFinishAction(() => StorageReservationManager.Release(target.Cell, toReserveCell));
+			AddFinishAction((JobCondition condition) => StorageReservationManager.Release(target.Cell, toReserveCell));
 
 			_countToDrop = toReserveCell;
 			return true;
