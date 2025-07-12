@@ -100,13 +100,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					? new StorageAllocationTracker.StorageLocation(destinationAsThing)
 					: new StorageAllocationTracker.StorageLocation(foundCell);
 				
-				// Check available capacity using the storage allocation tracker
-				// Use full stack count to match allocation behavior
-				if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, thing.def, thing.stackCount, pawn.Map))
-				{
-					Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Insufficient available capacity for {thing} at {storageLocation}, returning false");
-					result = false;
-				}
+				                // Check available capacity using the storage allocation tracker
+                // Use actual carriable amount instead of full stack count to avoid blocking valid partial-stack hauling
+                var actualCarriableAmount = CalculateActualCarriableAmount(pawn, thing);
+                if (actualCarriableAmount <= 0)
+                {
+                        Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} cannot carry any of {thing} due to encumbrance, returning false");
+                        result = false;
+                }
+                else if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, thing.def, actualCarriableAmount, pawn.Map))
+                {
+                        Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Insufficient available capacity for {actualCarriableAmount} of {thing} at {storageLocation}, returning false");
+                        result = false;
+                }
 			}
 		}
 		
@@ -333,29 +339,39 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			? new StorageAllocationTracker.StorageLocation(storeTarget.container)
 			: new StorageAllocationTracker.StorageLocation(storeTarget.cell);
 		
-		// Reserve capacity for the initial item
-		// Use full stack count to match allocation behavior
-		if (!StorageAllocationTracker.ReserveCapacity(storageLocation, thing.def, thing.stackCount, pawn))
-		{
-			Log.Warning($"[PickUpAndHaul] WARNING: Cannot reserve capacity for {thing} at {storageLocation} - insufficient available capacity");
-			skipCells = null;
-			skipThings = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
-			return null;
-		}
+		                // Reserve capacity for the initial item
+                // Use actual carriable amount instead of full stack count to avoid over-reservation
+                var actualCarriableAmount = CalculateActualCarriableAmount(pawn, thing);
+                if (actualCarriableAmount <= 0)
+                {
+                        Log.Warning($"[PickUpAndHaul] WARNING: Pawn {pawn} cannot carry any of {thing} due to encumbrance");
+                        skipCells = null;
+                        skipThings = null;
+                        PerformanceProfiler.EndTimer("JobOnThing");
+                        return null;
+                }
+                
+                if (!StorageAllocationTracker.ReserveCapacity(storageLocation, thing.def, actualCarriableAmount, pawn))
+                {
+                        Log.Warning($"[PickUpAndHaul] WARNING: Cannot reserve capacity for {actualCarriableAmount} of {thing} at {storageLocation} - insufficient available capacity");
+                        skipCells = null;
+                        skipThings = null;
+                        PerformanceProfiler.EndTimer("JobOnThing");
+                        return null;
+                }
+                
+                Log.Message($"[PickUpAndHaul] DEBUG: Reserved capacity for {actualCarriableAmount} of {thing} at {storageLocation}");
 		
-		Log.Message($"[PickUpAndHaul] DEBUG: Reserved capacity for {thing} at {storageLocation}");
-		
-		if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job))
-		{
-			Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
-			// Release reserved capacity
-			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, thing.stackCount, pawn);
-			skipCells = null;
-			skipThings = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
-			return null;
-		}
+		                if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job))
+                {
+                        Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
+                        // Release reserved capacity
+                        StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, actualCarriableAmount, pawn);
+                        skipCells = null;
+                        skipThings = null;
+                        PerformanceProfiler.EndTimer("JobOnThing");
+                        return null;
+                }
 		Log.Message($"[PickUpAndHaul] DEBUG: Initial item {thing} allocated successfully");
 
 		// Skip the initial allocation loop since we already allocated the initial item
@@ -621,7 +637,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         ?? storeTarget.cell.GetSlotGroup(map).parent.Accepts(nextThing))
                         && Stackable(nextThing, kvp));
                 var storeCell = allocation.Key;
-                var targetsAddedCount = 0;
+                
+                // Track reservations and targets added during this method call
+                var reservationsMade = new List<(StorageAllocationTracker.StorageLocation location, ThingDef def, int count)>();
+                var targetsAdded = new List<LocalTargetInfo>();
 
                 // Pre-validate storage capacity for existing allocations
                 if (storeCell != default)
@@ -643,102 +662,124 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         {
                                 if (innerInteractableThingOwner is null)
                                 {
-                                        storeCell = new(nextStoreCell);
-                                        job.targetQueueB.Add(nextStoreCell);
-                                        targetsAddedCount++;
+                                                                storeCell = new(nextStoreCell);
+                        job.targetQueueB.Add(nextStoreCell);
+                        targetsAdded.Add(nextStoreCell);
 
-                                        var newCapacity = CapacityAt(nextThing, nextStoreCell, map);
-                                        if (newCapacity <= 0)
-                                        {
-                                                Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell} has capacity {newCapacity} <= 0, skipping");
-                                                // Clean up the target we just added
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                                targetsAddedCount--;
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                                return false;
-                                        }
+                        var newCapacity = CapacityAt(nextThing, nextStoreCell, map);
+                        if (newCapacity <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell} has capacity {newCapacity} <= 0, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
                                         
-                                        // Check if we can reserve capacity for this item
-                                        var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
-                                        if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, nextThing.def, nextThing.stackCount, map))
-                                        {
-                                                Log.Message($"[PickUpAndHaul] DEBUG: Cannot reserve capacity for {nextThing} at {storageLocation}, skipping");
-                                                // Clean up the target we just added
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                                targetsAddedCount--;
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                                return false;
-                                        }
-                                        
-                                        // Reserve capacity
-                                        if (!StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, nextThing.stackCount, pawn))
-                                        {
-                                                Log.Message($"[PickUpAndHaul] DEBUG: Failed to reserve capacity for {nextThing} at {storageLocation}, skipping");
-                                                // Clean up the target we just added
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                                targetsAddedCount--;
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                                return false;
-                                        }
+                                                                // Check if we can reserve capacity for this item
+                        var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
+                        var actualCarriableAmount = CalculateActualCarriableAmount(pawn, nextThing);
+                        if (actualCarriableAmount <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Pawn {pawn} cannot carry any of {nextThing} due to encumbrance, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, nextThing.def, actualCarriableAmount, map))
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Cannot reserve capacity for {actualCarriableAmount} of {nextThing} at {storageLocation}, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Reserve capacity
+                        if (!StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, actualCarriableAmount, pawn))
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Failed to reserve capacity for {actualCarriableAmount} of {nextThing} at {storageLocation}, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Track this reservation
+                        reservationsMade.Add((storageLocation, nextThing.def, actualCarriableAmount));
                                         
                                         storeCellCapacity[storeCell] = new(nextThing, newCapacity);
 
-                                        Log.Message($"[PickUpAndHaul] DEBUG: New cell for unstackable {nextThing} = {nextStoreCell}, targetsAddedCount = {targetsAddedCount}");
-                                        Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
+                                                                Log.Message($"[PickUpAndHaul] DEBUG: New cell for unstackable {nextThing} = {nextStoreCell}, targetsAdded = {targetsAdded.Count}");
+                        Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
                                 }
                                 else
                                 {
-                                        var destinationAsThing = (Thing)haulDestination;
-                                        storeCell = new(destinationAsThing);
-                                        job.targetQueueB.Add(destinationAsThing);
-                                        targetsAddedCount++;
+                                                                var destinationAsThing = (Thing)haulDestination;
+                        storeCell = new(destinationAsThing);
+                        job.targetQueueB.Add(destinationAsThing);
+                        targetsAdded.Add(destinationAsThing);
 
-                                        var newCapacity = innerInteractableThingOwner.GetCountCanAccept(nextThing);
-                                        if (newCapacity <= 0)
-                                        {
-                                                Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {haulDestination} has capacity {newCapacity} <= 0, skipping");
-                                                // Clean up the target we just added
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                                targetsAddedCount--;
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                                return false;
-                                        }
-                                        
-                                        // Check if we can reserve capacity for this item
-                                        var storageLocation = new StorageAllocationTracker.StorageLocation(destinationAsThing);
-                                        if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, nextThing.def, nextThing.stackCount, map))
-                                        {
-                                                Log.Message($"[PickUpAndHaul] DEBUG: Cannot reserve capacity for {nextThing} at {storageLocation}, skipping");
-                                                // Clean up the target we just added
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                                targetsAddedCount--;
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                                return false;
-                                        }
-                                        
-                                        // Reserve capacity
-                                        if (!StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, nextThing.stackCount, pawn))
-                                        {
-                                                Log.Message($"[PickUpAndHaul] DEBUG: Failed to reserve capacity for {nextThing} at {storageLocation}, skipping");
-                                                // Clean up the target we just added
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                                targetsAddedCount--;
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                                return false;
-                                        }
+                        var newCapacity = innerInteractableThingOwner.GetCountCanAccept(nextThing);
+                        if (newCapacity <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {haulDestination} has capacity {newCapacity} <= 0, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Check if we can reserve capacity for this item
+                        var storageLocation = new StorageAllocationTracker.StorageLocation(destinationAsThing);
+                        var actualCarriableAmount = CalculateActualCarriableAmount(pawn, nextThing);
+                        if (actualCarriableAmount <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Pawn {pawn} cannot carry any of {nextThing} due to encumbrance, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, nextThing.def, actualCarriableAmount, map))
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Cannot reserve capacity for {actualCarriableAmount} of {nextThing} at {storageLocation}, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Reserve capacity
+                        if (!StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, actualCarriableAmount, pawn))
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Failed to reserve capacity for {actualCarriableAmount} of {nextThing} at {storageLocation}, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Track this reservation
+                        reservationsMade.Add((storageLocation, nextThing.def, actualCarriableAmount));
                                         
                                         storeCellCapacity[storeCell] = new(nextThing, newCapacity);
 
-                                        Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination for unstackable {nextThing} = {haulDestination}, targetsAddedCount = {targetsAddedCount}");
-                                        Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
+                                                                Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination for unstackable {nextThing} = {haulDestination}, targetsAdded = {targetsAdded.Count}");
+                        Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
                                 }
                         }
                         else
                         {
-                                Log.Message($"[PickUpAndHaul] DEBUG: {nextThing} can't stack with allocated cells and no new storage found");
+                                                        Log.Message($"[PickUpAndHaul] DEBUG: {nextThing} can't stack with allocated cells and no new storage found");
 
-                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                return false;
+                        // Clean up targets and reservations
+                        CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                        return false;
                         }
                 }
 
@@ -762,126 +803,147 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			{
 				if (innerInteractableThingOwner is null)
 				{
-					storeCell = new(nextStoreCell);
-					job.targetQueueB.Add(nextStoreCell);
-					targetsAddedCount++;
+					                        storeCell = new(nextStoreCell);
+                        job.targetQueueB.Add(nextStoreCell);
+                        targetsAdded.Add(nextStoreCell);
 
-					var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
-					if (capacity <= 0)
-					{
-						Log.Message($"[PickUpAndHaul] DEBUG: New overflow cell {nextStoreCell} has capacity {capacity} <= 0 after overflow, skipping");
-						// Clean up the target we just added
-						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-						targetsAddedCount--;
-						PerformanceProfiler.EndTimer("AllocateThingAtCell");
-						return false;
-					}
-					
-					// Check if we can reserve capacity for the overflow amount
-					var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
-					if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, nextThing.def, capacityOver, map))
-					{
-						Log.Message($"[PickUpAndHaul] DEBUG: Cannot reserve capacity for overflow {capacityOver} of {nextThing} at {storageLocation}, skipping");
-						// Clean up the target we just added
-						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-						targetsAddedCount--;
-						PerformanceProfiler.EndTimer("AllocateThingAtCell");
-						return false;
-					}
-					
-					// Reserve capacity for the overflow
-					if (!StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, capacityOver, pawn))
-					{
-						Log.Message($"[PickUpAndHaul] DEBUG: Failed to reserve capacity for overflow {capacityOver} of {nextThing} at {storageLocation}, skipping");
-						// Clean up the target we just added
-						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-						targetsAddedCount--;
-						PerformanceProfiler.EndTimer("AllocateThingAtCell");
-						return false;
-					}
+                        var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
+                        if (capacity <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: New overflow cell {nextStoreCell} has capacity {capacity} <= 0 after overflow, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Check if we can reserve capacity for the overflow amount
+                        var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
+                        var actualCarriableAmount = CalculateActualCarriableAmount(pawn, nextThing);
+                        var actualOverflowAmount = Math.Min(capacityOver, actualCarriableAmount);
+                        
+                        if (actualOverflowAmount <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Pawn {pawn} cannot carry any overflow of {nextThing} due to encumbrance, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, nextThing.def, actualOverflowAmount, map))
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Cannot reserve capacity for overflow {actualOverflowAmount} of {nextThing} at {storageLocation}, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Reserve capacity for the overflow
+                        if (!StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, actualOverflowAmount, pawn))
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Failed to reserve capacity for overflow {actualOverflowAmount} of {nextThing} at {storageLocation}, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Track this reservation
+                        reservationsMade.Add((storageLocation, nextThing.def, actualOverflowAmount));
 					
 					storeCellCapacity[storeCell] = new(nextThing, capacity);
 
-					Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell}:{capacity}, allocated extra {capacityOver}, targetsAddedCount = {targetsAddedCount}");
-					Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
+					                        Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell}:{capacity}, allocated extra {actualOverflowAmount}, targetsAdded = {targetsAdded.Count}");
+                        Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
 				}
 				else
 				{
-					var destinationAsThing = (Thing)nextHaulDestination;
-					storeCell = new(destinationAsThing);
-					job.targetQueueB.Add(destinationAsThing);
-					targetsAddedCount++;
+					                        var destinationAsThing = (Thing)nextHaulDestination;
+                        storeCell = new(destinationAsThing);
+                        job.targetQueueB.Add(destinationAsThing);
+                        targetsAdded.Add(destinationAsThing);
 
-					var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
-					if (capacity <= 0)
-					{
-						Log.Message($"[PickUpAndHaul] DEBUG: New overflow haulDestination {nextHaulDestination} has capacity {capacity} <= 0 after overflow, skipping");
-						// Clean up the target we just added
-						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-						targetsAddedCount--;
-						PerformanceProfiler.EndTimer("AllocateThingAtCell");
-						return false;
-					}
-					
-					// Check if we can reserve capacity for the overflow amount
-					var storageLocation = new StorageAllocationTracker.StorageLocation(destinationAsThing);
-					if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, nextThing.def, capacityOver, map))
-					{
-						Log.Message($"[PickUpAndHaul] DEBUG: Cannot reserve capacity for overflow {capacityOver} of {nextThing} at {storageLocation}, skipping");
-						// Clean up the target we just added
-						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-						targetsAddedCount--;
-						PerformanceProfiler.EndTimer("AllocateThingAtCell");
-						return false;
-					}
-					
-					// Reserve capacity for the overflow
-					if (!StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, capacityOver, pawn))
-					{
-						Log.Message($"[PickUpAndHaul] DEBUG: Failed to reserve capacity for overflow {capacityOver} of {nextThing} at {storageLocation}, skipping");
-						// Clean up the target we just added
-						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-						targetsAddedCount--;
-						PerformanceProfiler.EndTimer("AllocateThingAtCell");
-						return false;
-					}
+                        var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
+                        if (capacity <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: New overflow haulDestination {nextHaulDestination} has capacity {capacity} <= 0 after overflow, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Check if we can reserve capacity for the overflow amount
+                        var storageLocation = new StorageAllocationTracker.StorageLocation(destinationAsThing);
+                        var actualCarriableAmount = CalculateActualCarriableAmount(pawn, nextThing);
+                        var actualOverflowAmount = Math.Min(capacityOver, actualCarriableAmount);
+                        
+                        if (actualOverflowAmount <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Pawn {pawn} cannot carry any overflow of {nextThing} due to encumbrance, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        if (!StorageAllocationTracker.HasAvailableCapacity(storageLocation, nextThing.def, actualOverflowAmount, map))
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Cannot reserve capacity for overflow {actualOverflowAmount} of {nextThing} at {storageLocation}, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Reserve capacity for the overflow
+                        if (!StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, actualOverflowAmount, pawn))
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Failed to reserve capacity for overflow {actualOverflowAmount} of {nextThing} at {storageLocation}, skipping");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                return false;
+                        }
+                        
+                        // Track this reservation
+                        reservationsMade.Add((storageLocation, nextThing.def, actualOverflowAmount));
 					
 					storeCellCapacity[storeCell] = new(nextThing, capacity);
 
-					Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {nextHaulDestination}:{capacity}, allocated extra {capacityOver}, targetsAddedCount = {targetsAddedCount}");
-					Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
+					                        Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {nextHaulDestination}:{capacity}, allocated extra {actualOverflowAmount}, targetsAdded = {targetsAdded.Count}");
+                        Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
 				}
 			}
                         else
                         {
                                 count -= capacityOver;
-                                if (count <= 0)
-                                {
-                                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaning up {targetsAddedCount} targets from targetQueueB due to zero capacity");
-                                        // Clean up all targets added during this method execution
-                                        for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                        Log.Message($"[PickUpAndHaul] DEBUG: Nowhere else to store, skipping {nextThing} due to zero capacity");
-                                        return false;
-                                }
-                                // Don't add to countQueue here - this would desynchronize the queues
-                                Log.Message($"[PickUpAndHaul] DEBUG: Nowhere else to store, skipping {nextThing}:{count}");
-                                Log.Message($"[PickUpAndHaul] DEBUG: Cleaning up {targetsAddedCount} targets from targetQueueB");
-                                // Clean up all targets added during this method execution
-                                for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
-                                        job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                                                        if (count <= 0)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Cleaning up {targetsAdded.Count} targets from targetQueueB due to zero capacity");
+                                // Clean up targets and reservations
+                                CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
                                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                                Log.Message($"[PickUpAndHaul] DEBUG: Nowhere else to store, skipping {nextThing} due to zero capacity");
                                 return false;
+                        }
+                        // Don't add to countQueue here - this would desynchronize the queues
+                        Log.Message($"[PickUpAndHaul] DEBUG: Nowhere else to store, skipping {nextThing}:{count}");
+                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaning up {targetsAdded.Count} targets from targetQueueB");
+                        // Clean up targets and reservations
+                        CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                        return false;
                         }
 		}
 
                 if (count <= 0)
                 {
-                        Log.Message($"[PickUpAndHaul] DEBUG: Final count is <= 0, cleaning up {targetsAddedCount} targets from targetQueueB");
-                        // Clean up all targets added during this method execution
-                        for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
-                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                        Log.Message($"[PickUpAndHaul] DEBUG: Final count is <= 0, cleaning up {targetsAdded.Count} targets from targetQueueB");
+                        // Clean up targets and reservations
+                        CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                         Log.Message($"[PickUpAndHaul] DEBUG: Skipping {nextThing} due to zero capacity");
                         return false;
@@ -893,6 +955,32 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 Log.Message($"[PickUpAndHaul] DEBUG: Final job queues - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
                 return true;
+        }
+
+        /// <summary>
+        /// Cleans up targets and reservations made during AllocateThingAtCell execution
+        /// </summary>
+        private static void CleanupAllocateThingAtCell(Job job, List<LocalTargetInfo> targetsAdded, List<(StorageAllocationTracker.StorageLocation location, ThingDef def, int count)> reservationsMade, Pawn pawn)
+        {
+                // Release all reservations made during this method execution
+                foreach (var (location, def, count) in reservationsMade)
+                {
+                        StorageAllocationTracker.ReleaseCapacity(location, def, count, pawn);
+                        Log.Message($"[PickUpAndHaul] DEBUG: Released reservation for {def} x{count} at {location}");
+                }
+
+                // Remove all targets added during this method execution
+                // Work backwards to avoid index shifting issues
+                for (var i = targetsAdded.Count - 1; i >= 0; i--)
+                {
+                        var targetToRemove = targetsAdded[i];
+                        var index = job.targetQueueB.LastIndexOf(targetToRemove);
+                        if (index >= 0)
+                        {
+                                job.targetQueueB.RemoveAt(index);
+                                Log.Message($"[PickUpAndHaul] DEBUG: Removed target {targetToRemove} from targetQueueB at index {index}");
+                        }
+                }
         }
 
 	//public static HashSet<StoreTarget> skipTargets;
@@ -987,6 +1075,37 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
         public static int CountPastCapacity(Pawn pawn, Thing thing, float encumberance, float capacity)
                 => (int)Math.Ceiling((encumberance - 1) * capacity / thing.GetStatValue(StatDefOf.Mass));
+
+        /// <summary>
+        /// Calculates the actual amount of a thing that a pawn can carry considering encumbrance limits
+        /// </summary>
+        public static int CalculateActualCarriableAmount(Pawn pawn, Thing thing)
+        {
+                var capacity = MassUtility.Capacity(pawn);
+                var currentMass = MassUtility.GearAndInventoryMass(pawn);
+                var currentEncumbrance = currentMass / capacity;
+                
+                // If already at or over capacity, can't carry anything
+                if (currentEncumbrance >= 1.0f)
+                {
+                        return 0;
+                }
+                
+                var remainingCapacity = capacity - currentMass;
+                var thingMass = thing.GetStatValue(StatDefOf.Mass);
+                
+                // If the thing has no mass, can carry the full stack
+                if (thingMass <= 0)
+                {
+                        return thing.stackCount;
+                }
+                
+                // Calculate how many of this thing can fit in the remaining capacity
+                var maxCarriable = (int)Math.Floor(remainingCapacity / thingMass);
+                
+                // Return the minimum of what we can carry and what's available
+                return Math.Min(maxCarriable, thing.stackCount);
+        }
 
 	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
 	{
