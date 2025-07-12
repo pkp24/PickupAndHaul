@@ -211,9 +211,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory, null, storeTarget);   //Things will be in queues
-		Log.Message($"-------------------------------------------------------------------");
-		Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
-		Log.Message($"{pawn} job found to haul: {thing} to {storeTarget}:{capacityStoreCell}, looking for more now");
+		Log.Message($"[PickUpAndHaul] DEBUG: ===================================================================");
+		Log.Message($"[PickUpAndHaul] DEBUG: ==================================================================");//different size so the log doesn't count it 2x
+		Log.Message($"[PickUpAndHaul] DEBUG: {pawn} job found to haul: {thing} to {storeTarget}:{capacityStoreCell}, looking for more now");
+		Log.Message($"[PickUpAndHaul] DEBUG: Initial job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+		
+		// Validate job after creation
+		ValidateJobQueues(job, pawn, "Job Creation");
 
 		//Find what fits in inventory, set nextThingLeftOverCount to be 
                 var nextThingLeftOverCount = 0;
@@ -238,6 +242,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
 		Comparer.rootCell = thing.Position;
 		haulables.Sort(Comparer);
+		
+		Log.Message($"[PickUpAndHaul] DEBUG: Found {haulables.Count} haulable items to consider");
 
 		var nextThing = thing;
 		var lastThing = thing;
@@ -266,6 +272,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		do
 		{
+                        Log.Message($"[PickUpAndHaul] DEBUG: Attempting to allocate {nextThing} to job");
                         if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
                         {
                                 lastThing = nextThing;
@@ -275,9 +282,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 {
                                         //can't CountToPickUpUntilOverEncumbered here, pawn doesn't actually hold these things yet
                                         nextThingLeftOverCount = CountPastCapacity(pawn, nextThing, encumberance, capacity);
-                                        Log.Message($"Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
+                                        Log.Message($"[PickUpAndHaul] DEBUG: Inventory allocated, will carry {nextThing}:{nextThingLeftOverCount}");
+                                        Log.Message($"[PickUpAndHaul] DEBUG: Job queues after allocation - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
                                         break;
                                 }
+                        }
+                        else
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Failed to allocate {nextThing} to job");
                         }
                 }
                 while ((nextThing = GetClosestAndRemove(lastThing.Position, map, haulables, PathEndMode.ClosestTouch,
@@ -285,6 +297,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		
 		if (nextThing == null)
 		{
+			Log.Message($"[PickUpAndHaul] DEBUG: No more things to allocate, final job state:");
+			Log.Message($"[PickUpAndHaul] DEBUG: targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 			skipCells = null;
 			skipThings = null;
 			//skipTargets = null;
@@ -299,22 +313,25 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var carryCapacity = pawn.carryTracker.MaxStackSpaceEver(nextThing.def) - nextThingLeftOverCount;
 		if (carryCapacity == 0)
 		{
-			Log.Message("Can't carry more, nevermind!");
+			Log.Message($"[PickUpAndHaul] DEBUG: Can't carry more, nevermind!");
+			Log.Message($"[PickUpAndHaul] DEBUG: Final job state - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 			skipCells = null;
 			skipThings = null;
 			//skipTargets = null;
 			PerformanceProfiler.EndTimer("JobOnThing");
 			return job;
 		}
-		Log.Message($"Looking for more like {nextThing}");
+		Log.Message($"[PickUpAndHaul] DEBUG: Looking for more like {nextThing}, carryCapacity: {carryCapacity}");
 
                 while ((nextThing = GetClosestAndRemove(nextThing.Position, map, haulables,
                            PathEndMode.ClosestTouch, traverseParms, 8f, Validator)) != null)
                 {
                         carryCapacity -= nextThing.stackCount;
+                        Log.Message($"[PickUpAndHaul] DEBUG: Found similar thing {nextThing}, carryCapacity now: {carryCapacity}");
 
 			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
 			{
+                                Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated similar thing {nextThing}");
 				break;
 			}
 
@@ -322,11 +339,17 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			{
 				var lastCount = job.countQueue.Pop() + carryCapacity;
 				job.countQueue.Add(lastCount);
-				Log.Message($"Nevermind, last count is {lastCount}");
+				Log.Message($"[PickUpAndHaul] DEBUG: Nevermind, last count is {lastCount}");
 				break;
 			}
 		}
 
+		Log.Message($"[PickUpAndHaul] DEBUG: Final job state before return:");
+		Log.Message($"[PickUpAndHaul] DEBUG: targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
+		
+		// Validate job before returning
+		ValidateJobQueues(job, pawn, "Job Return");
+		
 		skipCells = null;
 		skipThings = null;
 		//skipTargets = null;
@@ -486,6 +509,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		PerformanceProfiler.StartTimer("AllocateThingAtCell");
 		
+		// DEBUG: Log initial state
+		Log.Message($"[PickUpAndHaul] DEBUG: AllocateThingAtCell called for {pawn} with {nextThing}");
+		Log.Message($"[PickUpAndHaul] DEBUG: Initial job queues - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+		
                 var map = pawn.Map;
                 var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
                 var allocation = storeCellCapacity.FirstOrDefault(kvp =>
@@ -499,6 +526,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 //Can't stack with allocated cells, find a new cell:
                 if (storeCell == default)
                 {
+                        Log.Message($"[PickUpAndHaul] DEBUG: No existing cell found for {nextThing}, searching for new storage");
                         if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
                         {
                                 if (innerInteractableThingOwner is null)
@@ -509,7 +537,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                                         storeCellCapacity[storeCell] = new(nextThing, CapacityAt(nextThing, nextStoreCell, map));
 
-                                        Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
+                                        Log.Message($"[PickUpAndHaul] DEBUG: New cell for unstackable {nextThing} = {nextStoreCell}, targetsAddedCount = {targetsAddedCount}");
+                                        Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
                                 }
                                 else
                                 {
@@ -520,12 +549,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                                         storeCellCapacity[storeCell] = new(nextThing, innerInteractableThingOwner.GetCountCanAccept(nextThing));
 
-                                        Log.Message($"New haulDestination for unstackable {nextThing} = {haulDestination}");
+                                        Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination for unstackable {nextThing} = {haulDestination}, targetsAddedCount = {targetsAddedCount}");
+                                        Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
                                 }
                         }
                         else
                         {
-                                Log.Message($"{nextThing} can't stack with allocated cells");
+                                Log.Message($"[PickUpAndHaul] DEBUG: {nextThing} can't stack with allocated cells and no new storage found");
 
                                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                 return false;
@@ -536,12 +566,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 storeCellCapacity[storeCell].capacity -= count;
                 Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
 
-		while (storeCellCapacity[storeCell].capacity <= 0)
+				while (storeCellCapacity[storeCell].capacity <= 0)
 		{
 			var capacityOver = -storeCellCapacity[storeCell].capacity;
 			storeCellCapacity.Remove(storeCell);
 
-			Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
+			Log.Message($"[PickUpAndHaul] DEBUG: {pawn} overdone {storeCell} by {capacityOver}");
 
 			if (capacityOver == 0)
 			{
@@ -559,7 +589,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
 					storeCellCapacity[storeCell] = new(nextThing, capacity);
 
-					Log.Message($"New cell {nextStoreCell}:{capacity}, allocated extra {capacityOver}");
+					Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell}:{capacity}, allocated extra {capacityOver}, targetsAddedCount = {targetsAddedCount}");
+					Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
 				}
 				else
 				{
@@ -572,7 +603,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 					storeCellCapacity[storeCell] = new(nextThing, capacity);
 
-					Log.Message($"New haulDestination {nextHaulDestination}:{capacity}, allocated extra {capacityOver}");
+					Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {nextHaulDestination}:{capacity}, allocated extra {capacityOver}, targetsAddedCount = {targetsAddedCount}");
+					Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB count after adding: {job.targetQueueB.Count}");
 				}
 			}
                         else
@@ -580,36 +612,40 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 count -= capacityOver;
                                 if (count <= 0)
                                 {
+                                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaning up {targetsAddedCount} targets from targetQueueB due to zero capacity");
                                         // Clean up all targets added during this method execution
                                         for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
                                                 job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
                                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                        Log.Message($"Nowhere else to store, skipping {nextThing} due to zero capacity");
+                                        Log.Message($"[PickUpAndHaul] DEBUG: Nowhere else to store, skipping {nextThing} due to zero capacity");
                                         return false;
                                 }
                                 // Don't add to countQueue here - this would desynchronize the queues
-                                Log.Message($"Nowhere else to store, skipping {nextThing}:{count}");
+                                Log.Message($"[PickUpAndHaul] DEBUG: Nowhere else to store, skipping {nextThing}:{count}");
+                                Log.Message($"[PickUpAndHaul] DEBUG: Cleaning up {targetsAddedCount} targets from targetQueueB");
                                 // Clean up all targets added during this method execution
                                 for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
                                         job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
                                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                 return false;
                         }
-                }
+		}
 
                 if (count <= 0)
                 {
+                        Log.Message($"[PickUpAndHaul] DEBUG: Final count is <= 0, cleaning up {targetsAddedCount} targets from targetQueueB");
                         // Clean up all targets added during this method execution
                         for (var i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
                                 job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                        Log.Message($"Skipping {nextThing} due to zero capacity");
+                        Log.Message($"[PickUpAndHaul] DEBUG: Skipping {nextThing} due to zero capacity");
                         return false;
                 }
 
                 job.targetQueueA.Add(nextThing);
                 job.countQueue.Add(count);
-                Log.Message($"{nextThing}:{count} allocated");
+                Log.Message($"[PickUpAndHaul] DEBUG: {nextThing}:{count} allocated successfully");
+                Log.Message($"[PickUpAndHaul] DEBUG: Final job queues - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
                 PerformanceProfiler.EndTimer("AllocateThingAtCell");
                 return true;
         }
@@ -776,6 +812,60 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
 		return haulDestination != null;
+	}
+
+	/// <summary>
+	/// Validates job queue integrity to help debug ArgumentOutOfRangeException
+	/// </summary>
+	public static void ValidateJobQueues(Job job, Pawn pawn, string context)
+	{
+		if (job == null)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job is null in {context} for {pawn}");
+			return;
+		}
+
+		var targetQueueACount = job.targetQueueA?.Count ?? 0;
+		var targetQueueBCount = job.targetQueueB?.Count ?? 0;
+		var countQueueCount = job.countQueue?.Count ?? 0;
+
+		Log.Message($"[PickUpAndHaul] VALIDATION [{context}]: {pawn} - targetQueueA: {targetQueueACount}, targetQueueB: {targetQueueBCount}, countQueue: {countQueueCount}");
+
+		// Check for null queues
+		if (job.targetQueueA == null)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: targetQueueA is null in {context} for {pawn}");
+		}
+		if (job.targetQueueB == null)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: targetQueueB is null in {context} for {pawn}");
+		}
+		if (job.countQueue == null)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: countQueue is null in {context} for {pawn}");
+		}
+
+		// Check for queue synchronization issues
+		if (targetQueueACount != countQueueCount)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Queue synchronization issue in {context} for {pawn} - targetQueueA.Count ({targetQueueACount}) != countQueue.Count ({countQueueCount})");
+		}
+
+		// Check for empty targetQueueA (this would cause the ArgumentOutOfRangeException)
+		if (targetQueueACount == 0)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: targetQueueA is empty in {context} for {pawn} - this will cause ArgumentOutOfRangeException!");
+		}
+
+		// Log queue contents for debugging
+		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
+		{
+			Log.Message($"[PickUpAndHaul] VALIDATION [{context}]: targetQueueA contents: {string.Join(", ", job.targetQueueA.Select(t => t.ToStringSafe()))}");
+		}
+		if (job.countQueue != null && job.countQueue.Count > 0)
+		{
+			Log.Message($"[PickUpAndHaul] VALIDATION [{context}]: countQueue contents: {string.Join(", ", job.countQueue)}");
+		}
 	}
 }
 
