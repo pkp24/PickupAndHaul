@@ -580,29 +580,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 count -= capacityOver;
                                 if (count <= 0)
                                 {
-                                        // Clean up all targets added during this allocation
-                                        for (int i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
-                                        {
+                                        if (addedTargetB && job.targetQueueB.Count > 0)
                                                 job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                        }
                                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                         Log.Message($"Nowhere else to store, skipping {nextThing} due to zero capacity");
                                         return false;
                                 }
-                                job.countQueue.Add(count);
-                                Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
-                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                                return false;
+                                // Don't add to countQueue here - only add when we successfully add to targetQueueA
+                                Log.Message($"Nowhere else to store, will try to allocate {nextThing}:{count}");
+                                break;
                         }
                 }
 
                 if (count <= 0)
                 {
-                        // Clean up all targets added during this allocation
-                        for (int i = 0; i < targetsAddedCount && job.targetQueueB.Count > 0; i++)
-                        {
+                        if (addedTargetB && job.targetQueueB.Count > 0)
                                 job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                        }
                         PerformanceProfiler.EndTimer("AllocateThingAtCell");
                         Log.Message($"Skipping {nextThing} due to zero capacity");
                         return false;
