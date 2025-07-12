@@ -169,19 +169,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				{
 					// Check if storage has any meaningful capacity for this item
 					// This prevents the HasJobOnThing/JobOnThing synchronization issue
-					var storageCapacity = 0;
-					if (haulDestination is ISlotGroupParent)
-					{
-						storageCapacity = CapacityAt(thing, foundCell, pawn.Map);
-					}
-					else if (haulDestination is Thing destinationThing)
-					{
-						var thingOwner = destinationThing.TryGetInnerInteractableThingOwner();
-						if (thingOwner != null)
-						{
-							storageCapacity = thingOwner.GetCountCanAccept(thing);
-						}
-					}
+                                        var storageLocation = haulDestination is ISlotGroupParent
+                                                ? new StorageAllocationTracker.StorageLocation(foundCell)
+                                                : new StorageAllocationTracker.StorageLocation((Thing)haulDestination);
+                                        var storageCapacity = StorageAllocationTracker.GetAvailableCapacity(storageLocation, thing.def, pawn.Map);
 					
 					if (storageCapacity <= 0)
 					{
@@ -352,10 +343,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return null;
 		}
 
-		//credit to Dingo
-		var capacityStoreCell
-			= storeTarget.container is null ? CapacityAt(thing, storeTarget.cell, map)
-			: nonSlotGroupThingOwner.GetCountCanAccept(thing);
+                //credit to Dingo
+                var storageLocationInit = storeTarget.container != null
+                        ? new StorageAllocationTracker.StorageLocation(storeTarget.container)
+                        : new StorageAllocationTracker.StorageLocation(storeTarget.cell);
+
+                var capacityStoreCell = StorageAllocationTracker.GetAvailableCapacity(storageLocationInit, thing.def, map);
 
 		if (capacityStoreCell == 0)
 		{

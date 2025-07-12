@@ -77,16 +77,25 @@ namespace PickUpAndHaul
             lock (_lockObject)
             {
                 // Get actual storage capacity
-                int actualCapacity = GetActualCapacity(location, itemDef, map);
-                
-                // Subtract pending allocations
-                int pendingAmount = GetPendingAllocation(location, itemDef);
-                
-                int availableCapacity = actualCapacity - pendingAmount;
-                
-                Log.Message($"[StorageAllocationTracker] Location {location}: actual={actualCapacity}, pending={pendingAmount}, available={availableCapacity}, requested={requestedAmount}");
-                
+                int availableCapacity = GetAvailableCapacity(location, itemDef, map);
+
+                Log.Message($"[StorageAllocationTracker] Location {location}: available={availableCapacity}, requested={requestedAmount}");
+
                 return availableCapacity >= requestedAmount;
+            }
+        }
+
+        /// <summary>
+        /// Get the available capacity at a location after considering pending reservations
+        /// </summary>
+        public static int GetAvailableCapacity(StorageLocation location, ThingDef itemDef, Map map)
+        {
+            lock (_lockObject)
+            {
+                int actualCapacity = GetActualCapacity(location, itemDef, map);
+                int pendingAmount = GetPendingAllocation(location, itemDef);
+                int availableCapacity = Mathf.Max(0, actualCapacity - pendingAmount);
+                return availableCapacity;
             }
         }
 
