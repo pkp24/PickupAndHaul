@@ -55,9 +55,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
 
         private static readonly Dictionary<Pawn, (int tick, List<Thing> list)> _potentialWorkCache = new();
+        private static readonly Dictionary<Pawn, int> _nextUpdateTick = new();
+
         private const int CacheDuration = 30; // ticks
+        private const int UpdateInterval = 60; // stagger expensive searches
         private static int _lastCacheCleanupTick = 0;
         private const int CacheCleanupInterval = 2500; // Clean up every ~1 minute
+        private static int _cacheCleanupStagger = 0; // Stagger cleanup operations
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
@@ -65,17 +69,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 var currentTick = Find.TickManager.TicksGame;
                 
-                // Periodic cleanup to prevent memory leaks
-                if (currentTick - _lastCacheCleanupTick > CacheCleanupInterval)
+                // Periodic cleanup to prevent memory leaks - staggered to prevent simultaneous cleanups
+                var cleanupOffset = _cacheCleanupStagger++ % 100; // Spread cleanup over 100 ticks
+                if (currentTick - _lastCacheCleanupTick > CacheCleanupInterval + cleanupOffset)
                 {
                         CleanupPotentialWorkCache(currentTick);
                         _lastCacheCleanupTick = currentTick;
                 }
 
-                if (_potentialWorkCache.TryGetValue(pawn, out var cached) && currentTick - cached.tick <= CacheDuration)
+                // Determine if this pawn should refresh its cache this tick
+                if (!_nextUpdateTick.TryGetValue(pawn, out var nextTick))
+                {
+                        nextTick = currentTick + (pawn.thingIDNumber % UpdateInterval);
+                        _nextUpdateTick[pawn] = nextTick;
+                }
+
+                if (currentTick < nextTick && _potentialWorkCache.TryGetValue(pawn, out var cached) && cached.list != null)
                 {
                         PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
-                        // Return a copy to prevent cache corruption
                         return new List<Thing>(cached.list);
                 }
 
@@ -85,6 +96,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 list.Sort(Comparer);
 
                 _potentialWorkCache[pawn] = (currentTick, list);
+                _nextUpdateTick[pawn] = currentTick + UpdateInterval;
 
                 Log.Message($"[PickUpAndHaul] DEBUG: PotentialWorkThingsGlobal for {pawn} at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
 
@@ -115,6 +127,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 foreach (var key in keysToRemove)
                 {
                         _potentialWorkCache.Remove(key);
+                        _nextUpdateTick.Remove(key);
                 }
                 
                 if (keysToRemove.Count > 0)
@@ -129,6 +142,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		public IntVec3 rootCell;
 		public int Compare(Thing x, Thing y) => (x.Position - rootCell).LengthHorizontalSquared.CompareTo((y.Position - rootCell).LengthHorizontalSquared);
 	}
+
+	// Cache for sorted haulable lists to avoid repeated sorting
+	private static readonly Dictionary<(Map map, IntVec3 position, int tick), List<Thing>> _sortedHaulablesCache = new();
+	private static int _lastSortedHaulablesCacheCleanupTick = 0;
+	
+	// Cache for storage capacity checks to avoid repeated expensive calculations
+	private static readonly Dictionary<(Thing thing, IntVec3 cell, int tick), int> _storageCapacityCache = new();
+	private static int _lastStorageCapacityCacheCleanupTick = 0;
 
         public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
@@ -206,6 +227,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
         private static readonly Dictionary<Pawn, (int tick, bool result)> _encumbranceCache = new();
         private static int _lastEncumbranceCacheCleanupTick = 0;
+        private static int _encumbranceCleanupStagger = 0; // Stagger encumbrance cleanup operations
 
         public static bool OverAllowedGearCapacity(Pawn pawn)
         {
@@ -213,8 +235,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 
                 var currentTick = Find.TickManager.TicksGame;
 
-                // Periodic cleanup to prevent memory leaks
-                if (currentTick - _lastEncumbranceCacheCleanupTick > CacheCleanupInterval)
+                // Periodic cleanup to prevent memory leaks - staggered to prevent simultaneous cleanups
+                var encumbranceCleanupOffset = _encumbranceCleanupStagger++ % 150; // Spread cleanup over 150 ticks (different from cache cleanup)
+                if (currentTick - _lastEncumbranceCacheCleanupTick > CacheCleanupInterval + encumbranceCleanupOffset)
                 {
                         CleanupEncumbranceCache(currentTick);
                         _lastEncumbranceCacheCleanupTick = currentTick;
@@ -397,10 +420,34 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var haulUrgentlyDesignation = PickUpAndHaulDesignationDefOf.haulUrgently;
 		var isUrgent = ModCompatibilityCheck.AllowToolIsActive && designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		// Sort by distance from pawn, not from the initial thing, to ensure closest items are picked first
-		Comparer.rootCell = pawn.Position;
-		haulables.Sort(Comparer);
+		// Use cached sorted haulables to avoid repeated expensive sorting operations
+		var currentTick = Find.TickManager.TicksGame;
+		var cacheKey = (map, pawn.Position, currentTick);
+		
+		// Clean up old cache entries periodically
+		if (currentTick - _lastSortedHaulablesCacheCleanupTick > 100) // Clean up every 100 ticks
+		{
+			var keysToRemove = _sortedHaulablesCache.Keys.Where(k => currentTick - k.tick > 5).ToList();
+			foreach (var key in keysToRemove)
+			{
+				_sortedHaulablesCache.Remove(key);
+			}
+			_lastSortedHaulablesCacheCleanupTick = currentTick;
+		}
+		
+		List<Thing> haulables;
+		if (!_sortedHaulablesCache.TryGetValue(cacheKey, out haulables))
+		{
+			haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
+			// Sort by distance from pawn, not from the initial thing, to ensure closest items are picked first
+			Comparer.rootCell = pawn.Position;
+			haulables.Sort(Comparer);
+			_sortedHaulablesCache[cacheKey] = new List<Thing>(haulables); // Store a copy
+		}
+		else
+		{
+			haulables = new List<Thing>(haulables); // Use a copy to avoid modifying the cached list
+		}
 		
 		Log.Message($"[PickUpAndHaul] DEBUG: Found {haulables.Count} haulable items to consider, sorted by distance from pawn at {pawn.Position}");
 
@@ -585,9 +632,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (carryCapacity <= 0)
 			{
-				var lastCount = job.countQueue.Pop() + carryCapacity;
+				var originalCount = job.countQueue.Pop();
+				var lastCount = Math.Max(1, originalCount + carryCapacity); // Ensure count is never less than 1
 				job.countQueue.Add(lastCount);
-				Log.Message($"[PickUpAndHaul] DEBUG: Nevermind, last count is {lastCount}");
+				Log.Message($"[PickUpAndHaul] DEBUG: Nevermind, adjusted count from {originalCount} to {lastCount} (carryCapacity: {carryCapacity})");
 				break;
 			}
 		}
@@ -750,9 +798,31 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static int CapacityAt(Thing thing, IntVec3 storeCell, Map map)
 	{
-		if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out var capacity))
+		// Use cached capacity to avoid repeated expensive calculations
+		var currentTick = Find.TickManager.TicksGame;
+		var cacheKey = (thing, storeCell, currentTick);
+		
+		// Clean up old cache entries periodically
+		if (currentTick - _lastStorageCapacityCacheCleanupTick > 50) // Clean up every 50 ticks
+		{
+			var keysToRemove = _storageCapacityCache.Keys.Where(k => currentTick - k.tick > 3).ToList();
+			foreach (var key in keysToRemove)
+			{
+				_storageCapacityCache.Remove(key);
+			}
+			_lastStorageCapacityCacheCleanupTick = currentTick;
+		}
+		
+		if (_storageCapacityCache.TryGetValue(cacheKey, out var cachedCapacity))
+		{
+			return cachedCapacity;
+		}
+
+		int capacity;
+		if (HoldMultipleThings_Support.CapacityAt(thing, storeCell, map, out capacity))
 		{
 			Log.Message($"Found external capacity of {capacity}");
+			_storageCapacityCache[cacheKey] = capacity;
 			return capacity;
 		}
 
@@ -767,6 +837,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				// This is a container (like a crate) - use its proper capacity calculation
 				var containerCapacity = thingOwner.GetCountCanAccept(thing);
 				Log.Message($"[PickUpAndHaul] DEBUG: Found container {thingAtCell} at {storeCell} with capacity {containerCapacity} for {thing}");
+				_storageCapacityCache[cacheKey] = containerCapacity;
 				return containerCapacity;
 			}
 		}
@@ -781,6 +852,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
 		Log.Message($"[PickUpAndHaul] DEBUG: Using fallback capacity calculation for {thing} at {storeCell}: {capacity}");
+		_storageCapacityCache[cacheKey] = capacity;
 		return capacity;
 	}
 
@@ -1072,8 +1144,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 }
 
                 job.targetQueueA.Add(nextThing);
-                job.countQueue.Add(count);
-                currentMass += nextThing.GetStatValue(StatDefOf.Mass) * count;
+                // Ensure count is never negative or zero
+                var safeCount = Math.Max(1, count);
+                if (count != safeCount)
+                {
+                        Log.Warning($"[PickUpAndHaul] WARNING: Corrected negative/zero count {count} to {safeCount} for {nextThing}");
+                }
+                job.countQueue.Add(safeCount);
+                currentMass += nextThing.GetStatValue(StatDefOf.Mass) * safeCount;
                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated {nextThing}:{count} to job");
                 Log.Message($"[PickUpAndHaul] DEBUG: Updated mass: {currentMass}, new encumbrance: {currentMass / capacity}");
                 Log.Message($"[PickUpAndHaul] DEBUG: Final job queues - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
@@ -1217,7 +1295,16 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 => thing.stackCount * thing.GetStatValue(StatDefOf.Mass) / capacity;
 
         public static int CountPastCapacity(Pawn pawn, Thing thing, float encumberance, float capacity)
-                => (int)Math.Ceiling((encumberance - 1) * capacity / thing.GetStatValue(StatDefOf.Mass));
+        {
+                var thingMass = thing.GetStatValue(StatDefOf.Mass);
+                if (thingMass <= 0 || encumberance <= 1)
+                {
+                        return 0; // No items past capacity if no mass or not overencumbered
+                }
+                
+                var result = (int)Math.Ceiling((encumberance - 1) * capacity / thingMass);
+                return Math.Max(0, result); // Ensure result is never negative
+        }
 
         /// <summary>
         /// Calculates the actual amount of a thing that a pawn can carry considering encumbrance limits
@@ -1392,6 +1479,18 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (targetQueueACount == 0 && context != "Job Creation")
 		{
 			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: targetQueueA is empty in {context} for {pawn} - this will cause ArgumentOutOfRangeException!");
+		}
+
+		// Check for negative or zero counts
+		if (job.countQueue != null)
+		{
+			for (int i = 0; i < job.countQueue.Count; i++)
+			{
+				if (job.countQueue[i] <= 0)
+				{
+					Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Found negative/zero count {job.countQueue[i]} at index {i} in {context} for {pawn}");
+				}
+			}
 		}
 
 		// Log queue contents for debugging

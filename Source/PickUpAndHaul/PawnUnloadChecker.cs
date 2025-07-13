@@ -64,7 +64,9 @@ public class PawnUnloadChecker
 		
 		PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 
-		if (Find.TickManager.TicksGame % 50 == 0 && inventoryContainer.Count < carriedThing.Count)
+		// Stagger inventory sync checks to prevent all pawns checking at once
+		var staggeredCheck = (Find.TickManager.TicksGame + (pawn.thingIDNumber % 50)) % 50 == 0;
+		if (staggeredCheck && inventoryContainer.Count < carriedThing.Count)
 		{
 			Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
 			carriedThing.Clear();

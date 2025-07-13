@@ -14,6 +14,7 @@ namespace PickUpAndHaul
         private static int _lastReportTick = 0;
         private static readonly int REPORT_INTERVAL_TICKS = 6000; // Report every 10 seconds at 60 TPS
         private static readonly string LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaul_Performance.txt");
+        private static int _reportStagger = 0; // Stagger performance reports
 
         public static void StartTimer(string operationName)
         {
@@ -67,7 +68,9 @@ namespace PickUpAndHaul
 
             var currentTick = Find.TickManager?.TicksGame ?? 0;
             
-            if (currentTick - _lastReportTick >= REPORT_INTERVAL_TICKS)
+            // Stagger performance reports to prevent simultaneous report generation
+            var reportOffset = _reportStagger++ % 200; // Spread reports over 200 ticks
+            if (currentTick - _lastReportTick >= REPORT_INTERVAL_TICKS + reportOffset)
             {
                 GenerateReport();
                 _lastReportTick = currentTick;
@@ -105,6 +108,16 @@ namespace PickUpAndHaul
         {
             try
             {
+                // Stagger file write operations to prevent I/O spikes
+                var currentTick = Find.TickManager?.TicksGame ?? 0;
+                var writeDelay = (currentTick % 30); // Spread file writes over 30 ticks
+                
+                if (writeDelay != 0)
+                {
+                    // Skip this write to stagger I/O operations
+                    return;
+                }
+
                 // Ensure the directory exists
                 var directory = Path.GetDirectoryName(LOG_FILE_PATH);
                 if (!Directory.Exists(directory))
