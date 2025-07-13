@@ -1154,16 +1154,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         return false;
                 }
 
-                // If count is 0 or negative, the pawn can't carry this item - fail allocation
-                if (count <= 0)
-                {
-                        Log.Message($"[PickUpAndHaul] DEBUG: Cannot allocate {nextThing} - count is {count} (pawn can't carry or no storage capacity)");
-                        // Clean up targets and reservations
-                        CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
-                        return false;
-                }
-
                 job.targetQueueA.Add(nextThing);
                 job.countQueue.Add(count);
                 currentMass += nextThing.GetStatValue(StatDefOf.Mass) * count;
