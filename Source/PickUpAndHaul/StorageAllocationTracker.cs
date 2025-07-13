@@ -132,6 +132,17 @@ namespace PickUpAndHaul
         }
 
         /// <summary>
+        /// Check if a pawn currently has any pending allocations
+        /// </summary>
+        public static bool HasAllocations(Pawn pawn)
+        {
+            lock (_lockObject)
+            {
+                return _pawnAllocations.ContainsKey(pawn) && _pawnAllocations[pawn].Count > 0;
+            }
+        }
+
+        /// <summary>
         /// Release storage capacity when a hauling job is completed or cancelled
         /// </summary>
         public static void ReleaseCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)

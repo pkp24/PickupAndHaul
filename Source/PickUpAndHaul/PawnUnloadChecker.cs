@@ -12,12 +12,12 @@ public class PawnUnloadChecker
                         return; // Skip unload checking during save operations
                 }
 
-                // Ignore pawns that are currently in a mental state
-                if (pawn == null || pawn.InMentalState)
-                {
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
-                        return;
-                }
+        // Ignore pawns that are currently in a mental state or animals
+        if (pawn == null || pawn.InMentalState || pawn.RaceProps.Animal)
+        {
+            PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
+            return;
+        }
 
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
 		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();

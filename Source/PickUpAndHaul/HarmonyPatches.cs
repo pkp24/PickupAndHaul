@@ -444,12 +444,15 @@ static class HarmonyPatches
 			return; // Skip cleanup during save
 		}
 
-		// Clean up storage allocations for the pawn
-		if (__instance.pawn != null)
-		{
-			StorageAllocationTracker.CleanupPawnAllocations(__instance.pawn);
-			Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
-		}
+        // Clean up storage allocations for the pawn if relevant
+        if (__instance.pawn != null && !__instance.pawn.RaceProps.Animal)
+        {
+                if (StorageAllocationTracker.HasAllocations(__instance.pawn))
+                {
+                        StorageAllocationTracker.CleanupPawnAllocations(__instance.pawn);
+                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
+                }
+        }
 	}
 
 	/// <summary>
@@ -463,8 +466,11 @@ static class HarmonyPatches
 			return; // Skip cleanup during save
 		}
 
-		// Clean up storage allocations for the dead pawn
-		StorageAllocationTracker.CleanupPawnAllocations(__instance);
-		Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
+        // Clean up storage allocations for the dead pawn if relevant
+        if (!__instance.RaceProps.Animal && StorageAllocationTracker.HasAllocations(__instance))
+        {
+                StorageAllocationTracker.CleanupPawnAllocations(__instance);
+                Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
+        }
 	}
 }
