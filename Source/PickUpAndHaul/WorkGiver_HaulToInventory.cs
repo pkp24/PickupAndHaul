@@ -633,9 +633,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			if (carryCapacity <= 0)
 			{
 				var originalCount = job.countQueue.Pop();
-				var lastCount = Math.Max(1, originalCount + carryCapacity); // Ensure count is never less than 1
-				job.countQueue.Add(lastCount);
-				Log.Message($"[PickUpAndHaul] DEBUG: Nevermind, adjusted count from {originalCount} to {lastCount} (carryCapacity: {carryCapacity})");
+				var adjustedCount = originalCount + carryCapacity;
+				
+				if (adjustedCount <= 0)
+				{
+					// Remove the item entirely if the adjusted count is 0 or negative
+					job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+					job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+					Log.Message($"[PickUpAndHaul] DEBUG: Removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
+				}
+				else
+				{
+					job.countQueue.Add(adjustedCount);
+					Log.Message($"[PickUpAndHaul] DEBUG: Adjusted count from {originalCount} to {adjustedCount} (carryCapacity: {carryCapacity})");
+				}
 				break;
 			}
 		}
@@ -1143,15 +1154,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         return false;
                 }
 
-                job.targetQueueA.Add(nextThing);
-                // Ensure count is never negative or zero
-                var safeCount = Math.Max(1, count);
-                if (count != safeCount)
+                // If count is 0 or negative, the pawn can't carry this item - fail allocation
+                if (count <= 0)
                 {
-                        Log.Warning($"[PickUpAndHaul] WARNING: Corrected negative/zero count {count} to {safeCount} for {nextThing}");
+                        Log.Message($"[PickUpAndHaul] DEBUG: Cannot allocate {nextThing} - count is {count} (pawn can't carry or no storage capacity)");
+                        // Clean up targets and reservations
+                        CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                        return false;
                 }
-                job.countQueue.Add(safeCount);
-                currentMass += nextThing.GetStatValue(StatDefOf.Mass) * safeCount;
+
+                job.targetQueueA.Add(nextThing);
+                job.countQueue.Add(count);
+                currentMass += nextThing.GetStatValue(StatDefOf.Mass) * count;
                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated {nextThing}:{count} to job");
                 Log.Message($"[PickUpAndHaul] DEBUG: Updated mass: {currentMass}, new encumbrance: {currentMass / capacity}");
                 Log.Message($"[PickUpAndHaul] DEBUG: Final job queues - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
