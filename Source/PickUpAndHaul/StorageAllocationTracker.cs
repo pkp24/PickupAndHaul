@@ -132,6 +132,17 @@ namespace PickUpAndHaul
         }
 
         /// <summary>
+        /// Check if a pawn currently has any pending allocations
+        /// </summary>
+        public static bool HasAllocations(Pawn pawn)
+        {
+            lock (_lockObject)
+            {
+                return _pawnAllocations.ContainsKey(pawn) && _pawnAllocations[pawn].Count > 0;
+            }
+        }
+
+        /// <summary>
         /// Release storage capacity when a hauling job is completed or cancelled
         /// </summary>
         public static void ReleaseCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
@@ -212,6 +223,7 @@ namespace PickUpAndHaul
                     {
                         try
                         {
+                            tempThing.stackCount = itemDef.stackLimit;
                             var capacity = thingOwner.GetCountCanAccept(tempThing);
                             return capacity;
                         }
@@ -238,6 +250,7 @@ namespace PickUpAndHaul
                 {
                     try
                     {
+                        tempThing.stackCount = itemDef.stackLimit;
                         var capacity = WorkGiver_HaulToInventory.CapacityAt(tempThing, location.Cell, map);
                         return capacity;
                     }
@@ -288,7 +301,9 @@ namespace PickUpAndHaul
                     var stuff = itemDef.defaultStuff ?? GenStuff.DefaultStuffFor(itemDef);
                     if (stuff != null)
                     {
-                        return ThingMaker.MakeThing(itemDef, stuff);
+                        var thing = ThingMaker.MakeThing(itemDef, stuff);
+                        thing.stackCount = itemDef.stackLimit;
+                        return thing;
                     }
                     else
                     {
@@ -298,7 +313,9 @@ namespace PickUpAndHaul
                 }
                 else
                 {
-                    return ThingMaker.MakeThing(itemDef);
+                    var thing = ThingMaker.MakeThing(itemDef);
+                    thing.stackCount = itemDef.stackLimit;
+                    return thing;
                 }
             }
             catch (Exception ex)
