@@ -525,8 +525,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		
 		Log.Message($"[PickUpAndHaul] DEBUG: Reserved capacity for {effectiveAmount} of {thing} at {storageLocation} (carriable: {actualCarriableAmount}, storage: {capacityStoreCell})");
 
-		if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job, ref currentMass, capacity))
-		{
+                var bCountTracker = new List<int>();
+
+                if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job, ref currentMass, capacity, bCountTracker))
+                {
 			Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
 			// Release reserved capacity
 			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
@@ -566,7 +568,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
                         Log.Message($"[PickUpAndHaul] DEBUG: Attempting to allocate additional item {nextThing} to job");
-                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, ref currentMass, capacity))
+                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, ref currentMass, capacity, bCountTracker))
                         {
                                 lastThing = nextThing;
                                 encumberance = currentMass / capacity;
@@ -624,7 +626,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         carryCapacity -= nextThing.stackCount;
                         Log.Message($"[PickUpAndHaul] DEBUG: Found similar thing {nextThing}, carryCapacity now: {carryCapacity}");
 
-                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, ref currentMass, capacity))
+                        if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, ref currentMass, capacity, bCountTracker))
 			{
                                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated similar thing {nextThing}");
 				break;
@@ -635,13 +637,25 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				var originalCount = job.countQueue.Pop();
 				var adjustedCount = originalCount + carryCapacity;
 				
-				if (adjustedCount <= 0)
-				{
-					// Remove the item entirely if the adjusted count is 0 or negative
-					job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-					job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-					Log.Message($"[PickUpAndHaul] DEBUG: Removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
-				}
+                                if (adjustedCount <= 0)
+                                {
+                                        // Remove the item entirely if the adjusted count is 0 or negative
+                                        job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+
+                                        var bRemove = 1;
+                                        if (bCountTracker.Count > 0)
+                                        {
+                                                bRemove = bCountTracker[^1];
+                                                bCountTracker.RemoveAt(bCountTracker.Count - 1);
+                                        }
+
+                                        for (var i = 0; i < bRemove && job.targetQueueB.Count > 0; i++)
+                                        {
+                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                                        }
+
+                                        Log.Message($"[PickUpAndHaul] DEBUG: Removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
+                                }
 				else
 				{
 					job.countQueue.Add(adjustedCount);
@@ -872,9 +886,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| allocation.Value.allocated.CanStackWith(nextThing)
 		|| HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key.cell, nextThing.Map);
 
-        public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job, ref float currentMass, float capacity)
-	{
-		PerformanceProfiler.StartTimer("AllocateThingAtCell");
+        public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job, ref float currentMass, float capacity, List<int> bCountTracker)
+        {
+                PerformanceProfiler.StartTimer("AllocateThingAtCell");
+
+                var bCountBefore = job.targetQueueB.Count;
 		
 		// DEBUG: Log initial state
 		Log.Message($"[PickUpAndHaul] DEBUG: AllocateThingAtCell called for {pawn} with {nextThing}");
@@ -1157,6 +1173,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 job.targetQueueA.Add(nextThing);
                 job.countQueue.Add(count);
                 currentMass += nextThing.GetStatValue(StatDefOf.Mass) * count;
+
+                var bEntriesAdded = job.targetQueueB.Count - bCountBefore;
+                bCountTracker?.Add(bEntriesAdded);
                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated {nextThing}:{count} to job");
                 Log.Message($"[PickUpAndHaul] DEBUG: Updated mass: {currentMass}, new encumbrance: {currentMass / capacity}");
                 Log.Message($"[PickUpAndHaul] DEBUG: Final job queues - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
