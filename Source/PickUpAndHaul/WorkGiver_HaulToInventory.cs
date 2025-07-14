@@ -630,25 +630,29 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				break;
 			}
 
-			if (carryCapacity <= 0)
-			{
-				var originalCount = job.countQueue.Pop();
-				var adjustedCount = originalCount + carryCapacity;
-				
-				if (adjustedCount <= 0)
-				{
-					// Remove the item entirely if the adjusted count is 0 or negative
-					job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-					job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-					Log.Message($"[PickUpAndHaul] DEBUG: Removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
-				}
-				else
-				{
-					job.countQueue.Add(adjustedCount);
-					Log.Message($"[PickUpAndHaul] DEBUG: Adjusted count from {originalCount} to {adjustedCount} (carryCapacity: {carryCapacity})");
-				}
-				break;
-			}
+                        if (carryCapacity <= 0)
+                        {
+                                var originalCount = job.countQueue.Pop();
+                                var adjustedCount = originalCount + carryCapacity;
+
+                                if (adjustedCount <= 0)
+                                {
+                                        // Remove the item entirely if the adjusted count is 0 or negative
+                                        var removeB = job.targetQueueB.Count == job.targetQueueA.Count;
+                                        job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+                                        if (removeB && job.targetQueueB.Count > 0)
+                                        {
+                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                                        }
+                                        Log.Message($"[PickUpAndHaul] DEBUG: Removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
+                                }
+                                else
+                                {
+                                        job.countQueue.Add(adjustedCount);
+                                        Log.Message($"[PickUpAndHaul] DEBUG: Adjusted count from {originalCount} to {adjustedCount} (carryCapacity: {carryCapacity})");
+                                }
+                                break;
+                        }
 		}
 
 		Log.Message($"[PickUpAndHaul] DEBUG: Final job state before return:");
