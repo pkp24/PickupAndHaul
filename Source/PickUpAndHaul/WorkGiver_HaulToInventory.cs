@@ -45,35 +45,32 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
 
-        private static readonly Dictionary<Pawn, (int tick, List<Thing> list)> _potentialWorkCache = new();
-        private static readonly Dictionary<Pawn, int> _nextUpdateTick = new();
+        private static readonly PawnCache<(int tick, List<Thing> list)> _potentialWorkCache = new();
+        private static readonly PawnCache<int> _nextUpdateTick = new();
 
         private const int CacheDuration = 30; // ticks
         private const int UpdateInterval = 60; // stagger expensive searches
-        private static int _lastCacheCleanupTick = 0;
-        private const int CacheCleanupInterval = 2500; // Clean up every ~1 minute
-        private static int _cacheCleanupStagger = 0; // Stagger cleanup operations
+
+        static WorkGiver_HaulToInventory()
+        {
+            // Register caches for automatic cleanup
+            CacheManager.RegisterCache(_potentialWorkCache);
+            CacheManager.RegisterCache(_nextUpdateTick);
+            CacheManager.RegisterCache(_encumbranceCache);
+        }
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
                 var currentTick = Find.TickManager.TicksGame;
                 
-                // Periodic cleanup to prevent memory leaks - staggered to prevent simultaneous cleanups
-                var cleanupOffset = _cacheCleanupStagger++ % 100; // Spread cleanup over 100 ticks
-                if (currentTick - _lastCacheCleanupTick > CacheCleanupInterval + cleanupOffset)
-                {
-                        CleanupPotentialWorkCache(currentTick);
-                        _lastCacheCleanupTick = currentTick;
-                }
-
                 // Determine if this pawn should refresh its cache this tick
-                if (!_nextUpdateTick.TryGetValue(pawn, out var nextTick))
+                if (!_nextUpdateTick.TryGet(pawn, out var nextTick))
                 {
                         nextTick = currentTick + (pawn.thingIDNumber % UpdateInterval);
-                        _nextUpdateTick[pawn] = nextTick;
+                        _nextUpdateTick.Set(pawn, nextTick);
                 }
 
-                if (currentTick < nextTick && _potentialWorkCache.TryGetValue(pawn, out var cached) && cached.list != null)
+                if (currentTick < nextTick && _potentialWorkCache.TryGet(pawn, out var cached) && cached.list != null)
                 {
                         return new List<Thing>(cached.list);
                 }
@@ -83,45 +80,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 Comparer.rootCell = pawn.Position;
                 list.Sort(Comparer);
 
-                _potentialWorkCache[pawn] = (currentTick, list);
-                _nextUpdateTick[pawn] = currentTick + UpdateInterval;
+                _potentialWorkCache.Set(pawn, (currentTick, list));
+                _nextUpdateTick.Set(pawn, currentTick + UpdateInterval);
 
-                Log.Message($"[PickUpAndHaul] DEBUG: PotentialWorkThingsGlobal for {pawn} at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
+                if (Settings.EnableDebugLogging)
+                {
+                        Log.Message($"[PickUpAndHaul] DEBUG: PotentialWorkThingsGlobal for {pawn} at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
+                }
 
                 // Return a copy to prevent cache corruption
                 return new List<Thing>(list);
         }
 
-        /// <summary>
-        /// Cleans up the potential work cache to prevent memory leaks
-        /// </summary>
-        private static void CleanupPotentialWorkCache(int currentTick)
-        {
-                var keysToRemove = new List<Pawn>();
-                
-                foreach (var kvp in _potentialWorkCache)
-                {
-                        var pawn = kvp.Key;
-                        var (tick, _) = kvp.Value;
-                        
-                        // Remove entries for dead/destroyed pawns or expired entries
-                        if (pawn == null || pawn.Destroyed || !pawn.Spawned || currentTick - tick > CacheDuration * 2)
-                        {
-                                keysToRemove.Add(pawn);
-                        }
-                }
-                
-                foreach (var key in keysToRemove)
-                {
-                        _potentialWorkCache.Remove(key);
-                        _nextUpdateTick.Remove(key);
-                }
-                
-                if (keysToRemove.Count > 0)
-                {
-                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up {keysToRemove.Count} entries from potential work cache");
-                }
-        }
+
 
 	private static ThingPositionComparer Comparer { get; } = new();
 	public class ThingPositionComparer : IComparer<Thing>
@@ -209,23 +180,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//bulky gear (power armor + minigun) so don't bother.
 	//Updated to include inventory mass, not just gear mass
 
-        private static readonly Dictionary<Pawn, (int tick, bool result)> _encumbranceCache = new();
-        private static int _lastEncumbranceCacheCleanupTick = 0;
-        private static int _encumbranceCleanupStagger = 0; // Stagger encumbrance cleanup operations
+        private static readonly PawnCache<(int tick, bool result)> _encumbranceCache = new();
 
         public static bool OverAllowedGearCapacity(Pawn pawn)
         {
                 var currentTick = Find.TickManager.TicksGame;
 
-                // Periodic cleanup to prevent memory leaks - staggered to prevent simultaneous cleanups
-                var encumbranceCleanupOffset = _encumbranceCleanupStagger++ % 150; // Spread cleanup over 150 ticks (different from cache cleanup)
-                if (currentTick - _lastEncumbranceCacheCleanupTick > CacheCleanupInterval + encumbranceCleanupOffset)
-                {
-                        CleanupEncumbranceCache(currentTick);
-                        _lastEncumbranceCacheCleanupTick = currentTick;
-                }
-
-                if (_encumbranceCache.TryGetValue(pawn, out var cache) && cache.tick == currentTick)
+                if (_encumbranceCache.TryGet(pawn, out var cache) && cache.tick == currentTick)
                 {
                         return cache.result;
                 }
@@ -234,40 +195,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 var capacity = MassUtility.Capacity(pawn);
                 var result = totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
 
-                _encumbranceCache[pawn] = (currentTick, result);
+                _encumbranceCache.Set(pawn, (currentTick, result));
                 
                 return result;
         }
 
-        /// <summary>
-        /// Cleans up the encumbrance cache to prevent memory leaks
-        /// </summary>
-        private static void CleanupEncumbranceCache(int currentTick)
-        {
-                var keysToRemove = new List<Pawn>();
-                
-                foreach (var kvp in _encumbranceCache)
-                {
-                        var pawn = kvp.Key;
-                        var (tick, _) = kvp.Value;
-                        
-                        // Remove entries for dead/destroyed pawns or stale entries (older than 1 tick)
-                        if (pawn == null || pawn.Destroyed || !pawn.Spawned || currentTick - tick > 1)
-                        {
-                                keysToRemove.Add(pawn);
-                        }
-                }
-                
-                foreach (var key in keysToRemove)
-                {
-                        _encumbranceCache.Remove(key);
-                }
-                
-                if (keysToRemove.Count > 0)
-                {
-                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up {keysToRemove.Count} entries from encumbrance cache");
-                }
-        }
+
 
 	//pick up stuff until you can't anymore,
 	//while you're up and about, pick up something and haul it
@@ -368,8 +301,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		
 		Log.Message($"[PickUpAndHaul] DEBUG: After initialization - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 		
-		// Validate job after creation
-		ValidateJobQueues(job, pawn, "Job Creation");
+		// Validate job after creation using JobQueueManager
+		if (!JobQueueManager.ValidateJobQueues(job, pawn))
+		{
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job queue validation failed after creation for {pawn}!");
+			return null;
+		}
 
 		//Find what fits in inventory, set nextThingLeftOverCount to be 
                 var nextThingLeftOverCount = 0;
@@ -482,7 +419,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return null;
 		}
 		
-		if (!StorageAllocationTracker.ReserveCapacity(storageLocation, thing.def, effectiveAmount, pawn))
+		if (!StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, thing.def, effectiveAmount, pawn))
 		{
 			Log.Warning($"[PickUpAndHaul] WARNING: Cannot reserve capacity for {effectiveAmount} of {thing} at {storageLocation} - insufficient available capacity");
 			skipCells = null;
@@ -498,7 +435,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 {
 			Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
 			// Release reserved capacity
-			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
+			StorageAllocationTracker.Instance.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
 			skipCells = null;
 			skipThings = null;
 			return null;
@@ -512,7 +449,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Releasing storage reservation and returning null");
 			
 			// Release the storage reservation we made earlier
-			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
+			StorageAllocationTracker.Instance.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
 			
 			skipCells = null;
 			skipThings = null;
@@ -662,7 +599,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					: new StorageAllocationTracker.StorageLocation(currentStoreTarget.cell);
 				
 				// Release any remaining capacity reservations
-				StorageAllocationTracker.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
+				StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
 			}
 			
 			skipCells = null;
@@ -894,7 +831,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
         public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job, ref float currentMass, float capacity, List<int> bCountTracker)
         {
-
                 var bCountBefore = job.targetQueueB.Count;
 		
 		// DEBUG: Log initial state
@@ -992,7 +928,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						var reservationAmount = Math.Min(actualCarriableAmount, newCapacity);
 						
 						// Try to reserve capacity, but don't fail if we can't
-						if (StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
+						if (StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
                                         {
                                                 reservationsMade.Add((storageLocation, nextThing.def, reservationAmount));
                                                 Log.Message($"[PickUpAndHaul] DEBUG: Reserved {reservationAmount} capacity for {nextThing} at {storageLocation}");
@@ -1028,7 +964,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						var reservationAmount = Math.Min(actualCarriableAmount, newCapacity);
 						
 						// Try to reserve capacity, but don't fail if we can't
-						if (StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
+						if (StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
                                         {
                                                 reservationsMade.Add((storageLocation, nextThing.def, reservationAmount));
                                                 Log.Message($"[PickUpAndHaul] DEBUG: Reserved {reservationAmount} capacity for {nextThing} at {storageLocation}");
@@ -1094,7 +1030,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
 						var reservationAmount = Math.Min(capacityOver, actualCarriableAmount);
 						
-						if (StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
+						if (StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
                                         {
                                                 reservationsMade.Add((storageLocation, nextThing.def, reservationAmount));
                                                 Log.Message($"[PickUpAndHaul] DEBUG: Reserved {reservationAmount} overflow capacity for {nextThing} at {storageLocation}");
@@ -1129,7 +1065,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						var storageLocation = new StorageAllocationTracker.StorageLocation(destinationAsThing);
 						var reservationAmount = Math.Min(capacityOver, actualCarriableAmount);
 						
-						if (StorageAllocationTracker.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
+						if (StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
                                         {
                                                 reservationsMade.Add((storageLocation, nextThing.def, reservationAmount));
                                                 Log.Message($"[PickUpAndHaul] DEBUG: Reserved {reservationAmount} overflow capacity for {nextThing} at {storageLocation}");
@@ -1167,28 +1103,34 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         return false;
                 }
 
-                job.targetQueueA.Add(nextThing);
-                job.countQueue.Add(count);
-                currentMass += nextThing.GetStatValue(StatDefOf.Mass) * count;
-
-                var bEntriesAdded = job.targetQueueB.Count - bCountBefore;
-                bCountTracker?.Add(bEntriesAdded);
+                // Use JobQueueManager for atomic queue operations
+                var things = new List<Thing> { nextThing };
+                var counts = new List<int> { count };
                 
-                // CRITICAL FIX: Validate queue synchronization after adding items
-                if (job.targetQueueA.Count != job.countQueue.Count)
+                // Get the target from the storeCell, not from the queue
+                LocalTargetInfo target;
+                if (storeCell.container != null)
                 {
-                    Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Queue synchronization failure in AllocateThingAtCell for {pawn}!");
-                    Log.Error($"[PickUpAndHaul] CRITICAL ERROR: targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
-                    Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Removing the item we just added to prevent corruption");
-                    
-                    // Remove the item we just added to prevent queue corruption
-                    job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-                    job.countQueue.RemoveAt(job.countQueue.Count - 1);
-                    
+                    target = new LocalTargetInfo(storeCell.container);
+                }
+                else
+                {
+                    target = new LocalTargetInfo(storeCell.cell);
+                }
+                var targets = new List<LocalTargetInfo> { target };
+                
+                if (!JobQueueManager.AddItemsToJob(job, things, counts, targets, pawn))
+                {
+                    Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Failed to add items to job queues for {pawn}!");
                     // Clean up any targets we added
                     CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
                     return false;
                 }
+                
+                currentMass += nextThing.GetStatValue(StatDefOf.Mass) * count;
+
+                var bEntriesAdded = job.targetQueueB.Count - bCountBefore;
+                bCountTracker?.Add(bEntriesAdded);
                 
                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated {nextThing}:{count} to job");
                 Log.Message($"[PickUpAndHaul] DEBUG: Updated mass: {currentMass}, new encumbrance: {currentMass / capacity}");
@@ -1204,7 +1146,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 // Release all reservations made during this method execution
                 foreach (var (location, def, count) in reservationsMade)
                 {
-                        StorageAllocationTracker.ReleaseCapacity(location, def, count, pawn);
+                        StorageAllocationTracker.Instance.ReleaseCapacity(location, def, count, pawn);
                         Log.Message($"[PickUpAndHaul] DEBUG: Released reservation for {def} x{count} at {location}");
                 }
 
@@ -1630,7 +1572,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				: new StorageAllocationTracker.StorageLocation(currentStoreTarget.cell);
 			
 			// Release any remaining capacity reservations
-			StorageAllocationTracker.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
+			StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
 		}
 	}
 }

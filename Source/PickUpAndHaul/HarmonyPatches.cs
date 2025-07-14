@@ -43,6 +43,10 @@ static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(TickManagerUpdate_Postfix)));
 
+		// Add cache management to the main tick
+		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(CacheManagement_Postfix)));
+
 		harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), nameof(ITab_Pawn_Gear.DrawThingRow)),
 			transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
 
@@ -256,6 +260,20 @@ static class HarmonyPatches
 		//PerformanceProfiler.Update();
 	}
 
+	public static void CacheManagement_Postfix()
+	{
+		try
+		{
+			// Check for map changes and game resets
+			CacheManager.CheckForMapChange();
+			CacheManager.CheckForGameReset();
+		}
+		catch (Exception ex)
+		{
+			Log.Warning($"[PickUpAndHaul] Error in cache management: {ex.Message}");
+		}
+	}
+
 	public static void DropUnusedInventory_PostFix(Pawn pawn) 
 	{
 		// Check if save operation is in progress
@@ -447,9 +465,9 @@ static class HarmonyPatches
         // Clean up storage allocations for the pawn if relevant
         if (__instance.pawn != null && !__instance.pawn.RaceProps.Animal)
         {
-                if (StorageAllocationTracker.HasAllocations(__instance.pawn))
+                if (StorageAllocationTracker.Instance.HasAllocations(__instance.pawn))
                 {
-                        StorageAllocationTracker.CleanupPawnAllocations(__instance.pawn);
+                        StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance.pawn);
                         Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
                 }
         }
@@ -467,9 +485,9 @@ static class HarmonyPatches
 		}
 
         // Clean up storage allocations for the dead pawn if relevant
-        if (!__instance.RaceProps.Animal && StorageAllocationTracker.HasAllocations(__instance))
+        if (!__instance.RaceProps.Animal && StorageAllocationTracker.Instance.HasAllocations(__instance))
         {
-                StorageAllocationTracker.CleanupPawnAllocations(__instance);
+                StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance);
                 Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
         }
 	}

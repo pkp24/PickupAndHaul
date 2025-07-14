@@ -23,11 +23,17 @@ public class JobDriver_HaulToInventory : JobDriver
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
-		
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			Log.Message($"[PickUpAndHaul] Skipping HaulToInventory job reservations during save operation for {pawn}");
+			return false;
+		}
+
+		// Validate job before making reservations
+		if (!ValidateJobBeforeExecution())
+		{
+			Log.Error($"[PickUpAndHaul] Job validation failed for {pawn}, cannot make reservations");
 			return false;
 		}
 
@@ -124,27 +130,9 @@ public class JobDriver_HaulToInventory : JobDriver
 	{
 		
 		// CRITICAL FIX: Validate job integrity before proceeding
-		if (job == null)
+		if (!ValidateJobBeforeExecution())
 		{
-			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job is null in MakeNewToils for {pawn}");
-			EndJobWith(JobCondition.Incompletable);
-			yield break;
-		}
-		
-		// CRITICAL FIX: Ensure job has valid queues before proceeding
-		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
-		{
-			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job has empty targetQueueA in MakeNewToils for {pawn}");
-			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
-			EndJobWith(JobCondition.Incompletable);
-			yield break;
-		}
-		
-		// CRITICAL FIX: Validate queue synchronization
-		if (job.targetQueueA.Count != job.countQueue.Count)
-		{
-			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Queue synchronization failure in MakeNewToils for {pawn}!");
-			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+			Log.Error($"[PickUpAndHaul] Job validation failed for {pawn} in MakeNewToils");
 			EndJobWith(JobCondition.Incompletable);
 			yield break;
 		}
@@ -345,5 +333,77 @@ public class JobDriver_HaulToInventory : JobDriver
 		};
 
 		return toil;
+	}
+	
+	/// <summary>
+	/// Validates the job before execution to prevent desync issues
+	/// </summary>
+	private bool ValidateJobBeforeExecution()
+	{
+		if (job == null)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job is null for {pawn}");
+			return false;
+		}
+		
+		if (pawn == null)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Pawn is null");
+			return false;
+		}
+		
+		// Check if this is a custom job
+		if (job is HaulToInventoryJob customJob)
+		{
+			return customJob.IsValid();
+		}
+		
+		// For regular jobs, validate queue synchronization
+		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job has empty targetQueueA for {pawn}");
+			return false;
+		}
+		
+		if (job.countQueue == null || job.countQueue.Count == 0)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job has empty countQueue for {pawn}");
+			return false;
+		}
+		
+		if (job.targetQueueA.Count != job.countQueue.Count)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+			return false;
+		}
+		
+		// Validate that all targets are still valid
+		for (int i = 0; i < job.targetQueueA.Count; i++)
+		{
+			var target = job.targetQueueA[i];
+			if (target == null || target.Thing == null)
+			{
+				Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Found null target at index {i} for {pawn}");
+				return false;
+			}
+			
+			if (target.Thing.Destroyed || !target.Thing.Spawned)
+			{
+				Log.Warning($"[PickUpAndHaul] VALIDATION WARNING: Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
+				return false;
+			}
+		}
+		
+		// Validate that all counts are positive
+		for (int i = 0; i < job.countQueue.Count; i++)
+		{
+			if (job.countQueue[i] <= 0)
+			{
+				Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
+				return false;
+			}
+		}
+		
+		return true;
 	}
 }

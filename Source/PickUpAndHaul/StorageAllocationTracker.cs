@@ -7,24 +7,40 @@ namespace PickUpAndHaul
     /// Tracks pending hauling jobs and their storage allocations to prevent race conditions
     /// between multiple pawns hauling to the same storage location.
     /// </summary>
-    public static class StorageAllocationTracker
+    public class StorageAllocationTracker : ICache
     {
+        /// <summary>
+        /// Singleton instance
+        /// </summary>
+        private static readonly StorageAllocationTracker _instance = new();
+        
+        /// <summary>
+        /// Gets the singleton instance
+        /// </summary>
+        public static StorageAllocationTracker Instance => _instance;
+        
         /// <summary>
         /// Tracks storage allocations by storage location and item type
         /// Key: Storage location identifier (cell position or container thing)
         /// Value: Dictionary of item def to allocated count
         /// </summary>
-        private static readonly Dictionary<StorageLocation, Dictionary<ThingDef, int>> _pendingAllocations = new();
+        private readonly Dictionary<StorageLocation, Dictionary<ThingDef, int>> _pendingAllocations = new();
         
         /// <summary>
         /// Tracks which pawns have pending allocations to clean up when they die or jobs fail
         /// </summary>
-        private static readonly Dictionary<Pawn, HashSet<StorageLocation>> _pawnAllocations = new();
+        private readonly Dictionary<Pawn, HashSet<StorageLocation>> _pawnAllocations = new();
         
         /// <summary>
         /// Lock object for thread safety
         /// </summary>
-        private static readonly object _lockObject = new object();
+        private readonly object _lockObject = new object();
+
+        static StorageAllocationTracker()
+        {
+            // Register with cache manager for automatic cleanup
+            CacheManager.RegisterCache(_instance);
+        }
 
         /// <summary>
         /// Represents a storage location (either a cell or a container thing)
@@ -72,7 +88,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Check if there's enough available capacity at a storage location for a given item
         /// </summary>
-        public static bool HasAvailableCapacity(StorageLocation location, ThingDef itemDef, int requestedAmount, Map map)
+        public bool HasAvailableCapacity(StorageLocation location, ThingDef itemDef, int requestedAmount, Map map)
         {
             lock (_lockObject)
             {
@@ -95,7 +111,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Reserve storage capacity for a pending hauling job (backward compatibility)
         /// </summary>
-        public static bool ReserveCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
+        public bool ReserveCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
         {
             lock (_lockObject)
             {
@@ -134,7 +150,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Check if a pawn currently has any pending allocations
         /// </summary>
-        public static bool HasAllocations(Pawn pawn)
+        public bool HasAllocations(Pawn pawn)
         {
             lock (_lockObject)
             {
@@ -145,7 +161,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Release storage capacity when a hauling job is completed or cancelled
         /// </summary>
-        public static void ReleaseCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
+        public void ReleaseCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
         {
             lock (_lockObject)
             {
@@ -182,7 +198,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Clean up all allocations for a pawn (when they die or job fails)
         /// </summary>
-        public static void CleanupPawnAllocations(Pawn pawn)
+        public void CleanupPawnAllocations(Pawn pawn)
         {
             lock (_lockObject)
             {
@@ -210,7 +226,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Get the actual storage capacity at a location
         /// </summary>
-        private static int GetActualCapacity(StorageLocation location, ThingDef itemDef, Map map)
+        private int GetActualCapacity(StorageLocation location, ThingDef itemDef, Map map)
         {
             if (location.Container != null)
             {
@@ -291,7 +307,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Safely create a temporary thing for capacity checking
         /// </summary>
-        private static Thing CreateTempThing(ThingDef itemDef)
+        private Thing CreateTempThing(ThingDef itemDef)
         {
             try
             {
@@ -330,7 +346,7 @@ namespace PickUpAndHaul
         /// <summary>
         /// Get the amount of pending allocations for a specific item at a location
         /// </summary>
-        private static int GetPendingAllocation(StorageLocation location, ThingDef itemDef)
+        private int GetPendingAllocation(StorageLocation location, ThingDef itemDef)
         {
             if (_pendingAllocations.ContainsKey(location) && _pendingAllocations[location].ContainsKey(itemDef))
             {
@@ -339,45 +355,60 @@ namespace PickUpAndHaul
             return 0;
         }
 
-        /// <summary>
-        /// Get debug information about current allocations
-        /// </summary>
-        public static string GetDebugInfo()
-        {
-            lock (_lockObject)
-            {
-                var info = new System.Text.StringBuilder();
-                info.AppendLine("[StorageAllocationTracker] Current allocations:");
-                
-                foreach (var kvp in _pendingAllocations)
-                {
-                    info.AppendLine($"  Location: {kvp.Key}");
-                    foreach (var itemKvp in kvp.Value)
-                    {
-                        info.AppendLine($"    {itemKvp.Key}: {itemKvp.Value}");
-                    }
-                }
-                
-                info.AppendLine("Pawn allocations:");
-                foreach (var kvp in _pawnAllocations)
-                {
-                    info.AppendLine($"  {kvp.Key}: {string.Join(", ", kvp.Value)}");
-                }
-                
-                return info.ToString();
-            }
-        }
+
 
         /// <summary>
         /// Clear all allocations (for testing or when save is loaded)
         /// </summary>
-        public static void ClearAllAllocations()
+        public void ClearAllAllocations()
         {
             lock (_lockObject)
             {
                 _pendingAllocations.Clear();
                 _pawnAllocations.Clear();
                 Log.Message("[StorageAllocationTracker] Cleared all allocations");
+            }
+        }
+
+        /// <summary>
+        /// Forces a cleanup of the storage allocation tracker
+        /// </summary>
+        public void ForceCleanup()
+        {
+            lock (_lockObject)
+            {
+                // Clean up allocations for dead pawns
+                var deadPawns = new List<Pawn>();
+                
+                foreach (var kvp in _pawnAllocations)
+                {
+                    var pawn = kvp.Key;
+                    if (pawn == null || pawn.Destroyed || !pawn.Spawned)
+                    {
+                        deadPawns.Add(pawn);
+                    }
+                }
+                
+                foreach (var deadPawn in deadPawns)
+                {
+                    CleanupPawnAllocations(deadPawn);
+                }
+                
+                if (deadPawns.Count > 0 && Settings.EnableDebugLogging)
+                {
+                    Log.Message($"[StorageAllocationTracker] Cleaned up allocations for {deadPawns.Count} dead pawns");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets debug information about the storage allocation tracker
+        /// </summary>
+        public string GetDebugInfo()
+        {
+            lock (_lockObject)
+            {
+                return $"StorageAllocationTracker: {_pendingAllocations.Count} pending allocations, {_pawnAllocations.Count} pawn allocations";
             }
         }
     }
