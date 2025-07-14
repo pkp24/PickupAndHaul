@@ -26,6 +26,18 @@ namespace PickUpAndHaul
             lock (_lockObject)
             {
                 TryCleanupDeadReferences();
+                
+                // Find existing entry for this pawn and update it
+                foreach (var kvp in _cache)
+                {
+                    if (kvp.Key.TryGetTarget(out var cachedPawn) && cachedPawn == pawn)
+                    {
+                        _cache[kvp.Key] = value;
+                        return;
+                    }
+                }
+                
+                // If no existing entry found, create a new one
                 _cache[new System.WeakReference<Pawn>(pawn)] = value;
             }
         }
