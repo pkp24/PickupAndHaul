@@ -310,11 +310,8 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                                         var dirtyStraggler = innerPawnContainer[i];
                                         if (dirtyStraggler.def == stragglerDef)
                                         {
-                                                // Remove tracked items after iteration
-                                                foreach (var item in itemsToRemove)
-                                                {
-                                                        carriedThings.Remove(item);
-                                                }
+                                                // Clean up all invalid items from carriedThings before returning
+                                                CleanupInvalidItems(carriedThings, innerPawnContainer);
                                                 return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
                                         }
                                 }
@@ -327,7 +324,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                         }
                 }
 
-                // Remove tracked items after iteration completes
+                // Remove all tracked items after iteration completes
                 foreach (var item in itemsToRemove)
                 {
                         carriedThings.Remove(item);
@@ -341,6 +338,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                         var catB = b.def.FirstThingCategory?.index ?? int.MaxValue;
                         var compare = catA.CompareTo(catB);
                         return compare != 0 ? compare : string.CompareOrdinal(a.def.defName, b.def.defName);
+                }
+
+                static void CleanupInvalidItems(HashSet<Thing> carriedThings, ThingOwner innerPawnContainer)
+                {
+                        // Remove all null items and items not in the container
+                        carriedThings.RemoveWhere(thing => thing == null || !innerPawnContainer.Contains(thing));
                 }
         }
 }
