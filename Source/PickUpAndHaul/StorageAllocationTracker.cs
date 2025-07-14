@@ -239,22 +239,21 @@ namespace PickUpAndHaul
                     {
                         try
                         {
-                            tempThing.stackCount = itemDef.stackLimit;
                             var capacity = thingOwner.GetCountCanAccept(tempThing);
                             return capacity;
                         }
                         catch (Exception ex)
                         {
                             Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at container {location.Container}: {ex.Message}");
-                            // Return stack limit as fallback
-                            return itemDef.stackLimit;
+                            // Return safe stack count as fallback
+                            return GetSafeStackCount(itemDef);
                         }
                         // Note: No need to call Destroy() on unspawned temporary objects - they will be garbage collected
                     }
                     else
                     {
-                        // Fallback: use stack limit as approximation
-                        return itemDef.stackLimit;
+                        // Fallback: use safe stack count as approximation
+                        return GetSafeStackCount(itemDef);
                     }
                 }
             }
@@ -266,24 +265,23 @@ namespace PickUpAndHaul
                 {
                     try
                     {
-                        tempThing.stackCount = itemDef.stackLimit;
                         var capacity = WorkGiver_HaulToInventory.CapacityAt(tempThing, location.Cell, map);
                         return capacity;
                     }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at cell {location.Cell}: {ex.Message}");
-                        // Fallback: check if there's already an item at the location and calculate remaining capacity
-                        var existingThing = map.thingGrid.ThingAt(location.Cell, itemDef);
-                        if (existingThing != null)
+                                            catch (Exception ex)
                         {
-                            return itemDef.stackLimit - existingThing.stackCount;
+                            Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at cell {location.Cell}: {ex.Message}");
+                            // Fallback: check if there's already an item at the location and calculate remaining capacity
+                            var existingThing = map.thingGrid.ThingAt(location.Cell, itemDef);
+                            if (existingThing != null)
+                            {
+                                return GetSafeStackCount(itemDef) - existingThing.stackCount;
+                            }
+                            else
+                            {
+                                return GetSafeStackCount(itemDef);
+                            }
                         }
-                        else
-                        {
-                            return itemDef.stackLimit;
-                        }
-                    }
                     // Note: No need to call Destroy() on unspawned temporary objects - they will be garbage collected
                 }
                 else
@@ -292,11 +290,11 @@ namespace PickUpAndHaul
                     var existingThing = map.thingGrid.ThingAt(location.Cell, itemDef);
                     if (existingThing != null)
                     {
-                        return itemDef.stackLimit - existingThing.stackCount;
+                        return GetSafeStackCount(itemDef) - existingThing.stackCount;
                     }
                     else
                     {
-                        return itemDef.stackLimit;
+                        return GetSafeStackCount(itemDef);
                     }
                 }
             }
@@ -311,6 +309,9 @@ namespace PickUpAndHaul
         {
             try
             {
+                // Validate stack limit and use a safe default if invalid
+                int safeStackCount = GetSafeStackCount(itemDef);
+                
                 if (itemDef.MadeFromStuff)
                 {
                     // For stuff-based items, use the default stuff or find a suitable one
@@ -318,7 +319,7 @@ namespace PickUpAndHaul
                     if (stuff != null)
                     {
                         var thing = ThingMaker.MakeThing(itemDef, stuff);
-                        thing.stackCount = itemDef.stackLimit;
+                        thing.stackCount = safeStackCount;
                         return thing;
                     }
                     else
@@ -330,7 +331,7 @@ namespace PickUpAndHaul
                 else
                 {
                     var thing = ThingMaker.MakeThing(itemDef);
-                    thing.stackCount = itemDef.stackLimit;
+                    thing.stackCount = safeStackCount;
                     return thing;
                 }
             }
@@ -339,6 +340,35 @@ namespace PickUpAndHaul
                 Log.Error($"[StorageAllocationTracker] Error creating temp thing for {itemDef}: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Get a safe stack count for capacity calculations, validating against itemDef.stackLimit
+        /// </summary>
+        private int GetSafeStackCount(ThingDef itemDef)
+        {
+            // Validate stack limit - must be positive
+            if (itemDef.stackLimit <= 0)
+            {
+                Log.Warning($"[StorageAllocationTracker] Invalid stackLimit ({itemDef.stackLimit}) for {itemDef}, using default of 1");
+                return 1;
+            }
+            
+            // For items that can't be stacked, use 1
+            if (itemDef.stackLimit == 1)
+            {
+                return 1;
+            }
+            
+            // For items with very large stack limits, cap at a reasonable value to prevent issues
+            const int maxReasonableStackLimit = 10000;
+            if (itemDef.stackLimit > maxReasonableStackLimit)
+            {
+                Log.Warning($"[StorageAllocationTracker] Very large stackLimit ({itemDef.stackLimit}) for {itemDef}, capping at {maxReasonableStackLimit}");
+                return maxReasonableStackLimit;
+            }
+            
+            return itemDef.stackLimit;
         }
 
 
