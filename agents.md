@@ -25,7 +25,8 @@ PickupAndHaul/
 │   └── PickUpAndHaul/           # Main mod
 └── ReferenceMods/               # Reference mods for development
     ├── Adaptive-Storage-Framework/
-    └── NeatStorage/
+    ├── NeatStorage/
+    └── RimworldAllowTool/
 ```
 
 ## Core Components
@@ -100,6 +101,41 @@ This mod focuses on organized storage solutions. Key concepts:
 - Use UI components for better user experience
 - Implement similar storage workflows for consistency
 - Leverage automated sorting for efficient item placement
+
+### AllowTool
+**Location**: `ReferenceMods/RimworldAllowTool/`
+**GitHub**: https://github.com/UnlimitedHugs/RimworldAllowTool
+**Forum**: https://ludeon.com/forums/index.php?topic=17218.0
+**Steam**: https://steamcommunity.com/sharedfiles/filedetails/?id=761421485
+
+This mod provides a comprehensive set of tools to simplify common tasks in RimWorld. Key concepts:
+- Item forbidding and unforbidding tools
+- Selection tools for similar items
+- Urgent hauling commands
+- Map-wide tool extensions
+- Area designation tools
+- Advanced item management workflows
+- Integration with RimWorld's hauling system
+- Performance-optimized item selection algorithms
+
+**Key Files to Reference**:
+- Item selection and filtering algorithms
+- Hauling priority management systems
+- Tool integration patterns with RimWorld UI
+- Performance optimization for map-wide operations
+- Item state management (forbidden/allowed)
+- Advanced pathfinding and job scheduling
+- Tool extension framework
+
+**Integration Opportunities**:
+- Reference AllowTool's item selection algorithms for smarter hauling decisions
+- Integrate with hauling priority systems for better job scheduling
+- Use AllowTool's performance optimizations for map-wide operations
+- Leverage item state management patterns for inventory tracking
+- Implement similar tool extension patterns for expanded functionality
+- Reference UI integration patterns for seamless user experience
+- Use AllowTool's pathfinding optimizations for efficient hauling routes
+- Integrate with area designation systems for targeted hauling operations
 
 ## Development Guidelines
 
@@ -184,6 +220,16 @@ public static class PatchClass
 - Leverage automated sorting algorithms for efficient item placement
 - Adopt visual management techniques for better item tracking
 
+### With AllowTool
+- Reference item selection algorithms for intelligent hauling target identification
+- Integrate with hauling priority systems for optimized job scheduling
+- Use performance optimization patterns for map-wide hauling operations
+- Leverage item state management for better inventory control
+- Implement tool extension patterns for expanded hauling functionality
+- Reference UI integration patterns for seamless tool interaction
+- Use pathfinding optimizations for efficient multi-item hauling routes
+- Integrate with area designation systems for targeted hauling zones
+
 ## Build Commands
 
 ```bash
@@ -249,6 +295,25 @@ public void OrganizeHauledItems(List<Thing> items)
 }
 ```
 
+### Using AllowTool Patterns
+```csharp
+// Example: Using AllowTool's item selection algorithms
+public List<Thing> SelectOptimalHaulTargets(Pawn pawn, IntVec3 destination)
+{
+    // Reference AllowTool's item selection algorithms
+    // Use AllowTool's performance optimizations for map scanning
+    // Integrate with AllowTool's priority systems
+}
+
+// Example: Using AllowTool's hauling priority management
+public float CalculateHaulPriority(Thing thing, Pawn pawn)
+{
+    // Reference AllowTool's priority calculation methods
+    // Integrate with AllowTool's urgency systems
+    // Use AllowTool's efficiency metrics
+}
+```
+
 ## Performance Optimization from Reference Mods
 
 ### From Adaptive Storage Framework
@@ -263,4 +328,12 @@ public void OrganizeHauledItems(List<Thing> items)
 - Smart UI update patterns
 - Reduced computational overhead in organization tasks
 
-This comprehensive guide provides ChatGPT Codex with all the necessary information about both reference mods and how to effectively integrate their patterns and features into the PickUpAndHaul mod development process. 
+### From AllowTool
+- High-performance item selection algorithms for map-wide operations
+- Optimized pathfinding for multi-target hauling
+- Efficient item state tracking and management
+- Smart caching for repeated tool operations
+- Optimized UI integration patterns
+- Performance-conscious job scheduling algorithms
+
+This comprehensive guide provides ChatGPT Codex with all the necessary information about all three reference mods and how to effectively integrate their patterns and features into the PickUpAndHaul mod development process. 
