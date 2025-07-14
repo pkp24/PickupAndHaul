@@ -833,11 +833,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
         {
                 var bCountBefore = job.targetQueueB.Count;
 		
-		// DEBUG: Log initial state
-		Log.Message($"[PickUpAndHaul] DEBUG: AllocateThingAtCell called for {pawn} with {nextThing}");
-		Log.Message($"[PickUpAndHaul] DEBUG: Initial job queues - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
-		Log.Message($"[PickUpAndHaul] DEBUG: Current mass: {currentMass}, capacity: {capacity}, encumbrance: {currentMass / capacity}");
-		
+				// DEBUG: Log initial state
+				Log.Message($"[PickUpAndHaul] DEBUG: AllocateThingAtCell called for {pawn} with {nextThing}");
+				Log.Message($"[PickUpAndHaul] DEBUG: Initial job queues - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+				Log.Message($"[PickUpAndHaul] DEBUG: Current mass: {currentMass}, capacity: {capacity}, encumbrance: {currentMass / capacity}");
+				
                 var map = pawn.Map;
                 var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
                 
@@ -909,9 +909,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 if (innerInteractableThingOwner is null)
                                 {
                                         storeCell = new(nextStoreCell);
-                                        job.targetQueueB.Add(nextStoreCell);
+                                        // Don't add to job.targetQueueB here - let AddItemsToJob handle it
                                         targetsAdded.Add(nextStoreCell);
-
+                                        
                                         var newCapacity = CapacityAt(nextThing, nextStoreCell, map);
                                         Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell} has capacity {newCapacity}");
                                         
@@ -923,12 +923,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                                 return false;
                                         }
                                         
-                                        						// For new storage, be more flexible with capacity reservation
-						var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
-						var reservationAmount = Math.Min(actualCarriableAmount, newCapacity);
-						
-						// Try to reserve capacity, but don't fail if we can't
-						if (StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
+                                        // For new storage, be more flexible with capacity reservation
+                                        var storageLocation = new StorageAllocationTracker.StorageLocation(nextStoreCell);
+                                        var reservationAmount = Math.Min(actualCarriableAmount, newCapacity);
+                                        
+                                        // Try to reserve capacity, but don't fail if we can't
+                                        if (StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, nextThing.def, reservationAmount, pawn))
                                         {
                                                 reservationsMade.Add((storageLocation, nextThing.def, reservationAmount));
                                                 Log.Message($"[PickUpAndHaul] DEBUG: Reserved {reservationAmount} capacity for {nextThing} at {storageLocation}");
@@ -945,7 +945,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 {
                                         var destinationAsThing = (Thing)haulDestination;
                                         storeCell = new(destinationAsThing);
-                                        job.targetQueueB.Add(destinationAsThing);
                                         targetsAdded.Add(destinationAsThing);
 
                                         var newCapacity = innerInteractableThingOwner.GetCountCanAccept(nextThing);
@@ -1012,7 +1011,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 if (innerInteractableThingOwner is null)
                                 {
                                         storeCell = new(nextStoreCell);
-                                        job.targetQueueB.Add(nextStoreCell);
                                         targetsAdded.Add(nextStoreCell);
 
                                         var newCapacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
@@ -1047,7 +1045,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 {
                                         var destinationAsThing = (Thing)nextHaulDestination;
                                         storeCell = new(destinationAsThing);
-                                        job.targetQueueB.Add(destinationAsThing);
                                         targetsAdded.Add(destinationAsThing);
 
                                         var newCapacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;

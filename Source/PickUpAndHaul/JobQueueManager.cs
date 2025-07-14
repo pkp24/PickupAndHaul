@@ -32,6 +32,11 @@ namespace PickUpAndHaul
             
             lock (_lockObject)
             {
+                // DEBUG: Log job queues before any modification
+                Log.Message($"[JobQueueManager] DEBUG: (Before AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+                Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueA: {string.Join(", ", job.targetQueueA ?? new List<LocalTargetInfo>())}");
+                Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueB: {string.Join(", ", job.targetQueueB ?? new List<LocalTargetInfo>())}");
+                Log.Message($"[JobQueueManager] DEBUG: Contents countQueue: {string.Join(", ", job.countQueue ?? new List<int>())}");
                 // Initialize queues if they don't exist
                 if (job.targetQueueA == null)
                     job.targetQueueA = new List<LocalTargetInfo>();
@@ -70,14 +75,22 @@ namespace PickUpAndHaul
                         // Validate LocalTargetInfo - check if the target is valid
                         if (target.Thing == null)
                         {
-                            Log.Warning($"[JobQueueManager] AddItemsToJob: Skipping target with null Thing at index {i}");
-                            continue;
+                            // If target.Thing is null, it might be a cell target - check if the cell is valid
+                            if (!target.Cell.IsValid)
+                            {
+                                Log.Warning($"[JobQueueManager] AddItemsToJob: Skipping target with null Thing and invalid Cell at index {i}");
+                                continue;
+                            }
+                            // Cell targets are valid even with null Thing
                         }
-                        
-                        if (target.Thing.Destroyed || !target.Thing.Spawned)
+                        else
                         {
-                            Log.Warning($"[JobQueueManager] AddItemsToJob: Skipping destroyed/unspawned target {target.Thing} at index {i}");
-                            continue;
+                            // If target.Thing is not null, validate the thing
+                            if (target.Thing.Destroyed || !target.Thing.Spawned)
+                            {
+                                Log.Warning($"[JobQueueManager] AddItemsToJob: Skipping destroyed/unspawned target {target.Thing} at index {i}");
+                                continue;
+                            }
                         }
                         
                         validItems.Add((thing, count, target));
@@ -87,13 +100,20 @@ namespace PickUpAndHaul
                     foreach (var item in validItems)
                     {
                         job.targetQueueA.Add(new LocalTargetInfo(item.thing));
+                        Log.Message($"[JobQueueManager] DEBUG: Added {item.thing} to targetQueueA (new count: {job.targetQueueA.Count})");
                         job.countQueue.Add(item.count);
+                        Log.Message($"[JobQueueManager] DEBUG: Added {item.count} to countQueue (new count: {job.countQueue.Count})");
                         job.targetQueueB.Add(item.target);
+                        Log.Message($"[JobQueueManager] DEBUG: Added {item.target} to targetQueueB (new count: {job.targetQueueB.Count})");
                         
                         // Validate synchronization after each item
                         if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
                         {
                             Log.Error($"[JobQueueManager] AddItemsToJob: Queue synchronization failed after adding item for {pawn}");
+                            Log.Message($"[JobQueueManager] DEBUG: (On error) targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
+                            Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueA: {string.Join(", ", job.targetQueueA)}");
+                            Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueB: {string.Join(", ", job.targetQueueB)}");
+                            Log.Message($"[JobQueueManager] DEBUG: Contents countQueue: {string.Join(", ", job.countQueue)}");
                             RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
                             return false;
                         }
@@ -103,6 +123,10 @@ namespace PickUpAndHaul
                     if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
                     {
                         Log.Error($"[JobQueueManager] AddItemsToJob: Final queue synchronization failed for {pawn}");
+                        Log.Message($"[JobQueueManager] DEBUG: (On final error) targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
+                        Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueA: {string.Join(", ", job.targetQueueA)}");
+                        Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueB: {string.Join(", ", job.targetQueueB)}");
+                        Log.Message($"[JobQueueManager] DEBUG: Contents countQueue: {string.Join(", ", job.countQueue)}");
                         RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
                         return false;
                     }
