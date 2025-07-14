@@ -454,8 +454,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Don't pre-filter items - check storage availability dynamically during allocation
 		Log.Message($"[PickUpAndHaul] DEBUG: Will check storage availability dynamically during allocation for {haulables.Count} items");
 
-		var nextThing = thing;
-		var lastThing = thing;
+                var nextThing = thing;
+                var lastThing = thing;
+                // Track how many storage targets are added for each hauled item
+                var itemTargetCounts = new List<int>();
 
 		var storeCellCapacity = new Dictionary<StoreTarget, CellAllocation>()
 		{
@@ -523,19 +525,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return null;
 		}
 		
-		Log.Message($"[PickUpAndHaul] DEBUG: Reserved capacity for {effectiveAmount} of {thing} at {storageLocation} (carriable: {actualCarriableAmount}, storage: {capacityStoreCell})");
+                Log.Message($"[PickUpAndHaul] DEBUG: Reserved capacity for {effectiveAmount} of {thing} at {storageLocation} (carriable: {actualCarriableAmount}, storage: {capacityStoreCell})");
 
-		if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job, ref currentMass, capacity))
-		{
-			Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
-			// Release reserved capacity
-			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
-			skipCells = null;
+                var prevTargetBCount = job.targetQueueB.Count;
+                if (!AllocateThingAtCell(storeCellCapacity, pawn, thing, job, ref currentMass, capacity))
+                {
+                        Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
+                        // Release reserved capacity
+                        StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
+                        skipCells = null;
 			skipThings = null;
 			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
-		Log.Message($"[PickUpAndHaul] DEBUG: Initial item {thing} allocated successfully");
+                // Record how many storage targets were added for this item
+                itemTargetCounts.Add(job.targetQueueB.Count - prevTargetBCount);
+                Log.Message($"[PickUpAndHaul] DEBUG: Initial item {thing} allocated successfully");
 
 		// Skip the initial allocation loop since we already allocated the initial item
 		// Note: currentMass is already updated by AllocateThingAtCell, so no need to add it again
@@ -566,8 +571,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
                         Log.Message($"[PickUpAndHaul] DEBUG: Attempting to allocate additional item {nextThing} to job");
+                        var prevTargetBCountLoop = job.targetQueueB.Count;
                         if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, ref currentMass, capacity))
                         {
+                                itemTargetCounts.Add(job.targetQueueB.Count - prevTargetBCountLoop);
                                 lastThing = nextThing;
                                 encumberance = currentMass / capacity;
 
@@ -624,24 +631,36 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         carryCapacity -= nextThing.stackCount;
                         Log.Message($"[PickUpAndHaul] DEBUG: Found similar thing {nextThing}, carryCapacity now: {carryCapacity}");
 
+                        var prevTargetBCountLoop = job.targetQueueB.Count;
                         if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, ref currentMass, capacity))
-			{
+                        {
+                                itemTargetCounts.Add(job.targetQueueB.Count - prevTargetBCountLoop);
                                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated similar thing {nextThing}");
-				break;
-			}
+                                break;
+                        }
 
 			if (carryCapacity <= 0)
 			{
 				var originalCount = job.countQueue.Pop();
 				var adjustedCount = originalCount + carryCapacity;
 				
-				if (adjustedCount <= 0)
-				{
-					// Remove the item entirely if the adjusted count is 0 or negative
-					job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-					job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-					Log.Message($"[PickUpAndHaul] DEBUG: Removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
-				}
+                                if (adjustedCount <= 0)
+                                {
+                                        // Remove the item entirely if the adjusted count is 0 or negative
+                                        job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+
+                                        var targetsToRemove = itemTargetCounts.Count > 0 ? itemTargetCounts[itemTargetCounts.Count - 1] : 1;
+                                        for (var i = 0; i < targetsToRemove && job.targetQueueB.Count > 0; i++)
+                                        {
+                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                                        }
+                                        if (itemTargetCounts.Count > 0)
+                                        {
+                                                itemTargetCounts.RemoveAt(itemTargetCounts.Count - 1);
+                                        }
+
+                                        Log.Message($"[PickUpAndHaul] DEBUG: Removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
+                                }
 				else
 				{
 					job.countQueue.Add(adjustedCount);
