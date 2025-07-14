@@ -67,7 +67,7 @@ namespace PickUpAndHaul
             {
                 if (_isSaving)
                 {
-                    			Log.Warning("[PickUpAndHaul] Save operation already in progress, skipping job suspension");
+                    Log.Warning("[PickUpAndHaul] Save operation already in progress, skipping job suspension");
                     return;
                 }
 
@@ -76,41 +76,80 @@ namespace PickUpAndHaul
 
                 try
                 {
-                    // Get all maps and their pawns
+                    // Get all maps and their pawns - with null checks
                     var maps = Find.Maps;
+                    if (maps == null || maps.Count == 0)
+                    {
+                        Log.Warning("[PickUpAndHaul] No maps found during job suspension");
+                        return;
+                    }
+
                     foreach (var map in maps)
                     {
-                        var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned.ToList();
+                        if (map?.mapPawns == null)
+                        {
+                            Log.Warning("[PickUpAndHaul] Map has null mapPawns during job suspension");
+                            continue;
+                        }
+
+                        var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
+                        if (pawns == null || pawns.Count == 0)
+                        {
+                            continue;
+                        }
                         
                         foreach (var pawn in pawns)
                         {
-                            if (pawn?.jobs?.curJob == null) continue;
+                            if (pawn?.jobs == null) continue;
 
+                            // Store the current job reference to avoid race conditions
                             var currentJob = pawn.jobs.curJob;
+                            if (currentJob == null) continue;
                             
                             // Check if this is a pickup and haul job
                             if (IsPickupAndHaulJob(currentJob))
                             {
+                                // Create job info with additional null checks
+                                var jobQueue = pawn.jobs.jobQueue?.ToList() ?? new List<QueuedJob>();
+                                
                                 var jobInfo = new JobInfo
                                 {
                                     Pawn = pawn,
                                     Job = currentJob,
-                                    JobQueue = pawn.jobs.jobQueue.ToList(),
+                                    JobQueue = jobQueue,
                                     JobDef = currentJob.def
                                 };
 
                                 _suspendedJobs.Add(jobInfo);
                                 
                                 // End the current job safely
-                                if (pawn.jobs.curDriver != null)
+                                var curDriver = pawn.jobs.curDriver;
+                                if (curDriver != null)
                                 {
-                                    pawn.jobs.curDriver.EndJobWith(JobCondition.InterruptForced);
+                                    try
+                                    {
+                                        curDriver.EndJobWith(JobCondition.InterruptForced);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Warning($"[PickUpAndHaul] Error ending job for {pawn.NameShortColored}: {ex.Message}");
+                                    }
                                 }
                                 
-                                // Clear the job queue
-                                pawn.jobs.jobQueue.Clear(pawn, true);
+                                // Clear the job queue safely
+                                if (pawn.jobs.jobQueue != null)
+                                {
+                                    try
+                                    {
+                                        pawn.jobs.jobQueue.Clear(pawn, true);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Warning($"[PickUpAndHaul] Error clearing job queue for {pawn.NameShortColored}: {ex.Message}");
+                                    }
+                                }
                                 
-                                Log.Message($"[PickUpAndHaul] Suspended job for {pawn.NameShortColored}: {currentJob.def.defName}");
+                                Log.Message($"[PickUpAndHaul] Suspended job for {pawn.NameShortColored}: {currentJob.def?.defName ?? "Unknown"}");
                             }
                         }
                     }
@@ -120,7 +159,10 @@ namespace PickUpAndHaul
                 catch (Exception ex)
                 {
                     Log.Error($"[PickUpAndHaul] Error during job suspension: {ex.Message}");
-                    _isSaving = false;
+                    // Don't reset _isSaving here - it should be handled by the restoration method
+                    // Emergency cleanup if needed
+                    EmergencyCleanup();
+                    throw; // Re-throw to let the caller handle the error
                 }
             }
         }
@@ -145,42 +187,68 @@ namespace PickUpAndHaul
 
                     foreach (var jobInfo in _suspendedJobs)
                     {
-                        if (jobInfo.Pawn?.Spawned == true && jobInfo.Pawn.Map != null)
+                        if (jobInfo?.Pawn?.Spawned == true && jobInfo.Pawn.Map != null && jobInfo.Pawn.jobs != null)
                         {
-                            // Restore the job queue
-                            jobInfo.Pawn.jobs.jobQueue.Clear(jobInfo.Pawn, true);
-                            foreach (var queuedJob in jobInfo.JobQueue)
+                            // Restore the job queue safely
+                            if (jobInfo.Pawn.jobs.jobQueue != null)
                             {
-                                jobInfo.Pawn.jobs.jobQueue.EnqueueLast(queuedJob.job, queuedJob.tag);
+                                try
+                                {
+                                    jobInfo.Pawn.jobs.jobQueue.Clear(jobInfo.Pawn, true);
+                                    
+                                    if (jobInfo.JobQueue != null)
+                                    {
+                                        foreach (var queuedJob in jobInfo.JobQueue)
+                                        {
+                                            if (queuedJob?.job != null)
+                                            {
+                                                jobInfo.Pawn.jobs.jobQueue.EnqueueLast(queuedJob.job, queuedJob.tag);
+                                            }
+                                        }
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Warning($"[PickUpAndHaul] Error restoring job queue for {jobInfo.Pawn.NameShortColored}: {ex.Message}");
+                                }
                             }
 
                             // Try to restart the main job if the pawn is available
                             if (jobInfo.Pawn.jobs.curJob == null && 
                                 jobInfo.Job?.targetA != null && 
+                                jobInfo.JobDef != null &&
                                 jobInfo.Pawn.CanReserveAndReach(jobInfo.Job.targetA, PathEndMode.ClosestTouch, Danger.Deadly))
                             {
-                                var newJob = JobMaker.MakeJob(jobInfo.JobDef, jobInfo.Job.targetA, jobInfo.Job.targetB);
-                                
-                                // Copy job properties safely
-                                if (jobInfo.Job.targetQueueA != null)
-                                    newJob.targetQueueA = new List<LocalTargetInfo>(jobInfo.Job.targetQueueA);
-                                if (jobInfo.Job.targetQueueB != null)
-                                    newJob.targetQueueB = new List<LocalTargetInfo>(jobInfo.Job.targetQueueB);
-                                if (jobInfo.Job.countQueue != null)
-                                    newJob.countQueue = new List<int>(jobInfo.Job.countQueue);
-                                
-                                newJob.count = jobInfo.Job.count;
-                                newJob.haulMode = jobInfo.Job.haulMode;
+                                try
+                                {
+                                    var newJob = JobMaker.MakeJob(jobInfo.JobDef, jobInfo.Job.targetA, jobInfo.Job.targetB);
+                                    
+                                    // Copy job properties safely
+                                    if (jobInfo.Job.targetQueueA != null)
+                                        newJob.targetQueueA = new List<LocalTargetInfo>(jobInfo.Job.targetQueueA);
+                                    if (jobInfo.Job.targetQueueB != null)
+                                        newJob.targetQueueB = new List<LocalTargetInfo>(jobInfo.Job.targetQueueB);
+                                    if (jobInfo.Job.countQueue != null)
+                                        newJob.countQueue = new List<int>(jobInfo.Job.countQueue);
+                                    
+                                    newJob.count = jobInfo.Job.count;
+                                    newJob.haulMode = jobInfo.Job.haulMode;
 
-                                if (newJob.TryMakePreToilReservations(jobInfo.Pawn, false))
-                                {
-                                    jobInfo.Pawn.jobs.StartJob(newJob, JobCondition.InterruptForced);
-                                    Log.Message($"[PickUpAndHaul] Restored job for {jobInfo.Pawn.NameShortColored}: {jobInfo.JobDef.defName}");
-                                    restoredCount++;
+                                    if (newJob.TryMakePreToilReservations(jobInfo.Pawn, false))
+                                    {
+                                        jobInfo.Pawn.jobs.StartJob(newJob, JobCondition.InterruptForced);
+                                        Log.Message($"[PickUpAndHaul] Restored job for {jobInfo.Pawn.NameShortColored}: {jobInfo.JobDef.defName ?? "Unknown"}");
+                                        restoredCount++;
+                                    }
+                                    else
+                                    {
+                                        Log.Warning($"[PickUpAndHaul] Failed to restore job for {jobInfo.Pawn.NameShortColored}: reservation failed");
+                                        failedCount++;
+                                    }
                                 }
-                                else
+                                catch (Exception ex)
                                 {
-                                    Log.Warning($"[PickUpAndHaul] Failed to restore job for {jobInfo.Pawn.NameShortColored}: reservation failed");
+                                    Log.Warning($"[PickUpAndHaul] Error creating new job for {jobInfo.Pawn.NameShortColored}: {ex.Message}");
                                     failedCount++;
                                 }
                             }
@@ -216,7 +284,7 @@ namespace PickUpAndHaul
         /// </summary>
         private static bool IsPickupAndHaulJob(Job job)
         {
-            if (job?.def == null) return false;
+            if (job?.def?.defName == null) return false;
             
             return job.def.defName == "HaulToInventory" || 
                    job.def.defName == "UnloadYourHauledInventory";
@@ -300,8 +368,9 @@ namespace PickUpAndHaul
                 
                 return haulToInventoryDef != null && unloadDef != null;
             }
-            catch
+            catch (Exception ex)
             {
+                Log.Warning($"[PickUpAndHaul] Error checking mod active status: {ex.Message}");
                 return false;
             }
         }
@@ -320,9 +389,26 @@ namespace PickUpAndHaul
                 try
                 {
                     var maps = Find.Maps;
+                    if (maps == null || maps.Count == 0)
+                    {
+                        Log.Warning("[PickUpAndHaul] No maps found during safety check");
+                        return;
+                    }
+
                     foreach (var map in maps)
                     {
-                        var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned.ToList();
+                        if (map?.mapPawns == null)
+                        {
+                            Log.Warning("[PickUpAndHaul] Map has null mapPawns during safety check");
+                            continue;
+                        }
+
+                        var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
+                        if (pawns == null || pawns.Count == 0)
+                        {
+                            continue;
+                        }
+
                         foreach (var pawn in pawns)
                         {
                             if (pawn?.jobs?.curJob?.def != null)
@@ -331,7 +417,15 @@ namespace PickUpAndHaul
                                 if (jobDef.defName == "HaulToInventory" || jobDef.defName == "UnloadYourHauledInventory")
                                 {
                                     Log.Warning($"[PickUpAndHaul] Clearing mod-specific job from {pawn.NameShortColored}");
-                                    pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, false);
+                                    
+                                    try
+                                    {
+                                        pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, false);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.Warning($"[PickUpAndHaul] Error clearing job from {pawn.NameShortColored}: {ex.Message}");
+                                    }
                                 }
                             }
                         }
