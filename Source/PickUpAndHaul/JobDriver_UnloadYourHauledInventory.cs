@@ -307,7 +307,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                 var innerPawnContainer = pawn.inventory.innerContainer;
                 Thing best = null;
 
-                foreach (var thing in carriedThings)
+                // Use ToList() to avoid "collection modified during iteration" exception
+                // since we call carriedThings.Remove() inside the loop
+                foreach (var thing in carriedThings.ToList())
                 {
                         // Handle stacks that changed IDs after being picked up
                         if (!innerPawnContainer.Contains(thing))
