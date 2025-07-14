@@ -63,6 +63,10 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			yield break;
 		}
 
+		// Clean up nulls at a safe point before we start iterating
+		var comp = pawn.TryGetComp<CompHauledToInventory>();
+		comp?.CleanupNulls();
+
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
 			_unloadDuration = 20;
@@ -71,7 +75,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		var begin = Toils_General.Wait(_unloadDuration);
 		yield return begin;
 
-		var carriedThings = pawn.TryGetComp<CompHauledToInventory>().GetHashSet();
+		var carriedThings = comp?.GetHashSet() ?? new HashSet<Thing>();
 		yield return FindTargetOrDrop(carriedThings);
 		yield return PullItemFromInventory(carriedThings, begin);
 
@@ -308,20 +312,37 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                 Thing best = null;
 
                 // Use ToList() to avoid "collection modified during iteration" exception
-                // since we call carriedThings.Remove() inside the loop
-                foreach (var thing in carriedThings.ToList())
+                // since we may need to remove items from carriedThings
+                var carriedThingsList = carriedThings.ToList();
+                
+                // Track items to remove after iteration completes
+                var itemsToRemove = new List<Thing>();
+
+                foreach (var thing in carriedThingsList)
                 {
+                        // Skip null items without modifying the collection
+                        if (thing == null)
+                        {
+                                itemsToRemove.Add(thing);
+                                continue;
+                        }
+
                         // Handle stacks that changed IDs after being picked up
                         if (!innerPawnContainer.Contains(thing))
                         {
                                 var stragglerDef = thing.def;
-                                carriedThings.Remove(thing);
+                                itemsToRemove.Add(thing);
 
                                 for (var i = 0; i < innerPawnContainer.Count; i++)
                                 {
                                         var dirtyStraggler = innerPawnContainer[i];
                                         if (dirtyStraggler.def == stragglerDef)
                                         {
+                                                // Remove tracked items after iteration
+                                                foreach (var item in itemsToRemove)
+                                                {
+                                                        carriedThings.Remove(item);
+                                                }
                                                 PerformanceProfiler.EndTimer("FirstUnloadableThing");
                                                 return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
                                         }
@@ -333,6 +354,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                         {
                                 best = thing;
                         }
+                }
+
+                // Remove tracked items after iteration completes
+                foreach (var item in itemsToRemove)
+                {
+                        carriedThings.Remove(item);
                 }
 
                 PerformanceProfiler.EndTimer("FirstUnloadableThing");

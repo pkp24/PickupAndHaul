@@ -28,6 +28,9 @@ public class PawnUnloadChecker
 			return;
 		}
 
+		// Clean up nulls at a safe point before accessing the collection
+		itemsTakenToInventory.CleanupNulls();
+		
 		var carriedThing = itemsTakenToInventory.GetHashSet();
 
 		if (pawn.Faction != Faction.OfPlayerSilentFail || !Settings.IsAllowedRace(pawn.RaceProps)
