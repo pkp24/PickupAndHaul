@@ -276,13 +276,21 @@ namespace PickUpAndHaul
                         var target = job.targetQueueB[i];
                         if (target.Thing == null)
                         {
-                            Log.Error($"[JobQueueManager] ValidateJobQueues: Found target with null Thing in targetQueueB at index {i} for {pawn}");
-                            return false;
+                            // If target.Thing is null, it might be a cell target - check if the cell is valid
+                            if (!target.Cell.IsValid)
+                            {
+                                Log.Error($"[JobQueueManager] ValidateJobQueues: Found target with null Thing and invalid Cell in targetQueueB at index {i} for {pawn}");
+                                return false;
+                            }
+                            // Cell targets are valid even with null Thing
                         }
-                        
-                        if (target.Thing.Destroyed || !target.Thing.Spawned)
+                        else
                         {
-                            Log.Warning($"[JobQueueManager] ValidateJobQueues: Found destroyed/unspawned target {target.Thing} in targetQueueB at index {i} for {pawn}");
+                            // If target.Thing is not null, validate the thing
+                            if (target.Thing.Destroyed || !target.Thing.Spawned)
+                            {
+                                Log.Warning($"[JobQueueManager] ValidateJobQueues: Found destroyed/unspawned target {target.Thing} in targetQueueB at index {i} for {pawn}");
+                            }
                         }
                     }
                     
