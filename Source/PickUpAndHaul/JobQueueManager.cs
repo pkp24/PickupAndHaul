@@ -32,17 +32,23 @@ namespace PickUpAndHaul
             
             lock (_lockObject)
             {
+                // Initialize queues if they don't exist
+                if (job.targetQueueA == null)
+                    job.targetQueueA = new List<LocalTargetInfo>();
+                if (job.countQueue == null)
+                    job.countQueue = new List<int>();
+                if (job.targetQueueB == null)
+                    job.targetQueueB = new List<LocalTargetInfo>();
+                
+                // Store initial queue counts for rollback
+                int initialTargetQueueACount = job.targetQueueA.Count;
+                int initialCountQueueCount = job.countQueue.Count;
+                int initialTargetQueueBCount = job.targetQueueB.Count;
+                
                 try
                 {
-                    // Initialize queues if they don't exist
-                    if (job.targetQueueA == null)
-                        job.targetQueueA = new List<LocalTargetInfo>();
-                    if (job.countQueue == null)
-                        job.countQueue = new List<int>();
-                    if (job.targetQueueB == null)
-                        job.targetQueueB = new List<LocalTargetInfo>();
-                    
-                    // Add all items atomically
+                    // Validate all items before adding any
+                    var validItems = new List<(Thing thing, int count, LocalTargetInfo target)>();
                     for (int i = 0; i < things.Count; i++)
                     {
                         var thing = things[i];
@@ -61,28 +67,49 @@ namespace PickUpAndHaul
                             continue;
                         }
                         
-                        if (target == null)
+                        // Validate LocalTargetInfo - check if the target is valid
+                        if (target.Thing == null)
                         {
-                            Log.Warning($"[JobQueueManager] AddItemsToJob: Skipping null target at index {i}");
+                            Log.Warning($"[JobQueueManager] AddItemsToJob: Skipping target with null Thing at index {i}");
                             continue;
                         }
                         
-                        job.targetQueueA.Add(new LocalTargetInfo(thing));
-                        job.countQueue.Add(count);
-                        job.targetQueueB.Add(target);
+                        if (target.Thing.Destroyed || !target.Thing.Spawned)
+                        {
+                            Log.Warning($"[JobQueueManager] AddItemsToJob: Skipping destroyed/unspawned target {target.Thing} at index {i}");
+                            continue;
+                        }
+                        
+                        validItems.Add((thing, count, target));
                     }
                     
-                    // Validate synchronization after adding
-                    if (job.targetQueueA.Count != job.countQueue.Count)
+                    // Add all valid items atomically
+                    foreach (var item in validItems)
                     {
-                        Log.Error($"[JobQueueManager] AddItemsToJob: Queue synchronization failed after adding items for {pawn}");
-                        RollbackJobQueues(job, things.Count);
+                        job.targetQueueA.Add(new LocalTargetInfo(item.thing));
+                        job.countQueue.Add(item.count);
+                        job.targetQueueB.Add(item.target);
+                        
+                        // Validate synchronization after each item
+                        if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
+                        {
+                            Log.Error($"[JobQueueManager] AddItemsToJob: Queue synchronization failed after adding item for {pawn}");
+                            RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
+                            return false;
+                        }
+                    }
+                    
+                    // Final validation
+                    if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
+                    {
+                        Log.Error($"[JobQueueManager] AddItemsToJob: Final queue synchronization failed for {pawn}");
+                        RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
                         return false;
                     }
                     
                     if (Settings.EnableDebugLogging)
                     {
-                        Log.Message($"[JobQueueManager] Successfully added {things.Count} items to job for {pawn}");
+                        Log.Message($"[JobQueueManager] Successfully added {validItems.Count} items to job for {pawn}");
                     }
                     
                     return true;
@@ -90,7 +117,8 @@ namespace PickUpAndHaul
                 catch (Exception ex)
                 {
                     Log.Error($"[JobQueueManager] AddItemsToJob: Exception occurred: {ex.Message}");
-                    RollbackJobQueues(job, things.Count);
+                    // Rollback to initial state
+                    RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
                     return false;
                 }
             }
@@ -131,7 +159,7 @@ namespace PickUpAndHaul
                     }
                     
                     // Validate synchronization after removing
-                    if (job.targetQueueA.Count != job.countQueue.Count)
+                    if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
                     {
                         Log.Error($"[JobQueueManager] RemoveItemsFromJob: Queue synchronization failed after removing items for {pawn}");
                         return false;
@@ -190,31 +218,47 @@ namespace PickUpAndHaul
             {
                 try
                 {
-                    if (job.targetQueueA == null || job.countQueue == null)
+                    if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
                     {
                         Log.Error($"[JobQueueManager] ValidateJobQueues: Job queues are null for {pawn}");
                         return false;
                     }
                     
-                    if (job.targetQueueA.Count != job.countQueue.Count)
+                    if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
                     {
-                        Log.Error($"[JobQueueManager] ValidateJobQueues: Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+                        Log.Error($"[JobQueueManager] ValidateJobQueues: Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) != targetQueueB.Count ({job.targetQueueB.Count})");
                         return false;
                     }
                     
-                    // Check for null or invalid targets
+                    // Check for invalid targets in targetQueueA
                     for (int i = 0; i < job.targetQueueA.Count; i++)
                     {
                         var target = job.targetQueueA[i];
-                        if (target == null || target.Thing == null)
+                        if (target.Thing == null)
                         {
-                            Log.Error($"[JobQueueManager] ValidateJobQueues: Found null target at index {i} for {pawn}");
+                            Log.Error($"[JobQueueManager] ValidateJobQueues: Found target with null Thing at index {i} for {pawn}");
                             return false;
                         }
                         
                         if (target.Thing.Destroyed || !target.Thing.Spawned)
                         {
                             Log.Warning($"[JobQueueManager] ValidateJobQueues: Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
+                        }
+                    }
+                    
+                    // Check for invalid targets in targetQueueB
+                    for (int i = 0; i < job.targetQueueB.Count; i++)
+                    {
+                        var target = job.targetQueueB[i];
+                        if (target.Thing == null)
+                        {
+                            Log.Error($"[JobQueueManager] ValidateJobQueues: Found target with null Thing in targetQueueB at index {i} for {pawn}");
+                            return false;
+                        }
+                        
+                        if (target.Thing.Destroyed || !target.Thing.Spawned)
+                        {
+                            Log.Warning($"[JobQueueManager] ValidateJobQueues: Found destroyed/unspawned target {target.Thing} in targetQueueB at index {i} for {pawn}");
                         }
                     }
                     
@@ -239,23 +283,31 @@ namespace PickUpAndHaul
         }
         
         /// <summary>
-        /// Rolls back job queues by removing the specified number of items
+        /// Rolls back job queues to their initial state
         /// </summary>
-        private static void RollbackJobQueues(Job job, int count)
+        private static void RollbackJobQueues(Job job, int initialTargetQueueACount, int initialCountQueueCount, int initialTargetQueueBCount)
         {
             try
             {
-                for (int i = 0; i < count; i++)
+                // Remove excess items from targetQueueA
+                while (job.targetQueueA?.Count > initialTargetQueueACount)
                 {
-                    if (job.targetQueueA?.Count > 0)
-                        job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-                    if (job.countQueue?.Count > 0)
-                        job.countQueue.RemoveAt(job.countQueue.Count - 1);
-                    if (job.targetQueueB?.Count > 0)
-                        job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                    job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
                 }
                 
-                Log.Message($"[JobQueueManager] Rolled back {count} items from job queues");
+                // Remove excess items from countQueue
+                while (job.countQueue?.Count > initialCountQueueCount)
+                {
+                    job.countQueue.RemoveAt(job.countQueue.Count - 1);
+                }
+                
+                // Remove excess items from targetQueueB
+                while (job.targetQueueB?.Count > initialTargetQueueBCount)
+                {
+                    job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+                }
+                
+                Log.Message($"[JobQueueManager] Rolled back job queues to initial state - targetQueueA: {job.targetQueueA?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}");
             }
             catch (Exception ex)
             {
@@ -278,9 +330,9 @@ namespace PickUpAndHaul
                 info.AppendLine($"  countQueue: {job.countQueue?.Count ?? 0} items");
                 info.AppendLine($"  targetQueueB: {job.targetQueueB?.Count ?? 0} items");
                 
-                if (job.targetQueueA != null && job.countQueue != null)
+                if (job.targetQueueA != null && job.countQueue != null && job.targetQueueB != null)
                 {
-                    info.AppendLine($"  Synchronized: {job.targetQueueA.Count == job.countQueue.Count}");
+                    info.AppendLine($"  Synchronized: {job.targetQueueA.Count == job.countQueue.Count && job.targetQueueA.Count == job.targetQueueB.Count}");
                     
                     if (job.targetQueueA.Count > 0)
                     {
@@ -294,6 +346,12 @@ namespace PickUpAndHaul
                         for (int i = 0; i < Math.Min(job.countQueue.Count, 5); i++)
                         {
                             info.AppendLine($"    [{i}]: {job.countQueue[i]}");
+                        }
+                        
+                        info.AppendLine("  targetQueueB contents:");
+                        for (int i = 0; i < Math.Min(job.targetQueueB.Count, 5); i++)
+                        {
+                            info.AppendLine($"    [{i}]: {job.targetQueueB[i]}");
                         }
                     }
                 }
