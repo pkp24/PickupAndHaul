@@ -96,6 +96,10 @@ public class JobDriver_HaulToInventory : JobDriver
 		{
 			Log.Error($"[PickUpAndHaul] ERROR: Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
 			Log.Error($"[PickUpAndHaul] ERROR: This job should not have been created with empty targetQueueA");
+			Log.Error($"[PickUpAndHaul] ERROR: Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+			
+			// CRITICAL FIX: End the job gracefully instead of crashing
+			Log.Error($"[PickUpAndHaul] ERROR: Ending job gracefully to prevent ArgumentOutOfRangeException");
 			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 			return false;
 		}
@@ -124,6 +128,35 @@ public class JobDriver_HaulToInventory : JobDriver
 	public override IEnumerable<Toil> MakeNewToils()
 	{
 		PerformanceProfiler.StartTimer("MakeNewToils");
+		
+		// CRITICAL FIX: Validate job integrity before proceeding
+		if (job == null)
+		{
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job is null in MakeNewToils for {pawn}");
+			EndJobWith(JobCondition.Incompletable);
+			PerformanceProfiler.EndTimer("MakeNewToils");
+			yield break;
+		}
+		
+		// CRITICAL FIX: Ensure job has valid queues before proceeding
+		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
+		{
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job has empty targetQueueA in MakeNewToils for {pawn}");
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+			EndJobWith(JobCondition.Incompletable);
+			PerformanceProfiler.EndTimer("MakeNewToils");
+			yield break;
+		}
+		
+		// CRITICAL FIX: Validate queue synchronization
+		if (job.targetQueueA.Count != job.countQueue.Count)
+		{
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Queue synchronization failure in MakeNewToils for {pawn}!");
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+			EndJobWith(JobCondition.Incompletable);
+			PerformanceProfiler.EndTimer("MakeNewToils");
+			yield break;
+		}
 		
 		// Check if save operation is in progress at the start
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())

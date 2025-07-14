@@ -539,6 +539,21 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 		Log.Message($"[PickUpAndHaul] DEBUG: Initial item {thing} allocated successfully");
 
+		// CRITICAL FIX: Validate that we have at least one item allocated before proceeding
+		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
+		{
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Initial item allocation failed - targetQueueA is empty for {pawn}");
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Releasing storage reservation and returning null");
+			
+			// Release the storage reservation we made earlier
+			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
+			
+			skipCells = null;
+			skipThings = null;
+			PerformanceProfiler.EndTimer("JobOnThing");
+			return null;
+		}
+
 		// Skip the initial allocation loop since we already allocated the initial item
 		// Note: currentMass is already updated by AllocateThingAtCell, so no need to add it again
 		encumberance = currentMass / capacity;
@@ -668,8 +683,44 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		Log.Message($"[PickUpAndHaul] DEBUG: Final job state before return:");
 		Log.Message($"[PickUpAndHaul] DEBUG: targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 		
+		// CRITICAL FIX: Ensure job is never returned with empty targetQueueA
+		// This prevents ArgumentOutOfRangeException in JobDriver_HaulToInventory
+		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
+		{
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job has empty targetQueueA for {pawn} - this would cause ArgumentOutOfRangeException!");
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Releasing all reservations and returning null to prevent crash");
+			
+			// Release all storage reservations to prevent capacity leaks
+			foreach (var kvp in storeCellCapacity)
+			{
+				var currentStoreTarget = kvp.Key;
+				var releaseLocation = currentStoreTarget.container != null 
+					? new StorageAllocationTracker.StorageLocation(currentStoreTarget.container)
+					: new StorageAllocationTracker.StorageLocation(currentStoreTarget.cell);
+				
+				// Release any remaining capacity reservations
+				StorageAllocationTracker.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
+			}
+			
+			skipCells = null;
+			skipThings = null;
+			PerformanceProfiler.EndTimer("JobOnThing");
+			return null;
+		}
+		
 		// Validate job before returning
 		ValidateJobQueues(job, pawn, "Job Return");
+		
+		// CRITICAL FIX: Final validation to ensure job is completely valid
+		if (!IsJobValid(job, pawn))
+		{
+			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job failed final validation for {pawn} - cleaning up and returning null");
+			CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
+			skipCells = null;
+			skipThings = null;
+			PerformanceProfiler.EndTimer("JobOnThing");
+			return null;
+		}
 		
 		skipCells = null;
 		skipThings = null;
@@ -1176,6 +1227,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 var bEntriesAdded = job.targetQueueB.Count - bCountBefore;
                 bCountTracker?.Add(bEntriesAdded);
+                
+                // CRITICAL FIX: Validate queue synchronization after adding items
+                if (job.targetQueueA.Count != job.countQueue.Count)
+                {
+                    Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Queue synchronization failure in AllocateThingAtCell for {pawn}!");
+                    Log.Error($"[PickUpAndHaul] CRITICAL ERROR: targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+                    Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Removing the item we just added to prevent corruption");
+                    
+                    // Remove the item we just added to prevent queue corruption
+                    job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+                    job.countQueue.RemoveAt(job.countQueue.Count - 1);
+                    
+                    // Clean up any targets we added
+                    CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
+                    PerformanceProfiler.EndTimer("AllocateThingAtCell");
+                    return false;
+                }
+                
                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated {nextThing}:{count} to job");
                 Log.Message($"[PickUpAndHaul] DEBUG: Updated mass: {currentMass}, new encumbrance: {currentMass / capacity}");
                 Log.Message($"[PickUpAndHaul] DEBUG: Final job queues - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
@@ -1517,6 +1586,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 		}
 
+		// CRITICAL FIX: Additional validation for job integrity
+		if (job.targetQueueA != null && job.countQueue != null)
+		{
+			// Check if any targets in targetQueueA are null or invalid
+			for (int i = 0; i < job.targetQueueA.Count; i++)
+			{
+				var target = job.targetQueueA[i];
+				if (target == null || target.Thing == null)
+				{
+					Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Found null target at index {i} in targetQueueA in {context} for {pawn}");
+				}
+				else if (target.Thing.Destroyed || !target.Thing.Spawned)
+				{
+					Log.Warning($"[PickUpAndHaul] VALIDATION WARNING: Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in {context} for {pawn}");
+				}
+			}
+		}
+
 		// Log queue contents for debugging
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
 		{
@@ -1525,6 +1612,81 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (job.countQueue != null && job.countQueue.Count > 0)
 		{
 			Log.Message($"[PickUpAndHaul] VALIDATION [{context}]: countQueue contents: {string.Join(", ", job.countQueue)}");
+		}
+	}
+
+	private static bool IsJobValid(Job job, Pawn pawn)
+	{
+		if (job == null)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job is null in IsJobValid for {pawn}");
+			return false;
+		}
+
+		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job has empty targetQueueA in IsJobValid for {pawn}");
+			return false;
+		}
+
+		if (job.targetQueueB == null || job.targetQueueB.Count == 0)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job has empty targetQueueB in IsJobValid for {pawn}");
+			return false;
+		}
+
+		if (job.countQueue == null || job.countQueue.Count == 0)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job has empty countQueue in IsJobValid for {pawn}");
+			return false;
+		}
+
+		if (job.targetQueueA.Count != job.countQueue.Count)
+		{
+			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Queue synchronization issue in IsJobValid for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+			return false;
+		}
+
+		for (int i = 0; i < job.targetQueueA.Count; i++)
+		{
+			var target = job.targetQueueA[i];
+			if (target == null || target.Thing == null)
+			{
+				Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Found null target at index {i} in targetQueueA in IsJobValid for {pawn}");
+				return false;
+			}
+			if (target.Thing.Destroyed || !target.Thing.Spawned)
+			{
+				Log.Warning($"[PickUpAndHaul] VALIDATION WARNING: Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in IsJobValid for {pawn}");
+				return false;
+			}
+		}
+
+		for (int i = 0; i < job.countQueue.Count; i++)
+		{
+			if (job.countQueue[i] <= 0)
+			{
+				Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Found negative/zero count {job.countQueue[i]} at index {i} in IsJobValid for {pawn}");
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private static void CleanupInvalidJob(Job job, Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Thing thing, Pawn pawn)
+	{
+		if (job == null) return;
+
+		foreach (var kvp in storeCellCapacity)
+		{
+			var currentStoreTarget = kvp.Key;
+			var releaseLocation = currentStoreTarget.container != null 
+				? new StorageAllocationTracker.StorageLocation(currentStoreTarget.container)
+				: new StorageAllocationTracker.StorageLocation(currentStoreTarget.cell);
+			
+			// Release any remaining capacity reservations
+			StorageAllocationTracker.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
 		}
 	}
 }
