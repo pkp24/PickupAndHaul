@@ -3,19 +3,15 @@ public class PawnUnloadChecker
 {
         public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
         {
-		PerformanceProfiler.StartTimer("CheckIfPawnShouldUnloadInventory");
-		
                 // Check if save operation is in progress
                 if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
                 {
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
                         return; // Skip unload checking during save operations
                 }
 
         // Ignore pawns that are currently in a mental state or animals
         if (pawn == null || pawn.InMentalState || pawn.RaceProps.Animal)
         {
-            PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
             return;
         }
 
@@ -24,7 +20,6 @@ public class PawnUnloadChecker
 
 		if (itemsTakenToInventory == null)
 		{
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
@@ -37,7 +32,6 @@ public class PawnUnloadChecker
 			|| carriedThing == null || carriedThing.Count == 0
 			|| pawn.inventory.innerContainer is not { } inventoryContainer || inventoryContainer.Count == 0)
 		{
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
@@ -46,7 +40,6 @@ public class PawnUnloadChecker
 			&& job.TryMakePreToilReservations(pawn, false)))
 		{
 			pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
@@ -59,13 +52,10 @@ public class PawnUnloadChecker
 				if (compRottable?.TicksUntilRotAtCurrentTemp < 30000)
 				{
 					pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-					PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 					return;
 				}
 			}
 		}
-		
-		PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 
 		// Stagger inventory sync checks to prevent all pawns checking at once
 		var staggeredCheck = (Find.TickManager.TicksGame + (pawn.thingIDNumber % 50)) % 50 == 0;

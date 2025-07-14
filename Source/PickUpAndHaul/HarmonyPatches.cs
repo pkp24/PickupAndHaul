@@ -253,7 +253,7 @@ static class HarmonyPatches
 
 	public static void TickManagerUpdate_Postfix()
 	{
-		PerformanceProfiler.Update();
+		//PerformanceProfiler.Update();
 	}
 
 	public static void DropUnusedInventory_PostFix(Pawn pawn) 

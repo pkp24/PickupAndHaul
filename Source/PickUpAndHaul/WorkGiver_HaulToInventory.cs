@@ -11,8 +11,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public override bool ShouldSkip(Pawn pawn, bool forced = false)
 	{
-		PerformanceProfiler.StartTimer("ShouldSkip");
-		
 		var result = base.ShouldSkip(pawn, forced)
                 || pawn.InMentalState
                 || pawn.Faction != Faction.OfPlayerSilentFail
@@ -24,31 +22,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| !PickupAndHaulSaveLoadLogger.IsModActive() // Skip if mod is not active
 		|| pawn.RaceProps.Animal; // Skip animals - they can't use inventory systems
 		
-		PerformanceProfiler.EndTimer("ShouldSkip");
 		return result;
 	}
 
 	public static bool GoodThingToHaul(Thing t, Pawn pawn)
 	{
-		PerformanceProfiler.StartTimer("GoodThingToHaul");
-		
 		var result = OkThingToHaul(t, pawn)
 		&& IsNotCorpseOrAllowed(t)
 		&& !t.IsInValidBestStorage();
 		
-		PerformanceProfiler.EndTimer("GoodThingToHaul");
 		return result;
 	}
 
 	public static bool OkThingToHaul(Thing t, Pawn pawn)
 	{
-		PerformanceProfiler.StartTimer("OkThingToHaul");
-		
 		var result = t.Spawned
 		&& pawn.CanReserve(t)
 		&& !t.IsForbidden(pawn);
 		
-		PerformanceProfiler.EndTimer("OkThingToHaul");
 		return result;
 	}
 
@@ -65,8 +56,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
         {
-                PerformanceProfiler.StartTimer("PotentialWorkThingsGlobal");
-
                 var currentTick = Find.TickManager.TicksGame;
                 
                 // Periodic cleanup to prevent memory leaks - staggered to prevent simultaneous cleanups
@@ -86,7 +75,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 if (currentTick < nextTick && _potentialWorkCache.TryGetValue(pawn, out var cached) && cached.list != null)
                 {
-                        PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
                         return new List<Thing>(cached.list);
                 }
 
@@ -100,7 +88,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 Log.Message($"[PickUpAndHaul] DEBUG: PotentialWorkThingsGlobal for {pawn} at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
 
-                PerformanceProfiler.EndTimer("PotentialWorkThingsGlobal");
                 // Return a copy to prevent cache corruption
                 return new List<Thing>(list);
         }
@@ -153,8 +140,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
         public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
-		PerformanceProfiler.StartTimer("HasJobOnThing");
-		
 		var result = !pawn.InMentalState
                 && !pawn.RaceProps.Animal // Skip animals - they can't use inventory systems
                 && OkThingToHaul(thing, pawn)
@@ -218,7 +203,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 		}
 		
-		PerformanceProfiler.EndTimer("HasJobOnThing");
 		return result;
 	}
 
@@ -231,8 +215,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
         public static bool OverAllowedGearCapacity(Pawn pawn)
         {
-                PerformanceProfiler.StartTimer("OverAllowedGearCapacity");
-                
                 var currentTick = Find.TickManager.TicksGame;
 
                 // Periodic cleanup to prevent memory leaks - staggered to prevent simultaneous cleanups
@@ -245,7 +227,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 if (_encumbranceCache.TryGetValue(pawn, out var cache) && cache.tick == currentTick)
                 {
-                        PerformanceProfiler.EndTimer("OverAllowedGearCapacity");
                         return cache.result;
                 }
 
@@ -255,7 +236,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 _encumbranceCache[pawn] = (currentTick, result);
                 
-                PerformanceProfiler.EndTimer("OverAllowedGearCapacity");
                 return result;
         }
 
@@ -294,20 +274,16 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//before you go out, empty your pockets
         public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
         {
-		PerformanceProfiler.StartTimer("JobOnThing");
-		
                 // Check if save operation is in progress
                 if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
                 {
                         Log.Message($"[PickUpAndHaul] Skipping job creation during save operation for {pawn}");
-			PerformanceProfiler.EndTimer("JobOnThing");
                         return null;
                 }
 
                 // Do not create hauling jobs for pawns in a mental state or animals
                 if (pawn.InMentalState || pawn.RaceProps.Animal)
                 {
-			PerformanceProfiler.EndTimer("JobOnThing");
                         return null;
                 }
 
@@ -315,20 +291,17 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (!PickupAndHaulSaveLoadLogger.IsModActive())
 		{
 			Log.Message($"[PickUpAndHaul] Skipping job creation - mod not active for {pawn}");
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 
 		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
 		{
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 
 		if (pawn.GetComp<CompHauledToInventory>() is null) // Misc. Robots compatibility
 														   // See https://github.com/catgirlfighter/RimWorld_CommonSense/blob/master/Source/CommonSense11/CommonSense/OpportunisticTasks.cs#L129-L140
 		{
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 		}
 
@@ -349,7 +322,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				//Don't multi-haul food to hoppers.
 				if (HaulToHopperJob(thing, targetCell, map))
 				{
-					PerformanceProfiler.EndTimer("JobOnThing");
 					return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 				}
 				else
@@ -364,14 +336,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			else
 			{
 				Log.Error("Don't know how to handle HaulToStorageJob for storage " + haulDestination.ToStringSafe() + ". thing=" + thing.ToStringSafe());
-				PerformanceProfiler.EndTimer("JobOnThing");
 				return null;
 			}
 		}
 		else
 		{
 			JobFailReason.Is("NoEmptyPlaceLower".Translate());
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 
@@ -382,7 +352,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		if (capacityStoreCell == 0)
 		{
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 		}
 
@@ -510,7 +479,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Warning($"[PickUpAndHaul] WARNING: Pawn {pawn} cannot effectively haul {thing} - carriable: {actualCarriableAmount}, storage capacity: {capacityStoreCell}");
 			skipCells = null;
 			skipThings = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 		
@@ -519,7 +487,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Warning($"[PickUpAndHaul] WARNING: Cannot reserve capacity for {effectiveAmount} of {thing} at {storageLocation} - insufficient available capacity");
 			skipCells = null;
 			skipThings = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 		
@@ -534,7 +501,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			StorageAllocationTracker.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
 			skipCells = null;
 			skipThings = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 		Log.Message($"[PickUpAndHaul] DEBUG: Initial item {thing} allocated successfully");
@@ -550,7 +516,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			
 			skipCells = null;
 			skipThings = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 
@@ -614,7 +579,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			skipCells = null;
 			skipThings = null;
 			//skipTargets = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return job;
 		}
 
@@ -630,7 +594,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			skipCells = null;
 			skipThings = null;
 			//skipTargets = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return job;
 		}
 		Log.Message($"[PickUpAndHaul] DEBUG: Looking for more like {nextThing}, carryCapacity: {carryCapacity}");
@@ -704,7 +667,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			
 			skipCells = null;
 			skipThings = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 		
@@ -718,14 +680,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
 			skipCells = null;
 			skipThings = null;
-			PerformanceProfiler.EndTimer("JobOnThing");
 			return null;
 		}
 		
 		skipCells = null;
 		skipThings = null;
 		//skipTargets = null;
-		PerformanceProfiler.EndTimer("JobOnThing");
 		return job;
 	}
 
@@ -774,12 +734,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static Thing GetClosestAndRemove(IntVec3 center, Map map, List<Thing> searchSet, PathEndMode peMode, TraverseParms traverseParams, float maxDistance = 9999f, Predicate<Thing> validator = null)
 	{
-		PerformanceProfiler.StartTimer("GetClosestAndRemove");
-		
 		if (searchSet == null || !searchSet.Any())
 		{
 			Log.Message($"[PickUpAndHaul] DEBUG: GetClosestAndRemove - searchSet is null or empty");
-			PerformanceProfiler.EndTimer("GetClosestAndRemove");
 			return null;
 		}
 
@@ -822,7 +779,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         {
                                 Log.Message($"[PickUpAndHaul] DEBUG: GetClosestAndRemove - found valid item {thing} at distance {Math.Sqrt(distanceSquared):F1}");
                                 searchSet.RemoveAt(i);
-				PerformanceProfiler.EndTimer("GetClosestAndRemove");
                                 return thing;
                         }
                         else
@@ -832,7 +788,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 }
 
                 Log.Message($"[PickUpAndHaul] DEBUG: GetClosestAndRemove - no valid items found. Checked: {itemsChecked}, Unspawned: {itemsUnspawned}, Too far: {itemsTooFar}, Unreachable: {itemsUnreachable}, Filtered: {itemsFiltered}");
-		PerformanceProfiler.EndTimer("GetClosestAndRemove");
                 return null;
         }
 
@@ -939,7 +894,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
         public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job, ref float currentMass, float capacity, List<int> bCountTracker)
         {
-                PerformanceProfiler.StartTimer("AllocateThingAtCell");
 
                 var bCountBefore = job.targetQueueB.Count;
 		
@@ -956,7 +910,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 if (actualCarriableAmount <= 0)
                 {
                         Log.Message($"[PickUpAndHaul] DEBUG: Pawn {pawn} cannot carry any of {nextThing} due to encumbrance (current: {currentMass}/{capacity}), skipping");
-                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
                         return false;
                 }
                 
@@ -1031,7 +984,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                                 Log.Message($"[PickUpAndHaul] DEBUG: New cell {nextStoreCell} has capacity {newCapacity} <= 0, skipping this item");
                                                 // Clean up targets and reservations
                                                 CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                                 return false;
                                         }
                                         
@@ -1068,7 +1020,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                                 Log.Message($"[PickUpAndHaul] DEBUG: New haulDestination {haulDestination} has capacity {newCapacity} <= 0, skipping this item");
                                                 // Clean up targets and reservations
                                                 CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                                 return false;
                                         }
                                         
@@ -1096,7 +1047,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                 Log.Message($"[PickUpAndHaul] DEBUG: {nextThing} can't stack with allocated cells and no new storage found, skipping this item");
                                 // Clean up targets and reservations
                                 CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                 return false;
                         }
                 }
@@ -1137,7 +1087,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                                 Log.Message($"[PickUpAndHaul] DEBUG: New overflow cell {nextStoreCell} has insufficient capacity, skipping this item");
                                                 // Clean up targets and reservations
                                                 CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                                 return false;
                                         }
                                         
@@ -1173,7 +1122,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                                 Log.Message($"[PickUpAndHaul] DEBUG: New overflow haulDestination {nextHaulDestination} has insufficient capacity, skipping this item");
                                                 // Clean up targets and reservations
                                                 CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                                                PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                                 return false;
                                         }
                                         
@@ -1205,7 +1153,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                                         Log.Message($"[PickUpAndHaul] DEBUG: Count reduced to {count}, cannot allocate {nextThing}");
                                         // Clean up targets and reservations
                                         CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
                                         return false;
                                 }
                                 break;
@@ -1217,7 +1164,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         Log.Message($"[PickUpAndHaul] DEBUG: Final count is {count}, cannot allocate {nextThing}");
                         // Clean up targets and reservations
                         CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                        PerformanceProfiler.EndTimer("AllocateThingAtCell");
                         return false;
                 }
 
@@ -1241,14 +1187,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                     
                     // Clean up any targets we added
                     CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
-                    PerformanceProfiler.EndTimer("AllocateThingAtCell");
                     return false;
                 }
                 
                 Log.Message($"[PickUpAndHaul] DEBUG: Successfully allocated {nextThing}:{count} to job");
                 Log.Message($"[PickUpAndHaul] DEBUG: Updated mass: {currentMass}, new encumbrance: {currentMass / capacity}");
                 Log.Message($"[PickUpAndHaul] DEBUG: Final job queues - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
-                PerformanceProfiler.EndTimer("AllocateThingAtCell");
                 return true;
         }
 

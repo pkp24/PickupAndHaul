@@ -23,13 +23,11 @@ public class JobDriver_HaulToInventory : JobDriver
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
-		PerformanceProfiler.StartTimer("TryMakePreToilReservations");
 		
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			Log.Message($"[PickUpAndHaul] Skipping HaulToInventory job reservations during save operation for {pawn}");
-			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 			return false;
 		}
 
@@ -100,7 +98,6 @@ public class JobDriver_HaulToInventory : JobDriver
 			
 			// CRITICAL FIX: End the job gracefully instead of crashing
 			Log.Error($"[PickUpAndHaul] ERROR: Ending job gracefully to prevent ArgumentOutOfRangeException");
-			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 			return false;
 		}
 
@@ -113,28 +110,24 @@ public class JobDriver_HaulToInventory : JobDriver
 		else
 		{
 			Log.Error($"[PickUpAndHaul] ERROR: targetB is null for {pawn}");
-			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 			return false;
 		}
 
 		var result = targetAReserved && targetBReserved;
 		Log.Message($"[PickUpAndHaul] DEBUG: Reservation result: {result} (targetA: {targetAReserved}, targetB: {targetBReserved})");
 		
-		PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 		return result;
 	}
 
 	//get next, goto, take, check for more. Branches off to "all over the place"
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		PerformanceProfiler.StartTimer("MakeNewToils");
 		
 		// CRITICAL FIX: Validate job integrity before proceeding
 		if (job == null)
 		{
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job is null in MakeNewToils for {pawn}");
 			EndJobWith(JobCondition.Incompletable);
-			PerformanceProfiler.EndTimer("MakeNewToils");
 			yield break;
 		}
 		
@@ -144,7 +137,6 @@ public class JobDriver_HaulToInventory : JobDriver
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job has empty targetQueueA in MakeNewToils for {pawn}");
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 			EndJobWith(JobCondition.Incompletable);
-			PerformanceProfiler.EndTimer("MakeNewToils");
 			yield break;
 		}
 		
@@ -154,7 +146,6 @@ public class JobDriver_HaulToInventory : JobDriver
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Queue synchronization failure in MakeNewToils for {pawn}!");
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
 			EndJobWith(JobCondition.Incompletable);
-			PerformanceProfiler.EndTimer("MakeNewToils");
 			yield break;
 		}
 		
@@ -163,7 +154,6 @@ public class JobDriver_HaulToInventory : JobDriver
 		{
 			Log.Message($"[PickUpAndHaul] Ending HaulToInventory job during save operation for {pawn}");
 			EndJobWith(JobCondition.InterruptForced);
-			PerformanceProfiler.EndTimer("MakeNewToils");
 			yield break;
 		}
 
