@@ -131,44 +131,55 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 			else
 			{
-				// Check if pawn can physically carry the item and if storage has meaningful capacity
+										// Check if pawn can physically carry the item and if storage has meaningful capacity
 				var currentMass = MassUtility.GearAndInventoryMass(pawn);
 				var capacity = MassUtility.Capacity(pawn);
-				var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
-				if (actualCarriableAmount <= 0)
+				var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity, pawn);
+		
+		// If pawn has no capacity (like animals), fall back to vanilla behavior
+		if (capacity <= 0)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
+			}
+			// Don't return false here - let the vanilla hauling system handle it
+			// The JobOnThing method will handle the fallback to HaulAIUtility.HaulToStorageJob
+		}
+		else if (actualCarriableAmount <= 0)
+		{
+			Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} cannot carry any of {thing} due to encumbrance, returning false");
+			result = false;
+		}
+		else
+		{
+			// Check if storage has any meaningful capacity for this item
+			// This prevents the HasJobOnThing/JobOnThing synchronization issue
+			var storageCapacity = 0;
+			if (haulDestination is ISlotGroupParent)
+			{
+				storageCapacity = CapacityAt(thing, foundCell, pawn.Map);
+			}
+			else if (haulDestination is Thing destinationThing)
+			{
+				var thingOwner = destinationThing.TryGetInnerInteractableThingOwner();
+				if (thingOwner != null)
 				{
-					Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} cannot carry any of {thing} due to encumbrance, returning false");
-					result = false;
+					storageCapacity = thingOwner.GetCountCanAccept(thing);
 				}
-				else
-				{
-					// Check if storage has any meaningful capacity for this item
-					// This prevents the HasJobOnThing/JobOnThing synchronization issue
-					var storageCapacity = 0;
-					if (haulDestination is ISlotGroupParent)
-					{
-						storageCapacity = CapacityAt(thing, foundCell, pawn.Map);
-					}
-					else if (haulDestination is Thing destinationThing)
-					{
-						var thingOwner = destinationThing.TryGetInnerInteractableThingOwner();
-						if (thingOwner != null)
-						{
-							storageCapacity = thingOwner.GetCountCanAccept(thing);
-						}
-					}
-					
-					if (storageCapacity <= 0)
-					{
-						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Storage for {thing} has no capacity, returning false");
-						result = false;
-					}
-					else
-					{
-						// At least some capacity exists, let JobOnThing handle the detailed allocation
-						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: {pawn} can carry {actualCarriableAmount} of {thing}, storage has {storageCapacity} capacity");
-					}
-				}
+			}
+			
+			if (storageCapacity <= 0)
+			{
+				Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Storage for {thing} has no capacity, returning false");
+				result = false;
+			}
+			else
+			{
+				// At least some capacity exists, let JobOnThing handle the detailed allocation
+				Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: {pawn} can carry {actualCarriableAmount} of {thing}, storage has {storageCapacity} capacity");
+			}
+		}
 			}
 		}
 		
@@ -191,7 +202,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 var totalMass = MassUtility.GearAndInventoryMass(pawn);
                 var capacity = MassUtility.Capacity(pawn);
-                var result = totalMass / capacity >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+                var ratio = totalMass / capacity;
+                var result = ratio >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+
+                if (Settings.EnableDebugLogging)
+                {
+                        Log.Message($"[PickUpAndHaul] DEBUG: OverAllowedGearCapacity for {pawn} - mass: {totalMass}, capacity: {capacity}, ratio: {ratio:F2}, threshold: {Settings.MaximumOccupiedCapacityToConsiderHauling:F2}, result: {result}");
+                }
 
                 _encumbranceCache.Set(pawn, (currentTick, result));
                 
@@ -406,8 +423,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		
 		// Reserve capacity for the initial item
 		// Use minimum of what pawn can carry and what storage can hold to prevent reservation failures
-		var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
+		var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity, pawn);
 		var effectiveAmount = Math.Min(actualCarriableAmount, capacityStoreCell);
+		
+		// If pawn has no capacity (like animals), fall back to vanilla hauling
+		if (capacity <= 0)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Message($"[PickUpAndHaul] DEBUG: JobOnThing: Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
+			}
+			skipCells = null;
+			skipThings = null;
+			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
+		}
 		
 		if (effectiveAmount <= 0)
 		{
@@ -840,7 +869,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
                 
                 // First, check if the pawn can carry this item at all
-                var actualCarriableAmount = CalculateActualCarriableAmount(nextThing, currentMass, capacity);
+                var actualCarriableAmount = CalculateActualCarriableAmount(nextThing, currentMass, capacity, pawn);
                 if (actualCarriableAmount <= 0)
                 {
                         Log.Message($"[PickUpAndHaul] DEBUG: Pawn {pawn} cannot carry any of {nextThing} due to encumbrance (current: {currentMass}/{capacity}), skipping");
@@ -1283,14 +1312,31 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
         /// <summary>
         /// Calculates the actual amount of a thing that a pawn can carry considering encumbrance limits
         /// </summary>
-        public static int CalculateActualCarriableAmount(Thing thing, float currentMass, float capacity)
+        public static int CalculateActualCarriableAmount(Thing thing, float currentMass, float capacity, Pawn pawn = null)
         {
-                if (currentMass >= capacity)
+                // Add debug logging to understand the issue
+                if (Settings.EnableDebugLogging)
                 {
+                        Log.Message($"[PickUpAndHaul] DEBUG: CalculateActualCarriableAmount - thing: {thing}, currentMass: {currentMass}, capacity: {capacity}, ratio: {currentMass / capacity:F2}");
+                }
+
+                // For animals, use 100% capacity. For humans, use the settings threshold
+                var maxAllowedMass = capacity;
+                if (pawn != null && !pawn.RaceProps.Animal)
+                {
+                        maxAllowedMass = capacity * Settings.MaximumOccupiedCapacityToConsiderHauling;
+                }
+                
+                if (currentMass >= maxAllowedMass)
+                {
+                        if (Settings.EnableDebugLogging)
+                        {
+                                Log.Message($"[PickUpAndHaul] DEBUG: Pawn at max allowed mass ({currentMass}/{maxAllowedMass}), cannot carry more");
+                        }
                         return 0;
                 }
 
-                var remainingCapacity = capacity - currentMass;
+                var remainingCapacity = maxAllowedMass - currentMass;
                 var thingMass = thing.GetStatValue(StatDefOf.Mass);
 
                 if (thingMass <= 0)
@@ -1299,7 +1345,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 }
 
                 var maxCarriable = (int)Math.Floor(remainingCapacity / thingMass);
-                return Math.Min(maxCarriable, thing.stackCount);
+                var result = Math.Min(maxCarriable, thing.stackCount);
+                
+                if (Settings.EnableDebugLogging)
+                {
+                        Log.Message($"[PickUpAndHaul] DEBUG: Can carry {result} of {thing} (mass: {thingMass}, remaining capacity: {remainingCapacity})");
+                }
+                
+                return result;
         }
 
 	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
