@@ -1,6 +1,4 @@
 # PickUpAndHaul
-"Greatest hauling mod ever" - Chicken Plucker
-
 Colonists will gather stuff in their inventory, then haul it all to a stockpile.
 
 This hauling mod will greatly increase hauling efficiency, because pawns can now carry more than one gun or t-shirt. Those smart and intelligent colonists can use their inventory! You gotta see it to believe it.
@@ -24,10 +22,9 @@ Want field-doctoring to be even better? Use [Smart Medicine](https://steamcommun
 ## Compatibility notes:
 Works in unison with AllowTool's Haul Urgently designation.
 
-Fully Combat Extended compatible. Backpacks, bulk, mass - it all works.
 
-## Future plans:
-- Maintenance mode.
+Fully Combat Extended compatible. Backpacks, bulk, mass - (it hopefully all still works, please let me know)
+
 
 ## Credits and thanks:
 - [Uuugggg aka AlexTD](https://steamcommunity.com/id/uuugggg/myworkshopfiles/?appid=294100&p=1&numperpage=30). I cannot thank you enough for your massive contributions to Pick Up and Haul.
@@ -49,92 +46,25 @@ GitHub: https://github.com/Mehni/PickUpAndHaul/releases
 ## Features
 
 - Pawns can pick up multiple items and carry them in their inventory while hauling
-- Automatic unloading when pawns reach their destination
-- Configurable settings for different races and item types
 - Compatible with various other mods
-
-## Save System
-
-The mod includes a robust save/restore system that prevents errors during save operations:
-
-### How it works
-
-1. **During Save**: When a save operation begins, the mod automatically:
-   - Suspends all active pickup and haul jobs
-   - Stores job information for later restoration
-   - Prevents new jobs from being created
-
-2. **After Save**: When the save operation completes, the mod:
-   - Restores previously suspended jobs
-   - Recreates job queues and reservations
-   - Resumes normal operation
-
-### Safety Features
-
-- **Thread-safe**: Uses proper locking to prevent race conditions
-- **Error handling**: Graceful handling of edge cases and failures
-- **Logging**: Comprehensive logging for debugging
-- **Emergency cleanup**: Manual cleanup methods if needed
-
-### Manual Control
-
-The system provides public methods for external control:
-
-```csharp
-// Check if save is in progress
-bool isSaving = PickupAndHaulSaveLoadLogger.IsSaveInProgress();
-
-// Manually suspend jobs
-PickupAndHaulSaveLoadLogger.ManualSuspendJobs();
-
-// Manually restore jobs
-PickupAndHaulSaveLoadLogger.ManualRestoreJobs();
-
-// Emergency cleanup
-PickupAndHaulSaveLoadLogger.EmergencyCleanup();
-
-// Get current status
-string status = PickupAndHaulSaveLoadLogger.GetSaveStatus();
-```
-
-### Compatibility
-
-The save system is designed to work with:
-- All RimWorld save operations (auto-save, manual save, etc.)
-- Other mods that may interfere with job systems
-- Various game states and scenarios
-
-## Installation
-
-1. Download the mod
-2. Extract to your RimWorld Mods folder
-3. Enable in the mod list
-4. Configure settings as desired
-
-## Configuration
-
-The mod includes various settings to customize behavior:
-- Race restrictions
-- Item type filters
-- Capacity limits
-- And more
+- Fixes save compatibility by stopping all PUAH jobs and then giving them back after the save completes. This means you can remove it from a save without breaking it.
+- Caching to try and improve performance
 
 ## Compatibility
 
 This mod is compatible with:
-- Combat Extended
 - Extended Storage
 - Allow Tool
-- And many other popular mods
+
+This mod should be compatible with:
+- Combat Extended, I haven't personally tested it to make sure. Please tell me if it works for you.
 
 ## Troubleshooting
 
 If you experience issues:
 
-1. Check the logs for error messages
-2. Verify mod load order
-3. Try disabling conflicting mods
-4. Use the emergency cleanup if needed
+1. Check the logs for error messages and report them on steam, github, or discord
+2. Enable debug logging in the mod options, pull the PickUpAndHaul_Debug.txt from "AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios", upload the debug file to pastebin or someplace to send it to me. DO NOT KEEP DEBUG LOGGING ENABLED
 
 ## License
 
