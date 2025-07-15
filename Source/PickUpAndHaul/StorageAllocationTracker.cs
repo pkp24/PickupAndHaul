@@ -368,18 +368,11 @@ namespace PickUpAndHaul
                 else
                 {
                     // For unspawned things, we need to clean up any references they might hold
-                    // This is especially important for things with stuff materials
-                    if (tempThing.Stuff != null)
-                    {
-                        // Clear the stuff reference to prevent memory leaks
-                        tempThing.SetStuffDirect(null);
-                    }
-                    
-                    // Clear any other potential references that might cause memory leaks
+                    // Clear any potential references that might cause memory leaks
                     tempThing.stackCount = 0;
                     
-                    // Force garbage collection for this specific object
-                    // Note: This is a more aggressive cleanup approach for unspawned objects
+                    // Note: We cannot directly clear the Stuff reference as SetStuffDirect doesn't exist
+                    // The garbage collector will handle cleanup of unspawned objects
                     tempThing = null;
                 }
             }
