@@ -64,67 +64,67 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return Settings.AllowCorpses || t is not Corpse;
 	}
 
-        private static readonly PawnCache<(int tick, List<Thing> list)> _potentialWorkCache = new();
-        private static readonly PawnCache<int> _nextUpdateTick = new();
+	private static readonly PawnCache<(int tick, List<Thing> list)> _potentialWorkCache = new();
+	private static readonly PawnCache<int> _nextUpdateTick = new();
 
-        private const int CacheDuration = 30; // ticks
-        private const int UpdateInterval = 60; // stagger expensive searches
+	private const int CacheDuration = 30; // ticks
+	private const int UpdateInterval = 60; // stagger expensive searches
 
-        static WorkGiver_HaulToInventory()
-        {
-            // Register caches for automatic cleanup
-            CacheManager.RegisterCache(_potentialWorkCache);
-            CacheManager.RegisterCache(_nextUpdateTick);
-            CacheManager.RegisterCache(_encumbranceCache);
-            
-            // Register cleanup method for pawn skip lists
-            CacheManager.RegisterCache(new PawnSkipListCache());
-        }
+	static WorkGiver_HaulToInventory()
+	{
+		// Register caches for automatic cleanup
+		CacheManager.RegisterCache(_potentialWorkCache);
+		CacheManager.RegisterCache(_nextUpdateTick);
+		CacheManager.RegisterCache(_encumbranceCache);
+		
+		// Register cleanup method for pawn skip lists
+		CacheManager.RegisterCache(new PawnSkipListCache());
+	}
 
-        public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
-        {
-                var currentTick = Find.TickManager.TicksGame;
-                
-                // Determine if this pawn should refresh its cache this tick
-                if (!_nextUpdateTick.TryGet(pawn, out var nextTick))
-                {
-                        nextTick = currentTick + (pawn.thingIDNumber % UpdateInterval);
-                        _nextUpdateTick.Set(pawn, nextTick);
-                }
+	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
+	{
+		var currentTick = Find.TickManager.TicksGame;
+		
+		// Determine if this pawn should refresh its cache this tick
+		if (!_nextUpdateTick.TryGet(pawn, out var nextTick))
+		{
+				nextTick = currentTick + (pawn.thingIDNumber % UpdateInterval);
+				_nextUpdateTick.Set(pawn, nextTick);
+		}
 
-                if (currentTick < nextTick && _potentialWorkCache.TryGet(pawn, out var cached) && cached.list != null)
-                {
-                        // Filter out invalid items from cached list
-                        var validItems = new List<Thing>();
-                        foreach (var item in cached.list)
-                        {
-                                if (item != null && item.Spawned && !item.Destroyed && item.Map != null)
-                                {
-                                        validItems.Add(item);
-                                }
-                        }
-                        return validItems;
-                }
+		if (currentTick < nextTick && _potentialWorkCache.TryGet(pawn, out var cached) && cached.list != null)
+		{
+				// Filter out invalid items from cached list
+				var validItems = new List<Thing>();
+				foreach (var item in cached.list)
+				{
+						if (item != null && item.Spawned && !item.Destroyed && item.Map != null)
+						{
+								validItems.Add(item);
+						}
+				}
+				return validItems;
+		}
 
-                var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
-                // Filter out invalid items before sorting
-                list.RemoveAll(item => item == null || !item.Spawned || item.Destroyed || item.Map == null);
-                
-                // Ensure items are sorted by distance from pawn to prioritize closest items
-                Comparer.rootCell = pawn.Position;
-                list.Sort(Comparer);
+		var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
+		// Filter out invalid items before sorting
+		list.RemoveAll(item => item == null || !item.Spawned || item.Destroyed || item.Map == null);
+		
+		// Ensure items are sorted by distance from pawn to prioritize closest items
+		Comparer.rootCell = pawn.Position;
+		list.Sort(Comparer);
 
-                _potentialWorkCache.Set(pawn, (currentTick, list));
-                _nextUpdateTick.Set(pawn, currentTick + UpdateInterval);
+		_potentialWorkCache.Set(pawn, (currentTick, list));
+		_nextUpdateTick.Set(pawn, currentTick + UpdateInterval);
 
-                if (Settings.EnableDebugLogging)
-                {
-                        Log.Message($"[PickUpAndHaul] DEBUG: PotentialWorkThingsGlobal for {pawn} at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
-                }
+		if (Settings.EnableDebugLogging)
+		{
+				Log.Message($"[PickUpAndHaul] DEBUG: PotentialWorkThingsGlobal for {pawn} at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
+		}
 
-                // Return a copy to prevent cache corruption
-                return new List<Thing>(list);
-        }
+		// Return a copy to prevent cache corruption
+		return new List<Thing>(list);
+	}
 
 
 
@@ -145,13 +145,38 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
+		// Add null check to prevent issues with AllowTool
 		if (pawn == null || thing == null)
 		{
 			return false;
 		}
 		
-		var result = !pawn.InMentalState
-                && OkThingToHaul(thing, pawn)
+		// Check if save operation is in progress (same as JobOnThing)
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			return false;
+		}
+
+		// Do not create hauling jobs for pawns in a mental state (same as JobOnThing)
+		if (pawn.InMentalState)
+		{
+			return false;
+		}
+
+		// Check if mod is active (same as JobOnThing)
+		if (!PickupAndHaulSaveLoadLogger.IsModActive())
+		{
+			return false;
+		}
+
+		// Check if pawn has the required component (same as JobOnThing)
+		if (pawn.GetComp<CompHauledToInventory>() is null)
+		{
+			// For pawns without the component, let vanilla handle it
+			return false;
+		}
+
+		var result = OkThingToHaul(thing, pawn)
                 && IsNotCorpseOrAllowed(thing)
 		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
 		&& !OverAllowedGearCapacity(pawn)
@@ -163,7 +188,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			var foundCell = IntVec3.Invalid;
 			var haulDestination = (IHaulDestination)null;
-			var hasStorage = StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out foundCell, out haulDestination, false);
+			var hasStorage = StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out foundCell, out haulDestination, true); // Use true like JobOnThing
 			
 			if (!hasStorage)
 			{
@@ -171,55 +196,55 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 			else
 			{
-										// Check if pawn can physically carry the item and if storage has meaningful capacity
+				// Check if pawn can physically carry the item and if storage has meaningful capacity
 				var currentMass = MassUtility.GearAndInventoryMass(pawn);
 				var capacity = MassUtility.Capacity(pawn);
 				var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity, pawn);
 		
-		// If pawn has no capacity (like animals), fall back to vanilla behavior
-		if (capacity <= 0)
-		{
-			if (Settings.EnableDebugLogging)
-			{
-				Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
-			}
-			// Don't return false here - let the vanilla hauling system handle it
-			// The JobOnThing method will handle the fallback to HaulAIUtility.HaulToStorageJob
-		}
-		else if (actualCarriableAmount <= 0)
-		{
-			Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} cannot carry any of {thing} due to encumbrance, returning false");
-			result = false;
-		}
-		else
-		{
-			// Check if storage has any meaningful capacity for this item
-			// This prevents the HasJobOnThing/JobOnThing synchronization issue
-			var storageCapacity = 0;
-			if (haulDestination is ISlotGroupParent)
-			{
-				storageCapacity = CapacityAt(thing, foundCell, pawn.Map);
-			}
-			else if (haulDestination is Thing destinationThing)
-			{
-				var thingOwner = destinationThing.TryGetInnerInteractableThingOwner();
-				if (thingOwner != null)
+				// If pawn has no capacity (like animals), fall back to vanilla behavior
+				if (capacity <= 0)
 				{
-					storageCapacity = thingOwner.GetCountCanAccept(thing);
+					if (Settings.EnableDebugLogging)
+					{
+						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
+					}
+					// Don't return false here - let the vanilla hauling system handle it
+					// The JobOnThing method will handle the fallback to HaulAIUtility.HaulToStorageJob
 				}
-			}
-			
-			if (storageCapacity <= 0)
-			{
-				Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Storage for {thing} has no capacity, returning false");
-				result = false;
-			}
-			else
-			{
-				// At least some capacity exists, let JobOnThing handle the detailed allocation
-				Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: {pawn} can carry {actualCarriableAmount} of {thing}, storage has {storageCapacity} capacity");
-			}
-		}
+				else if (actualCarriableAmount <= 0)
+				{
+					Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} cannot carry any of {thing} due to encumbrance, returning false");
+					result = false;
+				}
+				else
+				{
+					// Check if storage has any meaningful capacity for this item
+					// This prevents the HasJobOnThing/JobOnThing synchronization issue
+					var capacityStoreCell = 0;
+					if (haulDestination is ISlotGroupParent)
+					{
+						capacityStoreCell = CapacityAt(thing, foundCell, pawn.Map);
+					}
+					else if (haulDestination is Thing destinationAsThing)
+					{
+						var thingOwner = destinationAsThing.TryGetInnerInteractableThingOwner();
+						if (thingOwner != null)
+						{
+							capacityStoreCell = thingOwner.GetCountCanAccept(thing);
+						}
+					}
+					
+					if (capacityStoreCell <= 0)
+					{
+						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Storage for {thing} has no capacity, returning false");
+						result = false;
+					}
+					else
+					{
+						// At least some capacity exists, let JobOnThing handle the detailed allocation
+						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: {pawn} can carry {actualCarriableAmount} of {thing}, storage has {capacityStoreCell} capacity");
+					}
+				}
 			}
 		}
 		
@@ -229,40 +254,39 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//bulky gear (power armor + minigun) so don't bother.
 	//Updated to include inventory mass, not just gear mass
 
-        private static readonly PawnCache<(int tick, bool result)> _encumbranceCache = new();
+	private static readonly PawnCache<(int tick, bool result)> _encumbranceCache = new();
 
-        public static bool OverAllowedGearCapacity(Pawn pawn)
-        {
-                var currentTick = Find.TickManager.TicksGame;
+	public static bool OverAllowedGearCapacity(Pawn pawn)
+	{
+		var currentTick = Find.TickManager.TicksGame;
 
-                if (_encumbranceCache.TryGet(pawn, out var cache) && cache.tick == currentTick)
-                {
-                        return cache.result;
-                }
+		if (_encumbranceCache.TryGet(pawn, out var cache) && cache.tick == currentTick)
+		{
+				return cache.result;
+		}
 
-                var totalMass = MassUtility.GearAndInventoryMass(pawn);
-                var capacity = MassUtility.Capacity(pawn);
-                var ratio = totalMass / capacity;
-                var result = ratio >= Settings.MaximumOccupiedCapacityToConsiderHauling;
+		var totalMass = MassUtility.GearAndInventoryMass(pawn);
+		var capacity = MassUtility.Capacity(pawn);
+		var ratio = totalMass / capacity;
+		var result = ratio >= Settings.MaximumOccupiedCapacityToConsiderHauling;
 
-                if (Settings.EnableDebugLogging)
-                {
-                        Log.Message($"[PickUpAndHaul] DEBUG: OverAllowedGearCapacity for {pawn} - mass: {totalMass}, capacity: {capacity}, ratio: {ratio:F2}, threshold: {Settings.MaximumOccupiedCapacityToConsiderHauling:F2}, result: {result}");
-                }
+		if (Settings.EnableDebugLogging)
+		{
+				Log.Message($"[PickUpAndHaul] DEBUG: OverAllowedGearCapacity for {pawn} - mass: {totalMass}, capacity: {capacity}, ratio: {ratio:F2}, threshold: {Settings.MaximumOccupiedCapacityToConsiderHauling:F2}, result: {result}");
+		}
 
-                _encumbranceCache.Set(pawn, (currentTick, result));
-                
-                return result;
-        }
+		_encumbranceCache.Set(pawn, (currentTick, result));
+		
+		return result;
+	}
 
 
 
 	//pick up stuff until you can't anymore,
 	//while you're up and about, pick up something and haul it
 	//before you go out, empty your pockets
-        public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
-        {
-		
+	public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
+	{
 		if (pawn == null || thing == null)
 		{
 			return null;
@@ -383,7 +407,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// The original calculation was too restrictive and inconsistent
 		var distanceToSearchMore = 20f; // Increased from variable calculation to fixed reasonable distance
 
-		//Find extra things than can be hauled to inventory, queue to reserve them
+		//Find extra things that can be hauled to inventory, queue to reserve them
 		var haulUrgentlyDesignation = PickUpAndHaulDesignationDefOf.haulUrgently;
 		var isUrgent = ModCompatibilityCheck.AllowToolIsActive && designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
