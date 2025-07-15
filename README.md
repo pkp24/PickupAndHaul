@@ -22,10 +22,9 @@ Want field-doctoring to be even better? Use [Smart Medicine](https://steamcommun
 ## Compatibility notes:
 Works in unison with AllowTool's Haul Urgently designation.
 
-Fully Combat Extended compatible. Backpacks, bulk, mass - it all works.
 
-## Future plans:
-- Maintenance mode.
+Fully Combat Extended compatible. Backpacks, bulk, mass - it hopefully all still works, please let me know
+
 
 ## Credits and thanks:
 - [Uuugggg aka AlexTD](https://steamcommunity.com/id/uuugggg/myworkshopfiles/?appid=294100&p=1&numperpage=30). I cannot thank you enough for your massive contributions to Pick Up and Haul.
