@@ -26,6 +26,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool GoodThingToHaul(Thing t, Pawn pawn)
 	{
+		
+		if (t == null || pawn == null)
+		{
+			return false;
+		}
+		
 		var result = OkThingToHaul(t, pawn)
 		&& IsNotCorpseOrAllowed(t)
 		&& !t.IsInValidBestStorage();
@@ -35,6 +41,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool OkThingToHaul(Thing t, Pawn pawn)
 	{
+		// Add null check to prevent NullReferenceException
+		if (t == null || pawn == null)
+		{
+			return false;
+		}
+		
 		var result = t.Spawned
 		&& pawn.CanReserve(t)
 		&& !t.IsForbidden(pawn);
@@ -42,7 +54,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return result;
 	}
 
-	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
+	public static bool IsNotCorpseOrAllowed(Thing t)
+	{
+		// Add null check to prevent NullReferenceException
+		if (t == null)
+		{
+			return false;
+		}
+		return Settings.AllowCorpses || t is not Corpse;
+	}
 
         private static readonly PawnCache<(int tick, List<Thing> list)> _potentialWorkCache = new();
         private static readonly PawnCache<int> _nextUpdateTick = new();
@@ -74,10 +94,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
                 if (currentTick < nextTick && _potentialWorkCache.TryGet(pawn, out var cached) && cached.list != null)
                 {
-                        return new List<Thing>(cached.list);
+                        // Filter out invalid items from cached list
+                        var validItems = new List<Thing>();
+                        foreach (var item in cached.list)
+                        {
+                                if (item != null && item.Spawned && !item.Destroyed && item.Map != null)
+                                {
+                                        validItems.Add(item);
+                                }
+                        }
+                        return validItems;
                 }
 
                 var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
+                // Filter out invalid items before sorting
+                list.RemoveAll(item => item == null || !item.Spawned || item.Destroyed || item.Map == null);
+                
                 // Ensure items are sorted by distance from pawn to prioritize closest items
                 Comparer.rootCell = pawn.Position;
                 list.Sort(Comparer);
@@ -111,8 +143,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	private static readonly Dictionary<(Thing thing, IntVec3 cell, int tick), int> _storageCapacityCache = new();
 	private static int _lastStorageCapacityCacheCleanupTick = 0;
 
-        public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
+	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
+		if (pawn == null || thing == null)
+		{
+			return false;
+		}
+		
 		var result = !pawn.InMentalState
                 && OkThingToHaul(thing, pawn)
                 && IsNotCorpseOrAllowed(thing)
@@ -225,18 +262,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//before you go out, empty your pockets
         public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
         {
-                // Check if save operation is in progress
-                if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-                {
-                        Log.Message($"[PickUpAndHaul] Skipping job creation during save operation for {pawn}");
-                        return null;
-                }
+		
+		if (pawn == null || thing == null)
+		{
+			return null;
+		}
+		
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			Log.Message($"[PickUpAndHaul] Skipping job creation during save operation for {pawn}");
+			return null;
+		}
 
-                // Do not create hauling jobs for pawns in a mental state
-                if (pawn.InMentalState)
-                {
-                        return null;
-                }
+		// Do not create hauling jobs for pawns in a mental state
+		if (pawn.InMentalState)
+		{
+			return null;
+		}
 
 		// Check if mod is active
 		if (!PickupAndHaulSaveLoadLogger.IsModActive())
@@ -256,15 +299,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 		}
 
-                var map = pawn.Map;
-                var designationManager = map.designationManager;
-                var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
-                var traverseParms = TraverseParms.For(pawn);
-                var capacity = MassUtility.Capacity(pawn);
-                float currentMass = MassUtility.GearAndInventoryMass(pawn);
-                var encumberance = currentMass / capacity;
-                ThingOwner nonSlotGroupThingOwner = null;
-                StoreTarget storeTarget;
+		var map = pawn.Map;
+		var designationManager = map.designationManager;
+		var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
+		var traverseParms = TraverseParms.For(pawn);
+		var capacity = MassUtility.Capacity(pawn);
+		float currentMass = MassUtility.GearAndInventoryMass(pawn);
+		var encumberance = currentMass / capacity;
+		ThingOwner nonSlotGroupThingOwner = null;
+		StoreTarget storeTarget;
 		if (StoreUtility.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, true))
 		{
 			if (haulDestination is ISlotGroupParent)
@@ -327,7 +370,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
 		//Find what fits in inventory, set nextThingLeftOverCount to be 
-                var nextThingLeftOverCount = 0;
+		var nextThingLeftOverCount = 0;
 
 		var ceOverweight = false;
 
