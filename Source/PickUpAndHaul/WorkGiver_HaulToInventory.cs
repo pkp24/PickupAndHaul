@@ -56,6 +56,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
             CacheManager.RegisterCache(_potentialWorkCache);
             CacheManager.RegisterCache(_nextUpdateTick);
             CacheManager.RegisterCache(_encumbranceCache);
+            
+            // Register cleanup method for pawn skip lists
+            CacheManager.RegisterCache(new PawnSkipListCache());
         }
 
         public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
@@ -383,8 +386,21 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			[storeTarget] = new(nextThing, capacityStoreCell)
 		};
 		//skipTargets = new() { storeTarget };
-		skipCells = new();
-		skipThings = new();
+		
+		// Initialize pawn-specific skip lists
+		if (!_pawnSkipCells.ContainsKey(pawn))
+		{
+			_pawnSkipCells[pawn] = new HashSet<IntVec3>();
+		}
+		if (!_pawnSkipThings.ContainsKey(pawn))
+		{
+			_pawnSkipThings[pawn] = new HashSet<Thing>();
+		}
+		
+		// Use pawn-specific skip lists for this job
+		skipCells = _pawnSkipCells[pawn];
+		skipThings = _pawnSkipThings[pawn];
+		
 		if (storeTarget.container != null)
 		{
 			skipThings.Add(storeTarget.container);
@@ -441,17 +457,72 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (effectiveAmount <= 0)
 		{
 			Log.Warning($"[PickUpAndHaul] WARNING: Pawn {pawn} cannot effectively haul {thing} - carriable: {actualCarriableAmount}, storage capacity: {capacityStoreCell}");
-			skipCells = null;
-			skipThings = null;
 			return null;
 		}
 		
+		// Try to reserve capacity for the initial item
 		if (!StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, thing.def, effectiveAmount, pawn))
 		{
 			Log.Warning($"[PickUpAndHaul] WARNING: Cannot reserve capacity for {effectiveAmount} of {thing} at {storageLocation} - insufficient available capacity");
-			skipCells = null;
-			skipThings = null;
-			return null;
+			
+			// Try to find alternative storage instead of giving up
+			Log.Message($"[PickUpAndHaul] DEBUG: Attempting to find alternative storage for {thing}");
+			
+			// Add the failed location to skip list to avoid trying it again
+			if (storeTarget.container != null)
+			{
+				skipThings.Add(storeTarget.container);
+			}
+			else
+			{
+				skipCells.Add(storeTarget.cell);
+			}
+			
+			// Try to find alternative storage, strictly avoiding the failed location
+			if (TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, pawn.Faction, out var alternativeCell, out var alternativeDestination, out var alternativeThingOwner, true))
+			{
+				Log.Message($"[PickUpAndHaul] DEBUG: Found alternative storage for {thing}: {alternativeDestination?.ToStringSafe() ?? alternativeCell.ToString()}");
+				
+				// Update storeTarget with the alternative
+				if (alternativeDestination is Thing destinationAsThing && alternativeThingOwner != null)
+				{
+					storeTarget = new(destinationAsThing);
+					capacityStoreCell = alternativeThingOwner.GetCountCanAccept(thing);
+					storageLocation = new StorageAllocationTracker.StorageLocation(destinationAsThing);
+				}
+				else if (alternativeCell.IsValid)
+				{
+					storeTarget = new(alternativeCell);
+					capacityStoreCell = CapacityAt(thing, alternativeCell, map);
+					storageLocation = new StorageAllocationTracker.StorageLocation(alternativeCell);
+				}
+				else
+				{
+					Log.Warning($"[PickUpAndHaul] WARNING: Alternative storage found but invalid - cell: {alternativeCell}, destination: {alternativeDestination}");
+					return null;
+				}
+				
+				// Update effective amount based on new capacity
+				effectiveAmount = Math.Min(actualCarriableAmount, capacityStoreCell);
+				
+				// Try to reserve capacity at the alternative location
+				if (!StorageAllocationTracker.Instance.ReserveCapacity(storageLocation, thing.def, effectiveAmount, pawn))
+				{
+					Log.Warning($"[PickUpAndHaul] WARNING: Cannot reserve capacity for {effectiveAmount} of {thing} at alternative location {storageLocation} - insufficient available capacity");
+					return null;
+				}
+				
+				Log.Message($"[PickUpAndHaul] DEBUG: Successfully reserved capacity for {effectiveAmount} of {thing} at alternative location {storageLocation}");
+				
+				// Update the storeCellCapacity dictionary with the new target
+				storeCellCapacity.Clear();
+				storeCellCapacity[storeTarget] = new(thing, capacityStoreCell);
+			}
+			else
+			{
+				Log.Warning($"[PickUpAndHaul] WARNING: No alternative storage found for {thing}");
+				return null;
+			}
 		}
 		
 		Log.Message($"[PickUpAndHaul] DEBUG: Reserved capacity for {effectiveAmount} of {thing} at {storageLocation} (carriable: {actualCarriableAmount}, storage: {capacityStoreCell})");
@@ -463,8 +534,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Error($"[PickUpAndHaul] ERROR: Failed to allocate initial item {thing} - this should not happen since storage was verified");
 			// Release reserved capacity
 			StorageAllocationTracker.Instance.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
-			skipCells = null;
-			skipThings = null;
 			return null;
 		}
 		Log.Message($"[PickUpAndHaul] DEBUG: Initial item {thing} allocated successfully");
@@ -478,8 +547,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			// Release the storage reservation we made earlier
 			StorageAllocationTracker.Instance.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
 			
-			skipCells = null;
-			skipThings = null;
 			return null;
 		}
 
@@ -540,8 +607,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Message($"[PickUpAndHaul] DEBUG: targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 			// At this point, we always have at least the initial item allocated since it was validated earlier
 			// No need to check if targetQueueA is empty - that's logically impossible here
-			skipCells = null;
-			skipThings = null;
 			//skipTargets = null;
 			return job;
 		}
@@ -555,8 +620,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			Log.Message($"[PickUpAndHaul] DEBUG: Can't carry more, nevermind!");
 			Log.Message($"[PickUpAndHaul] DEBUG: Final job state - targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
-			skipCells = null;
-			skipThings = null;
 			//skipTargets = null;
 			return job;
 		}
@@ -587,8 +650,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Failed to atomically remove last item from job queues for {pawn}");
 						// Clean up and return null to prevent crash
 						CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
-						skipCells = null;
-						skipThings = null;
 						return null;
 					}
 					
@@ -608,8 +669,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Failed to atomically update last item count for {pawn}");
 						// Clean up and return null to prevent crash
 						CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
-						skipCells = null;
-						skipThings = null;
 						return null;
 					}
 					
@@ -637,13 +696,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					? new StorageAllocationTracker.StorageLocation(currentStoreTarget.container)
 					: new StorageAllocationTracker.StorageLocation(currentStoreTarget.cell);
 				
-				// Release any remaining capacity reservations
-				StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
-			}
-			
-			skipCells = null;
-			skipThings = null;
-			return null;
+							// Release any remaining capacity reservations
+			StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
+		}
+		
+		return null;
 		}
 		
 		// Validate job before returning
@@ -654,13 +711,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job failed final validation for {pawn} - cleaning up and returning null");
 			CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
-			skipCells = null;
-			skipThings = null;
 			return null;
 		}
 		
-		skipCells = null;
-		skipThings = null;
 		//skipTargets = null;
 		return job;
 	}
@@ -1203,17 +1256,48 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//public static HashSet<StoreTarget> skipTargets;
 	public static HashSet<IntVec3> skipCells;
 	public static HashSet<Thing> skipThings;
+	
+	// Track failed storage locations per pawn to avoid retrying them
+	private static readonly Dictionary<Pawn, HashSet<IntVec3>> _pawnSkipCells = new();
+	private static readonly Dictionary<Pawn, HashSet<Thing>> _pawnSkipThings = new();
+	
+	/// <summary>
+	/// Cleans up pawn-specific skip lists for dead or invalid pawns
+	/// </summary>
+	public static void CleanupPawnSkipLists()
+	{
+		var pawnsToRemove = new List<Pawn>();
+		
+		foreach (var pawn in _pawnSkipCells.Keys)
+		{
+			if (pawn == null || pawn.Dead || pawn.Destroyed)
+			{
+				pawnsToRemove.Add(pawn);
+			}
+		}
+		
+		foreach (var pawn in pawnsToRemove)
+		{
+			_pawnSkipCells.Remove(pawn);
+			_pawnSkipThings.Remove(pawn);
+		}
+		
+		if (Settings.EnableDebugLogging && pawnsToRemove.Count > 0)
+		{
+			Log.Message($"[PickUpAndHaul] Cleaned up skip lists for {pawnsToRemove.Count} invalid pawns");
+		}
+	}
 
-	public static bool TryFindBestBetterStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner)
+	public static bool TryFindBestBetterStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner, bool strictSkip = false)
 	{
 		var storagePriority = StoragePriority.Unstored;
 		innerInteractableThingOwner = null;
-		if (TryFindBestBetterStoreCellFor(t, carrier, map, currentPriority, faction, out var foundCell2))
+		if (TryFindBestBetterStoreCellFor(t, carrier, map, currentPriority, faction, out var foundCell2, strictSkip))
 		{
 			storagePriority = foundCell2.GetSlotGroup(map).Settings.Priority;
 		}
 
-		if (!TryFindBestBetterNonSlotGroupStorageFor(t, carrier, map, currentPriority, faction, out var haulDestination2))
+		if (!TryFindBestBetterNonSlotGroupStorageFor(t, carrier, map, currentPriority, faction, out var haulDestination2, strictSkip))
 		{
 			haulDestination2 = null;
 		}
@@ -1252,7 +1336,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return true;
 	}
 
-	public static bool TryFindBestBetterStoreCellFor(Thing thing, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell)
+	public static bool TryFindBestBetterStoreCellFor(Thing thing, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, bool strictSkip = false)
 	{
 		var haulDestinations = map.haulDestinationManager.AllGroupsListInPriorityOrder;
 		for (var i = 0; i < haulDestinations.Count; i++)
@@ -1269,17 +1353,25 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			{
 				var cell = cellsList[j];
 				
-				// For multi-item hauling, allow reuse of cells that have remaining capacity
-				// Only skip cells if they have no remaining capacity
+				// Handle skipped cells based on strictSkip parameter
 				if (skipCells.Contains(cell))
 				{
-					// Check if this cell still has capacity for more items
-					var remainingCapacity = CapacityAt(thing, cell, map);
-					if (remainingCapacity <= 0)
+					if (strictSkip)
 					{
-						continue; // Skip if no capacity
+						// In strict mode, completely avoid skipped cells
+						continue;
 					}
-					Log.Message($"[PickUpAndHaul] DEBUG: Reusing previously allocated cell {cell} with remaining capacity {remainingCapacity} for {thing}");
+					else
+					{
+						// For multi-item hauling, allow reuse of cells that have remaining capacity
+						// Only skip cells if they have no remaining capacity
+						var remainingCapacity = CapacityAt(thing, cell, map);
+						if (remainingCapacity <= 0)
+						{
+							continue; // Skip if no capacity
+						}
+						Log.Message($"[PickUpAndHaul] DEBUG: Reusing previously allocated cell {cell} with remaining capacity {remainingCapacity} for {thing}");
+					}
 				}
 
 				if (StoreUtility.IsGoodStoreCell(cell, map, thing, carrier, faction) && cell != default)
@@ -1367,7 +1459,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                 return result;
         }
 
-	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
+	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false, bool strictSkip = false)
 	{
 		var allHaulDestinationsListInPriorityOrder = map.haulDestinationManager.AllHaulDestinationsListInPriorityOrder;
 		var intVec = t.SpawnedOrAnyParentSpawned ? t.PositionHeld : carrier.PositionHeld;
@@ -1402,23 +1494,31 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					continue;
 				}
 				
-				// For multi-item hauling, allow reuse of containers that have remaining capacity
+				// Handle skipped containers based on strictSkip parameter
 				if (skipThings.Contains(thing))
 				{
-					// Check if this container still has capacity for more items
-					var thingOwner = thing.TryGetInnerInteractableThingOwner();
-					if (thingOwner != null)
+					if (strictSkip)
 					{
-						var remainingCapacity = thingOwner.GetCountCanAccept(t);
-						if (remainingCapacity <= 0)
-						{
-							continue; // Skip if no capacity
-						}
-						Log.Message($"[PickUpAndHaul] DEBUG: Reusing previously allocated container {thing} with remaining capacity {remainingCapacity} for {t}");
+						// In strict mode, completely avoid skipped containers
+						continue;
 					}
 					else
 					{
-						continue; // Skip if can't determine capacity
+						// For multi-item hauling, allow reuse of containers that have remaining capacity
+						var thingOwner = thing.TryGetInnerInteractableThingOwner();
+						if (thingOwner != null)
+						{
+							var remainingCapacity = thingOwner.GetCountCanAccept(t);
+							if (remainingCapacity <= 0)
+							{
+								continue; // Skip if no capacity
+							}
+							Log.Message($"[PickUpAndHaul] DEBUG: Reusing previously allocated container {thing} with remaining capacity {remainingCapacity} for {t}");
+						}
+						else
+						{
+							continue; // Skip if can't determine capacity
+						}
 					}
 				}
 
@@ -1635,9 +1735,25 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
 		}
 	}
-}
 
-public static class PickUpAndHaulDesignationDefOf
-{
-	public static DesignationDef haulUrgently = DefDatabase<DesignationDef>.GetNamedSilentFail("HaulUrgentlyDesignation");
+	/// <summary>
+	/// Cache wrapper for pawn skip lists to integrate with CacheManager
+	/// </summary>
+	internal class PawnSkipListCache : ICache
+	{
+		public void ForceCleanup()
+		{
+			CleanupPawnSkipLists();
+		}
+		
+		public string GetDebugInfo()
+		{
+			return $"Pawn skip lists: {_pawnSkipCells.Count} pawns tracked";
+		}
+	}
+
+	public static class PickUpAndHaulDesignationDefOf
+	{
+		public static DesignationDef haulUrgently = DefDatabase<DesignationDef>.GetNamedSilentFail("HaulUrgentlyDesignation");
+	}
 }
