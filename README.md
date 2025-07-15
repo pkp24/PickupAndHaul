@@ -23,7 +23,7 @@ Want field-doctoring to be even better? Use [Smart Medicine](https://steamcommun
 Works in unison with AllowTool's Haul Urgently designation.
 
 
-Fully Combat Extended compatible. Backpacks, bulk, mass - it hopefully all still works, please let me know
+Fully Combat Extended compatible. Backpacks, bulk, mass - (it hopefully all still works, please let me know)
 
 
 ## Credits and thanks:
@@ -64,6 +64,7 @@ This mod should be compatible with:
 If you experience issues:
 
 1. Check the logs for error messages and report them on steam, github, or discord
+2. Enable debug logging in the mod options, pull the PickUpAndHaul_Debug.txt from "AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios", upload the debug file to pastebin or someplace to send it to me. DO NOT KEEP DEBUG LOGGING ENABLED
 
 ## License
 
