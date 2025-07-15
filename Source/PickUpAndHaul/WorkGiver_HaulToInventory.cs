@@ -19,8 +19,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| pawn.IsQuestLodger()
 		|| OverAllowedGearCapacity(pawn)
 		|| PickupAndHaulSaveLoadLogger.IsSaveInProgress()
-		|| !PickupAndHaulSaveLoadLogger.IsModActive() // Skip if mod is not active
-		|| pawn.RaceProps.Animal; // Skip animals - they can't use inventory systems
+		|| !PickupAndHaulSaveLoadLogger.IsModActive(); // Skip if mod is not active
 		
 		return result;
 	}
@@ -112,7 +111,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
         public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
 		var result = !pawn.InMentalState
-                && !pawn.RaceProps.Animal // Skip animals - they can't use inventory systems
                 && OkThingToHaul(thing, pawn)
                 && IsNotCorpseOrAllowed(thing)
 		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
@@ -214,8 +212,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
                         return null;
                 }
 
-                // Do not create hauling jobs for pawns in a mental state or animals
-                if (pawn.InMentalState || pawn.RaceProps.Animal)
+                // Do not create hauling jobs for pawns in a mental state
+                if (pawn.InMentalState)
                 {
                         return null;
                 }
