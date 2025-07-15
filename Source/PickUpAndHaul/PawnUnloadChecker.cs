@@ -9,8 +9,8 @@ public class PawnUnloadChecker
                         return; // Skip unload checking during save operations
                 }
 
-        // Ignore pawns that are currently in a mental state or animals
-        if (pawn == null || pawn.InMentalState || pawn.RaceProps.Animal)
+        // Ignore pawns that are currently in a mental state
+        if (pawn == null || pawn.InMentalState)
         {
             return;
         }
