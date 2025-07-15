@@ -639,7 +639,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (carryCapacity <= 0)
 			{
-				var originalCount = job.countQueue.Pop();
+				// Get the last item count safely - check if countQueue has items first
+				if (job.countQueue == null || job.countQueue.Count == 0)
+				{
+					Log.Error($"[PickUpAndHaul] CRITICAL ERROR: countQueue is null or empty when trying to adjust count for {pawn}");
+					CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
+					return null;
+				}
+				
+				var originalCount = job.countQueue[job.countQueue.Count - 1];
 				var adjustedCount = originalCount + carryCapacity;
 				
 				if (adjustedCount <= 0)
@@ -688,19 +696,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Job has empty targetQueueA for {pawn} - this would cause ArgumentOutOfRangeException!");
 			Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Releasing all reservations and returning null to prevent crash");
 			
-			// Release all storage reservations to prevent capacity leaks
-			foreach (var kvp in storeCellCapacity)
-			{
-				var currentStoreTarget = kvp.Key;
-				var releaseLocation = currentStoreTarget.container != null 
-					? new StorageAllocationTracker.StorageLocation(currentStoreTarget.container)
-					: new StorageAllocationTracker.StorageLocation(currentStoreTarget.cell);
-				
-							// Release any remaining capacity reservations
-			StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
-		}
-		
-		return null;
+			// Use CleanupInvalidJob to properly release storage capacity based on actual allocated amounts
+			CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
+			
+			return null;
 		}
 		
 		// Validate job before returning
@@ -1724,15 +1723,57 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		if (job == null) return;
 
-		foreach (var kvp in storeCellCapacity)
+		// Use the actual allocated amounts from job queues instead of remaining capacity
+		if (job.countQueue != null && job.targetQueueB != null && job.countQueue.Count == job.targetQueueB.Count)
 		{
-			var currentStoreTarget = kvp.Key;
-			var releaseLocation = currentStoreTarget.container != null 
-				? new StorageAllocationTracker.StorageLocation(currentStoreTarget.container)
-				: new StorageAllocationTracker.StorageLocation(currentStoreTarget.cell);
-			
-			// Release any remaining capacity reservations
-			StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
+			for (int i = 0; i < job.countQueue.Count; i++)
+			{
+				var allocatedCount = job.countQueue[i];
+				var target = job.targetQueueB[i];
+				
+				if (allocatedCount > 0 && target != null)
+				{
+					StorageAllocationTracker.StorageLocation releaseLocation;
+					
+					// Determine the storage location from the target
+					if (target.Thing != null)
+					{
+						// Container storage
+						releaseLocation = new StorageAllocationTracker.StorageLocation(target.Thing);
+					}
+					else if (target.Cell.IsValid)
+					{
+						// Cell storage
+						releaseLocation = new StorageAllocationTracker.StorageLocation(target.Cell);
+					}
+					else
+					{
+						Log.Warning($"[PickUpAndHaul] WARNING: Invalid target at index {i} in CleanupInvalidJob for {pawn}");
+						continue;
+					}
+					
+					// Release the actual allocated amount
+					StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, allocatedCount, pawn);
+					Log.Message($"[PickUpAndHaul] DEBUG: CleanupInvalidJob: Released {allocatedCount} of {thing.def} at {releaseLocation} for {pawn}");
+				}
+			}
+		}
+		else
+		{
+			// Fallback: if job queues are invalid, use the storeCellCapacity (less accurate but safer)
+			Log.Warning($"[PickUpAndHaul] WARNING: Job queues are invalid in CleanupInvalidJob for {pawn}, using fallback cleanup method");
+			foreach (var kvp in storeCellCapacity)
+			{
+				var currentStoreTarget = kvp.Key;
+				var releaseLocation = currentStoreTarget.container != null 
+					? new StorageAllocationTracker.StorageLocation(currentStoreTarget.container)
+					: new StorageAllocationTracker.StorageLocation(currentStoreTarget.cell);
+				
+				// Note: This is less accurate as it uses remaining capacity instead of allocated amount
+				// But it's safer than doing nothing if job queues are corrupted
+				StorageAllocationTracker.Instance.ReleaseCapacity(releaseLocation, thing.def, kvp.Value.capacity, pawn);
+				Log.Message($"[PickUpAndHaul] DEBUG: CleanupInvalidJob fallback: Released {kvp.Value.capacity} of {thing.def} at {releaseLocation} for {pawn}");
+			}
 		}
 	}
 
