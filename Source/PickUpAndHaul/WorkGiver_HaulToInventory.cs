@@ -579,29 +579,41 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				var originalCount = job.countQueue.Pop();
 				var adjustedCount = originalCount + carryCapacity;
 				
-                                if (adjustedCount <= 0)
-                                {
-                                        // Remove the item entirely if the adjusted count is 0 or negative
-                                        job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+				if (adjustedCount <= 0)
+				{
+					// Use JobQueueManager to atomically remove the last item from all queues
+					if (!JobQueueManager.RemoveItemsFromJob(job, 1, pawn))
+					{
+						Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Failed to atomically remove last item from job queues for {pawn}");
+						// Clean up and return null to prevent crash
+						CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
+						skipCells = null;
+						skipThings = null;
+						return null;
+					}
+					
+					// Also remove the corresponding entry from bCountTracker
+					if (bCountTracker.Count > 0)
+					{
+						bCountTracker.RemoveAt(bCountTracker.Count - 1);
+					}
 
-                                        var bRemove = 1;
-                                        if (bCountTracker.Count > 0)
-                                        {
-                                                bRemove = bCountTracker[^1];
-                                                bCountTracker.RemoveAt(bCountTracker.Count - 1);
-                                        }
-
-                                        for (var i = 0; i < bRemove && job.targetQueueB.Count > 0; i++)
-                                        {
-                                                job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
-                                        }
-
-                                        Log.Message($"[PickUpAndHaul] DEBUG: Removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
-                                }
+					Log.Message($"[PickUpAndHaul] DEBUG: Atomically removed last item from job - adjusted count would be {adjustedCount} (original: {originalCount}, carryCapacity: {carryCapacity})");
+				}
 				else
 				{
-					job.countQueue.Add(adjustedCount);
-					Log.Message($"[PickUpAndHaul] DEBUG: Adjusted count from {originalCount} to {adjustedCount} (carryCapacity: {carryCapacity})");
+					// Use JobQueueManager to atomically update the count
+					if (!JobQueueManager.UpdateLastItemCount(job, adjustedCount, pawn))
+					{
+						Log.Error($"[PickUpAndHaul] CRITICAL ERROR: Failed to atomically update last item count for {pawn}");
+						// Clean up and return null to prevent crash
+						CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
+						skipCells = null;
+						skipThings = null;
+						return null;
+					}
+					
+					Log.Message($"[PickUpAndHaul] DEBUG: Atomically adjusted count from {originalCount} to {adjustedCount} (carryCapacity: {carryCapacity})");
 				}
 				break;
 			}

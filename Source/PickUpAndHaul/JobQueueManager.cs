@@ -205,6 +205,63 @@ namespace PickUpAndHaul
         }
         
         /// <summary>
+        /// Atomically updates the count of the last item in a job's queues
+        /// </summary>
+        public static bool UpdateLastItemCount(Job job, int newCount, Pawn pawn)
+        {
+            if (job == null || newCount <= 0)
+            {
+                Log.Error("[JobQueueManager] UpdateLastItemCount: Invalid parameters");
+                return false;
+            }
+            
+            lock (_lockObject)
+            {
+                try
+                {
+                    if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
+                    {
+                        Log.Error("[JobQueueManager] UpdateLastItemCount: Job queues are null");
+                        return false;
+                    }
+                    
+                    if (job.countQueue.Count == 0)
+                    {
+                        Log.Error("[JobQueueManager] UpdateLastItemCount: countQueue is empty");
+                        return false;
+                    }
+                    
+                    // Store the original count for rollback
+                    var originalCount = job.countQueue[job.countQueue.Count - 1];
+                    
+                    // Update the count atomically
+                    job.countQueue[job.countQueue.Count - 1] = newCount;
+                    
+                    // Validate that the queues are still synchronized
+                    if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
+                    {
+                        Log.Error($"[JobQueueManager] UpdateLastItemCount: Queue synchronization failed after updating count for {pawn}");
+                        // Rollback the change
+                        job.countQueue[job.countQueue.Count - 1] = originalCount;
+                        return false;
+                    }
+                    
+                    if (Settings.EnableDebugLogging)
+                    {
+                        Log.Message($"[JobQueueManager] Successfully updated last item count from {originalCount} to {newCount} for {pawn}");
+                    }
+                    
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"[JobQueueManager] UpdateLastItemCount: Exception occurred: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+        
+        /// <summary>
         /// Atomically clears all items from a job's queues
         /// </summary>
         public static void ClearJobQueues(Job job, Pawn pawn)
