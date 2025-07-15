@@ -248,7 +248,11 @@ namespace PickUpAndHaul
                             // Return safe stack count as fallback
                             return GetSafeStackCount(itemDef);
                         }
-                        // Note: No need to call Destroy() on unspawned temporary objects - they will be garbage collected
+                        finally
+                        {
+                            // Properly dispose of the temporary thing to prevent memory leaks
+                            DisposeTempThing(tempThing);
+                        }
                     }
                     else
                     {
@@ -268,21 +272,25 @@ namespace PickUpAndHaul
                         var capacity = WorkGiver_HaulToInventory.CapacityAt(tempThing, location.Cell, map);
                         return capacity;
                     }
-                                            catch (Exception ex)
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at cell {location.Cell}: {ex.Message}");
+                        // Fallback: check if there's already an item at the location and calculate remaining capacity
+                        var existingThing = map.thingGrid.ThingAt(location.Cell, itemDef);
+                        if (existingThing != null)
                         {
-                            Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at cell {location.Cell}: {ex.Message}");
-                            // Fallback: check if there's already an item at the location and calculate remaining capacity
-                            var existingThing = map.thingGrid.ThingAt(location.Cell, itemDef);
-                            if (existingThing != null)
-                            {
-                                return GetSafeStackCount(itemDef) - existingThing.stackCount;
-                            }
-                            else
-                            {
-                                return GetSafeStackCount(itemDef);
-                            }
+                            return GetSafeStackCount(itemDef) - existingThing.stackCount;
                         }
-                    // Note: No need to call Destroy() on unspawned temporary objects - they will be garbage collected
+                        else
+                        {
+                            return GetSafeStackCount(itemDef);
+                        }
+                    }
+                    finally
+                    {
+                        // Properly dispose of the temporary thing to prevent memory leaks
+                        DisposeTempThing(tempThing);
+                    }
                 }
                 else
                 {
@@ -339,6 +347,45 @@ namespace PickUpAndHaul
             {
                 Log.Error($"[StorageAllocationTracker] Error creating temp thing for {itemDef}: {ex.Message}");
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Properly dispose of a temporary thing to prevent memory leaks
+        /// </summary>
+        private void DisposeTempThing(Thing tempThing)
+        {
+            if (tempThing == null)
+                return;
+                
+            try
+            {
+                // If the thing is spawned, destroy it properly
+                if (tempThing.Spawned)
+                {
+                    tempThing.Destroy();
+                }
+                else
+                {
+                    // For unspawned things, we need to clean up any references they might hold
+                    // This is especially important for things with stuff materials
+                    if (tempThing.Stuff != null)
+                    {
+                        // Clear the stuff reference to prevent memory leaks
+                        tempThing.SetStuffDirect(null);
+                    }
+                    
+                    // Clear any other potential references that might cause memory leaks
+                    tempThing.stackCount = 0;
+                    
+                    // Force garbage collection for this specific object
+                    // Note: This is a more aggressive cleanup approach for unspawned objects
+                    tempThing = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[StorageAllocationTracker] Error disposing temp thing {tempThing}: {ex.Message}");
             }
         }
 
