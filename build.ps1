@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 
 # PickUpAndHaul Build Script
-# This script builds both projects in the correct order
+# This script builds both projects
 
 param(
     [string]$Configuration = "Debug",
