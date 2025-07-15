@@ -3,38 +3,35 @@ public class PawnUnloadChecker
 {
         public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
         {
-		PerformanceProfiler.StartTimer("CheckIfPawnShouldUnloadInventory");
-		
                 // Check if save operation is in progress
                 if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
                 {
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
                         return; // Skip unload checking during save operations
                 }
 
-                // Ignore pawns that are currently in a mental state
-                if (pawn == null || pawn.InMentalState)
-                {
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
-                        return;
-                }
+        // Ignore pawns that are currently in a mental state
+        if (pawn == null || pawn.InMentalState)
+        {
+            return;
+        }
 
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
 		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
 
 		if (itemsTakenToInventory == null)
 		{
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
+		// Clean up nulls at a safe point before accessing the collection
+		itemsTakenToInventory.CleanupNulls();
+		
 		var carriedThing = itemsTakenToInventory.GetHashSet();
 
 		if (pawn.Faction != Faction.OfPlayerSilentFail || !Settings.IsAllowedRace(pawn.RaceProps)
 			|| carriedThing == null || carriedThing.Count == 0
 			|| pawn.inventory.innerContainer is not { } inventoryContainer || inventoryContainer.Count == 0)
 		{
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
@@ -43,7 +40,6 @@ public class PawnUnloadChecker
 			&& job.TryMakePreToilReservations(pawn, false)))
 		{
 			pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-			PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 			return;
 		}
 
@@ -56,15 +52,14 @@ public class PawnUnloadChecker
 				if (compRottable?.TicksUntilRotAtCurrentTemp < 30000)
 				{
 					pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-					PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 					return;
 				}
 			}
 		}
-		
-		PerformanceProfiler.EndTimer("CheckIfPawnShouldUnloadInventory");
 
-		if (Find.TickManager.TicksGame % 50 == 0 && inventoryContainer.Count < carriedThing.Count)
+		// Stagger inventory sync checks to prevent all pawns checking at once
+		var staggeredCheck = (Find.TickManager.TicksGame + (pawn.thingIDNumber % 50)) % 50 == 0;
+		if (staggeredCheck && inventoryContainer.Count < carriedThing.Count)
 		{
 			Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
 			carriedThing.Clear();

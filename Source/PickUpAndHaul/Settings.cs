@@ -36,6 +36,16 @@ public class Settings : ModSettings
 			_maximumOccupiedCapacityToConsiderHauling = (float)Math.Round((100d - newFreeInventorySpaceValue) * 0.01, 2);
 		}
 
+		// Add debug log management
+		if (_enableDebugLogging)
+		{
+			ls.Gap();
+			if (ls.ButtonText("Clear Debug Log File"))
+			{
+				Log.ClearDebugLogFile();
+			}
+		}
+
 		ls.End();
 	}
 

@@ -9,13 +9,11 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 	public override void ExposeData()
 	{
-		PerformanceProfiler.StartTimer("ExposeData");
 		// Don't save any data for this job driver to prevent save corruption
 		// when the mod is removed
 		if (Scribe.mode == LoadSaveMode.Saving)
 		{
 			Log.Message("[PickUpAndHaul] Skipping save data for UnloadYourHauledInventory job driver");
-			PerformanceProfiler.EndTimer("ExposeData");
 			return;
 		}
 		
@@ -23,27 +21,22 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
 			Log.Message("[PickUpAndHaul] Skipping load data for UnloadYourHauledInventory job driver");
-			PerformanceProfiler.EndTimer("ExposeData");
 			return;
 		}
 		
 		// Only expose data if we're in a different mode (like copying)
 		base.ExposeData();
 		Scribe_Values.Look<int>(ref _countToDrop, "countToDrop", -1);
-		PerformanceProfiler.EndTimer("ExposeData");
 	}
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed) 
 	{
-		PerformanceProfiler.StartTimer("TryMakePreToilReservations");
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			Log.Message($"[PickUpAndHaul] Skipping UnloadYourHauledInventory job reservations during save operation for {pawn}");
-			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 			return false;
 		}
-		PerformanceProfiler.EndTimer("TryMakePreToilReservations");
 		return true;
 	}
 
@@ -53,15 +46,17 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		PerformanceProfiler.StartTimer("MakeNewToils");
 		// Check if save operation is in progress at the start
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			Log.Message($"[PickUpAndHaul] Ending UnloadYourHauledInventory job during save operation for {pawn}");
 			EndJobWith(JobCondition.InterruptForced);
-			PerformanceProfiler.EndTimer("MakeNewToils");
 			yield break;
 		}
+
+		// Clean up nulls at a safe point before we start iterating
+		var comp = pawn.TryGetComp<CompHauledToInventory>();
+		comp?.CleanupNulls();
 
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
@@ -71,7 +66,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		var begin = Toils_General.Wait(_unloadDuration);
 		yield return begin;
 
-		var carriedThings = pawn.TryGetComp<CompHauledToInventory>().GetHashSet();
+		var carriedThings = comp?.GetHashSet() ?? new HashSet<Thing>();
 		yield return FindTargetOrDrop(carriedThings);
 		yield return PullItemFromInventory(carriedThings, begin);
 
@@ -96,7 +91,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		//We still gotta release though, mostly because of Extended Storage.
 		yield return releaseReservation;
 		yield return Toils_Jump.Jump(begin);
-		PerformanceProfiler.EndTimer("MakeNewToils");
 	}
 
 	private bool TargetIsCell() => !TargetB.HasThing;
@@ -128,12 +122,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
-				PerformanceProfiler.StartTimer("PullItemFromInventory");
-				// Check for save operation before pulling item
 				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 				{
 					EndJobWith(JobCondition.InterruptForced);
-					PerformanceProfiler.EndTimer("PullItemFromInventory");
 					return;
 				}
 
@@ -142,37 +133,75 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				{
 					carriedThings.Remove(thing);
 					pawn.jobs.curDriver.JumpToToil(wait);
-					PerformanceProfiler.EndTimer("PullItemFromInventory");
 					return;
 				}
-				if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
+
+				// Clamp to a positive amount
+				if (_countToDrop <= 0 || _countToDrop > thing.stackCount)
+					_countToDrop = thing.stackCount;
+
+				var destCell = TargetB.HasThing ? job.targetB.Thing.Position : job.targetB.Cell;
+				if (destCell.IsValid &&
+					HoldMultipleThings_Support.CapacityAt(thing, destCell, pawn.Map, out var cap))
 				{
-					Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
-					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
+					if (cap <= 0)
+					{
+						pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near,
+							_countToDrop, out var dropped);
+						dropped?.SetForbidden(false, false);
+
+						// Release only if we actually reserved
+						if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
+							pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
+
+						EndJobWith(JobCondition.Succeeded);
+						carriedThings.Remove(thing);
+						return;
+					}
+
+					_countToDrop = Math.Min(_countToDrop, cap);
+				}
+
+				if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) ||
+					!thing.def.EverStorable(false))
+				{
+					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near,
+						_countToDrop, out var dropped);
+					dropped?.SetForbidden(false, false);
+
+					if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
+						pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
+
 					EndJobWith(JobCondition.Succeeded);
 					carriedThings.Remove(thing);
-					PerformanceProfiler.EndTimer("PullItemFromInventory");
+					return;
 				}
-				else
+
+				pawn.inventory.innerContainer.TryTransferToContainer(
+					thing, pawn.carryTracker.innerContainer, _countToDrop, out var carried);
+
+				// If transfer failed, fall back to dropping near the pawn
+				if (carried == null)
 				{
-					pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer,
-						_countToDrop, out thing);
-					job.count = _countToDrop;
-					job.SetTarget(TargetIndex.A, thing);
+					pawn.inventory.innerContainer.TryDrop(
+						thing, ThingPlaceMode.Near, _countToDrop, out carried);
+					carried?.SetForbidden(false, false);
+					EndJobWith(JobCondition.Succeeded);
 					carriedThings.Remove(thing);
-					PerformanceProfiler.EndTimer("PullItemFromInventory");
+					return;
 				}
+
+				job.count = _countToDrop;
+				job.SetTarget(TargetIndex.A, carried);
+				carried.SetForbidden(false, false);
+				carriedThings.Remove(thing);
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
-				{
 					CompatHelper.UpdateInventory(pawn);
-				}
-
-				thing.SetForbidden(false, false);
-				PerformanceProfiler.EndTimer("PullItemFromInventory");
 			}
 		};
 	}
+
 
 	private Toil FindTargetOrDrop(HashSet<Thing> carriedThings)
 	{
@@ -180,88 +209,109 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			initAction = () =>
 			{
-				PerformanceProfiler.StartTimer("FindTargetOrDrop");
-				// Check for save operation before finding target
 				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 				{
 					EndJobWith(JobCondition.InterruptForced);
-					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 					return;
 				}
 
-				var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
-
-				if (unloadableThing.Count == 0)
+				var unloadable = FirstUnloadableThing(pawn, carriedThings);
+				if (unloadable.Count == 0)
 				{
 					if (carriedThings.Count == 0)
-					{
 						EndJobWith(JobCondition.Succeeded);
-					}
-					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 					return;
 				}
 
-				var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
-				if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					    pawn.Faction, out var cell, out var destination))
+				// Locate storage
+				if (StoreUtility.TryFindBestBetterStorageFor(
+						unloadable.Thing, pawn, pawn.Map, StoragePriority.Unstored,
+						pawn.Faction, out var cell, out var dest))
 				{
-					job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-					if (cell == IntVec3.Invalid)
+					job.SetTarget(TargetIndex.A, unloadable.Thing);
+
+					var targetB = cell == IntVec3.Invalid && dest is Thing destThing ? (LocalTargetInfo)destThing : cell;
+					job.SetTarget(TargetIndex.B, targetB);
+
+					var targetCell  = cell == IntVec3.Invalid
+										? (dest as Thing)?.Position ?? IntVec3.Invalid
+										: cell;
+
+					int capacity    = unloadable.Thing.stackCount;
+					bool skipRes    = false;
+
+					if (targetCell.IsValid &&
+						HoldMultipleThings_Support.CapacityAt(unloadable.Thing, targetCell,
+															pawn.Map, out var cap))
 					{
-						job.SetTarget(TargetIndex.B, destination as Thing);
-					}
-					else
-					{
-						job.SetTarget(TargetIndex.B, cell);
+						capacity = cap;
+						skipRes  = true;              // handled by the crate itself
 					}
 
-					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-					if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+					// Reserve if necessary
+					if (!skipRes &&
+						!pawn.Map.reservationManager.Reserve(pawn, job, targetB))
 					{
-						Log.Message(
-							$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-							unloadableThing.Thing.stackCount, out _);
+						pawn.inventory.innerContainer.TryDrop(unloadable.Thing,
+							ThingPlaceMode.Near, unloadable.Thing.stackCount, out var dropped);
+						dropped?.SetForbidden(false, false);
 						EndJobWith(JobCondition.Incompletable);
-						PerformanceProfiler.EndTimer("FindTargetOrDrop");
 						return;
 					}
-					_countToDrop = unloadableThing.Thing.stackCount;
-					PerformanceProfiler.EndTimer("FindTargetOrDrop");
+
+					_countToDrop = capacity > 0
+						? Math.Min(unloadable.Thing.stackCount, capacity)
+						: unloadable.Thing.stackCount;
+
+					if (_countToDrop <= 0) _countToDrop = 1;
 				}
 				else
 				{
-					Log.Message(
-						$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
-					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-						unloadableThing.Thing.stackCount, out _);
+					pawn.inventory.innerContainer.TryDrop(unloadable.Thing,
+						ThingPlaceMode.Near, unloadable.Thing.stackCount, out var dropped);
+					dropped?.SetForbidden(false, false);
 					EndJobWith(JobCondition.Succeeded);
-					PerformanceProfiler.EndTimer("FindTargetOrDrop");
 				}
 			}
 		};
 	}
 
+
+
         private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
         {
-			PerformanceProfiler.StartTimer("FirstUnloadableThing");
                 var innerPawnContainer = pawn.inventory.innerContainer;
                 Thing best = null;
 
-                foreach (var thing in carriedThings)
+                // Use ToList() to avoid "collection modified during iteration" exception
+                // since we may need to remove items from carriedThings
+                var carriedThingsList = carriedThings.ToList();
+                
+                // Track items to remove after iteration completes
+                var itemsToRemove = new List<Thing>();
+
+                foreach (var thing in carriedThingsList)
                 {
+                        // Skip null items without modifying the collection
+                        if (thing == null)
+                        {
+                                itemsToRemove.Add(thing);
+                                continue;
+                        }
+
                         // Handle stacks that changed IDs after being picked up
                         if (!innerPawnContainer.Contains(thing))
                         {
                                 var stragglerDef = thing.def;
-                                carriedThings.Remove(thing);
+                                itemsToRemove.Add(thing);
 
                                 for (var i = 0; i < innerPawnContainer.Count; i++)
                                 {
                                         var dirtyStraggler = innerPawnContainer[i];
                                         if (dirtyStraggler.def == stragglerDef)
                                         {
-                                                PerformanceProfiler.EndTimer("FirstUnloadableThing");
+                                                // Clean up all invalid items from carriedThings before returning
+                                                CleanupInvalidItems(carriedThings, innerPawnContainer);
                                                 return new ThingCount(dirtyStraggler, dirtyStraggler.stackCount);
                                         }
                                 }
@@ -274,7 +324,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                         }
                 }
 
-                PerformanceProfiler.EndTimer("FirstUnloadableThing");
+                // Remove all tracked items after iteration completes
+                foreach (var item in itemsToRemove)
+                {
+                        carriedThings.Remove(item);
+                }
+
                 return best != null ? new ThingCount(best, best.stackCount) : default;
 
                 static int CompareInventoryOrder(Thing a, Thing b)
@@ -283,6 +338,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
                         var catB = b.def.FirstThingCategory?.index ?? int.MaxValue;
                         var compare = catA.CompareTo(catB);
                         return compare != 0 ? compare : string.CompareOrdinal(a.def.defName, b.def.defName);
+                }
+
+                static void CleanupInvalidItems(HashSet<Thing> carriedThings, ThingOwner innerPawnContainer)
+                {
+                        // Remove all null items and items not in the container
+                        carriedThings.RemoveWhere(thing => thing == null || !innerPawnContainer.Contains(thing));
                 }
         }
 }

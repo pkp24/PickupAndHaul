@@ -8,8 +8,15 @@ public class CompHauledToInventory : ThingComp
 	{
 		if (takenToInventory == null)
 			takenToInventory = new HashSet<Thing>();
-		takenToInventory.RemoveWhere(x => x == null);
+		// Don't modify the collection here - this causes concurrent modification exceptions
+		// Instead, handle null removal at specific safe points
 		return takenToInventory;
+	}
+	
+	public void CleanupNulls()
+	{
+		// Separate method to clean nulls that can be called at safe points
+		takenToInventory?.RemoveWhere(x => x == null);
 	}
 
 	public void RegisterHauledItem(Thing thing) => takenToInventory.Add(thing);

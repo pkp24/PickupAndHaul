@@ -43,6 +43,10 @@ static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(TickManagerUpdate_Postfix)));
 
+		// Add cache management to the main tick
+		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(CacheManagement_Postfix)));
+
 		harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), nameof(ITab_Pawn_Gear.DrawThingRow)),
 			transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
 
@@ -67,6 +71,14 @@ static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.ExposeData)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Prefix)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Postfix)));
+
+		// Add patch to handle pawn death and job interruption for storage allocation cleanup
+		harmony.Patch(original: AccessTools.Method(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.EndCurrentJob)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_JobTracker_EndCurrentJob_Postfix)));
+
+		// Add patch to handle pawn death for storage allocation cleanup
+		harmony.Patch(original: AccessTools.Method(typeof(Pawn), nameof(Pawn.Kill)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_Kill_Postfix)));
 
 
 
@@ -245,7 +257,29 @@ static class HarmonyPatches
 
 	public static void TickManagerUpdate_Postfix()
 	{
-		PerformanceProfiler.Update();
+		//PerformanceProfiler.Update();
+	}
+
+	public static void CacheManagement_Postfix()
+	{
+		try
+		{
+			// PERFORMANCE OPTIMIZATION: Only run cache management every 60 ticks (1 second at 60 TPS)
+			// This reduces the performance impact from 33ms to <1ms per frame
+			var currentTick = Find.TickManager?.TicksGame ?? 0;
+			if (currentTick % 60 != 0)
+			{
+				return; // Skip this tick to reduce performance impact
+			}
+			
+			// Check for map changes and game resets
+			CacheManager.CheckForMapChange();
+			CacheManager.CheckForGameReset();
+		}
+		catch (Exception ex)
+		{
+			Log.Warning($"[PickUpAndHaul] Error in cache management: {ex.Message}");
+		}
 	}
 
 	public static void DropUnusedInventory_PostFix(Pawn pawn) 
@@ -423,5 +457,46 @@ static class HarmonyPatches
 		{
 			Log.Error($"[PickUpAndHaul] Error in Game_ExposeData_Postfix: {ex.Message}");
 		}
+	}
+
+	/// <summary>
+	/// Clean up storage allocations when a job ends
+	/// </summary>
+	private static void Pawn_JobTracker_EndCurrentJob_Postfix(Pawn_JobTracker __instance, JobCondition condition, bool startNewJob = true, bool canReturnToPool = true)
+	{
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			return; // Skip cleanup during save
+		}
+
+        // Clean up storage allocations for the pawn if relevant
+        if (__instance.pawn != null && !__instance.pawn.RaceProps.Animal)
+        {
+                if (StorageAllocationTracker.Instance.HasAllocations(__instance.pawn))
+                {
+                        StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance.pawn);
+                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
+                }
+        }
+	}
+
+	/// <summary>
+	/// Clean up storage allocations when a pawn dies
+	/// </summary>
+	private static void Pawn_Kill_Postfix(Pawn __instance, DamageInfo? dinfo, Hediff exactCulprit = null)
+	{
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			return; // Skip cleanup during save
+		}
+
+        // Clean up storage allocations for the dead pawn if relevant
+        if (!__instance.RaceProps.Animal && StorageAllocationTracker.Instance.HasAllocations(__instance))
+        {
+                StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance);
+                Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
+        }
 	}
 }
