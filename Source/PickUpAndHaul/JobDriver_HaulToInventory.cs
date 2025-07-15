@@ -3,58 +3,17 @@
 namespace PickUpAndHaul;
 public class JobDriver_HaulToInventory : JobDriver
 {
-	public override void ExposeData()
-	{
-		// Don't save any data for this job driver to prevent save corruption
-		// when the mod is removed
-		if (Scribe.mode == LoadSaveMode.Saving)
-		{
-			Log.Message("[PickUpAndHaul] Skipping save data for HaulToInventory job driver");
-			return;
-		}
-		
-		// Only load data if we're in loading mode and the mod is active
-		if (Scribe.mode == LoadSaveMode.LoadingVars)
-		{
-			Log.Message("[PickUpAndHaul] Skipping load data for HaulToInventory job driver");
-			return;
-		}
-	}
-
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
-		PerformanceProfiler.StartTimer("TryMakePreToilReservations");
-		
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			Log.Message($"[PickUpAndHaul] Skipping HaulToInventory job reservations during save operation for {pawn}");
-			PerformanceProfiler.EndTimer("TryMakePreToilReservations");
-			return false;
-		}
-
 		Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
 		pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
 		pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
-		var result = pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
-		PerformanceProfiler.EndTimer("TryMakePreToilReservations");
-		return result;
+		return pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
 	}
 
 	//get next, goto, take, check for more. Branches off to "all over the place"
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		PerformanceProfiler.StartTimer("MakeNewToils");
-		
-		// Check if save operation is in progress at the start
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			Log.Message($"[PickUpAndHaul] Ending HaulToInventory job during save operation for {pawn}");
-			EndJobWith(JobCondition.InterruptForced);
-			PerformanceProfiler.EndTimer("MakeNewToils");
-			yield break;
-		}
-
 		var takenToInventory = pawn.TryGetComp<CompHauledToInventory>();
 
 		var wait = Toils_General.Wait(2);
@@ -66,16 +25,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 		var gotoThing = new Toil
 		{
-			initAction = () => 
-			{
-				// Check for save operation before pathing
-				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-				{
-					EndJobWith(JobCondition.InterruptForced);
-					return;
-				}
-				pawn.pather.StartPath(TargetThingA, PathEndMode.ClosestTouch);
-			},
+			initAction = () => pawn.pather.StartPath(TargetThingA, PathEndMode.ClosestTouch),
 			defaultCompleteMode = ToilCompleteMode.PatherArrival
 		};
 		gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
@@ -85,13 +35,6 @@ public class JobDriver_HaulToInventory : JobDriver
 		{
 			initAction = () =>
 			{
-				// Check for save operation before taking action
-				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-				{
-					EndJobWith(JobCondition.InterruptForced);
-					return;
-				}
-
 				var actor = pawn;
 				var thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
 				Toils_Haul.ErrorCheckForCarry(actor, thing);
@@ -122,7 +65,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				//This will technically release the reservations in the queue, but what can you do
 				if (thing.Spawned)
 				{
-					var haul = HaulAIUtility.HaulToStorageJob(actor, thing, false);
+					var haul = HaulAIUtility.HaulToStorageJob(actor, thing, true);
 					if (haul?.TryMakePreToilReservations(actor, false) ?? false)
 					{
 						actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
@@ -139,13 +82,6 @@ public class JobDriver_HaulToInventory : JobDriver
 		{
 			initAction = () =>
 			{
-				// Check for save operation before finding more work
-				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-				{
-					EndJobWith(JobCondition.InterruptForced);
-					return;
-				}
-
 				var haulables = TempListForThings;
 				haulables.Clear();
 				haulables.AddRange(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
@@ -177,13 +113,6 @@ public class JobDriver_HaulToInventory : JobDriver
 		{
 			initAction = () =>
 			{
-				// Check for save operation before queuing next job
-				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-				{
-					EndJobWith(JobCondition.InterruptForced);
-					return;
-				}
-
 				var actor = pawn;
 				var curJob = actor.jobs.curJob;
 				var storeCell = curJob.targetB;
@@ -217,13 +146,6 @@ public class JobDriver_HaulToInventory : JobDriver
 
 		toil.initAction = () =>
 		{
-			// Check for save operation before checking encumbrance
-			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-			{
-				EndJobWith(JobCondition.InterruptForced);
-				return;
-			}
-
 			var actor = toil.actor;
 			var curJob = actor.jobs.curJob;
 			var nextThing = curJob.targetA.Thing;
@@ -232,7 +154,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 			if (!(MassUtility.EncumbrancePercent(actor) <= 0.9f && !ceOverweight))
 			{
-				var haul = HaulAIUtility.HaulToStorageJob(actor, nextThing, false);
+				var haul = HaulAIUtility.HaulToStorageJob(actor, nextThing, true);
 				if (haul?.TryMakePreToilReservations(actor, false) ?? false)
 				{
 					//note that HaulToStorageJob etc doesn't do opportunistic duplicate hauling for items in valid storage. REEEE
