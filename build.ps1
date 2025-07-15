@@ -38,6 +38,40 @@ function Test-DotNet {
     }
 }
 
+# Function to get detailed .NET information
+function Get-DotNetInfo {
+    Write-ColorOutput "=== .NET Version Information ===" $Cyan
+    
+    # Get the default SDK version
+    $sdkVersion = dotnet --version
+    Write-ColorOutput "Default SDK Version: $sdkVersion" $Yellow
+    
+    # Get all installed SDKs
+    Write-ColorOutput "Installed SDKs:" $Yellow
+    $sdks = dotnet --list-sdks
+    foreach ($sdk in $sdks) {
+        Write-ColorOutput "  $sdk" $Cyan
+    }
+    
+    # Get all installed runtimes
+    Write-ColorOutput "Installed Runtimes:" $Yellow
+    $runtimes = dotnet --list-runtimes
+    foreach ($runtime in $runtimes) {
+        Write-ColorOutput "  $runtime" $Cyan
+    }
+    
+    # Get detailed info about the current SDK
+    Write-ColorOutput "Detailed SDK Info:" $Yellow
+    $sdkInfo = dotnet --info
+    foreach ($line in $sdkInfo) {
+        if ($line -match "SDK Version" -or $line -match "Runtime Version" -or $line -match "Framework") {
+            Write-ColorOutput "  $line" $Green
+        }
+    }
+    
+    Write-ColorOutput ""
+}
+
 # Function to build a project
 function Build-Project {
     param(
@@ -46,6 +80,13 @@ function Build-Project {
     )
     
     Write-ColorOutput "Building $ProjectName..." $Cyan
+    
+    # Show what framework we're targeting
+    $projectContent = Get-Content $ProjectPath -Raw
+    if ($projectContent -match '<TargetFramework>([^<]+)</TargetFramework>') {
+        $targetFramework = $matches[1]
+        Write-ColorOutput "Target Framework: $targetFramework" $Yellow
+    }
     
     $buildArgs = @("build", $ProjectPath, "-c", $Configuration)
     
@@ -78,6 +119,13 @@ function Build-Project {
             }
             elseif ($line -match "Determining projects to restore") {
                 Write-ColorOutput $line $Cyan
+            }
+            # Add detection for .NET version in build output
+            elseif ($line -match "Microsoft\.NET\.Core\.App" -or $line -match "Microsoft\.NET\.Framework") {
+                Write-ColorOutput "  [Runtime] $line" $Green
+            }
+            elseif ($line -match "SDK Version" -or $line -match "Runtime Version") {
+                Write-ColorOutput "  [Version] $line" $Green
             }
             else {
                 Write-Host $line
@@ -137,6 +185,9 @@ if (-not (Test-DotNet)) {
 }
 
 Write-ColorOutput "✓ .NET SDK found: $(dotnet --version)" $Green
+
+# Show detailed .NET information
+Get-DotNetInfo
 
 # Change to the script directory
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
