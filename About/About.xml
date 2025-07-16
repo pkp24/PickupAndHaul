@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
 	<name>Pick Up And Haul 1.6 Forked</name>
-	<author>Mehni</author>
+	<author>Teemo</author>
 	<supportedVersions>
 		<li>1.6</li>
 	</supportedVersions>
-	<packageId>Mehni.PickUpAndHaul</packageId>
+	<packageId>Teemo.PickUpAndHaulForked</packageId>
 	<modDependenciesByVersion>
 		<v1.1>
 			<li>
@@ -63,17 +63,13 @@
 	<description>
 v1.6.03
 
-I updated the mod to 1.6 and it seems to work pretty well. Please let me know if you get errors, preferably in github or discord https://github.com/pkp24/PickupAndHaul https://discord.gg/2UUaxC54bs
+Forked and updated by Teemo
 
-I created a discord server for bug reporting and beta testing. https://discord.gg/2UUaxC54bs
-If you join, make sure you select your roles.
-
-Unfortunately Uuugggg has passed away, I've been talking with Meme Goddess about working together to continue PUAH. Since mine changes some functionality to fix some bugs and improve performance it'll be Forked while theirs is Continued as they'll be trying to keep it mostly the same.
-
-Pick Up And Haul Continued: https://steamcommunity.com/sharedfiles/filedetails/?id=3526273433
+This is a fork of the original Pick Up And Haul mod. The mod allows colonists to gather items in their inventory and haul them more efficiently.
+Github for this fork: https://github.com/pkp24/PickupAndHaul
 
 
-Original Pick Up And Haul: https://steamcommunity.com/sharedfiles/filedetails/?id=1279012058
+Original Pick Up And Haul by Mehni and Uuuugggg: https://steamcommunity.com/sharedfiles/filedetails/?id=1279012058
 
 
 Colonists will gather stuff in their inventory, then haul it all to a stockpile.
@@ -99,6 +95,6 @@ Fully compatible with Combat Extended. Credits and thanks:
 
 Ludeon: https://ludeon.com/forums/index.php?topic=35832
 Steam: http://steamcommunity.com/sharedfiles/filedetails/?id=1279012058
-GitHub: https://github.com/Mehni/PickUpAndHaul/releases
+Original GitHub: https://github.com/Mehni/PickUpAndHaul/releases
 	</description>
 </ModMetaData>

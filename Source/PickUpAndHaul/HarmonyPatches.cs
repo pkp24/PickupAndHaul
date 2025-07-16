@@ -9,7 +9,7 @@ static class HarmonyPatches
 {
 	static HarmonyPatches()
 	{
-		var harmony = new Harmony("mehni.rimworld.pickupandhaul.main");
+		var harmony = new Harmony("teemo.rimworld.pickupandhaulforked.main");
 		
 		if (Settings.EnableDebugLogging)
 		{
