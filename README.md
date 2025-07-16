@@ -1,7 +1,9 @@
-# PickUpAndHaul
+# PickUpAndHaul Forked
 Colonists will gather stuff in their inventory, then haul it all to a stockpile.
 
 This hauling mod will greatly increase hauling efficiency, because pawns can now carry more than one gun or t-shirt. Those smart and intelligent colonists can use their inventory! You gotta see it to believe it.
+
+**Forked version of PUAH**
 
 ## Functionality
 If possible, colonists that can haul will haul stuff to their inventory, pick up one more item to haul to a stockpile and then unload their inventory by category. If for some reason pawns run out of things to haul before their inventory is full, they will unload themselves:
@@ -41,7 +43,7 @@ On the one hand this takes away a frustration of mine, but I can't deny that it 
 
 Ludeon: https://ludeon.com/forums/index.php?topic=35832  
 Steam: http://steamcommunity.com/sharedfiles/filedetails/?id=1279012058  
-GitHub: https://github.com/Mehni/PickUpAndHaul/releases
+Original GitHub: https://github.com/Mehni/PickUpAndHaul/releases
 
 ## Features
 
@@ -54,7 +56,7 @@ GitHub: https://github.com/Mehni/PickUpAndHaul/releases
 
 This mod is compatible with:
 - Extended Storage
-- Allow Tool
+- Allow Tool (Some issues right now, working on fixing them)
 
 This mod should be compatible with:
 - Combat Extended, I haven't personally tested it to make sure. Please tell me if it works for you.
