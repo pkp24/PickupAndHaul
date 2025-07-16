@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Reflection.Emit;
+using System.Linq;
 using HarmonyLib;
 
 namespace PickUpAndHaul;
@@ -80,6 +81,7 @@ static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Pawn), nameof(Pawn.Kill)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_Kill_Postfix)));
 
+		
 
 
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
@@ -264,17 +266,21 @@ static class HarmonyPatches
 	{
 		try
 		{
-			// PERFORMANCE OPTIMIZATION: Only run cache management every 60 ticks (1 second at 60 TPS)
-			// This reduces the performance impact from 33ms to <1ms per frame
+			// Run cache management every 30 ticks (0.5 seconds at 60 TPS)
+			// Increased frequency to catch invalid pawns faster while maintaining good performance
 			var currentTick = Find.TickManager?.TicksGame ?? 0;
-			if (currentTick % 60 != 0)
+			if (currentTick % 30 != 0)
 			{
-				return; // Skip this tick to reduce performance impact
+				return; // Skip this tick
 			}
 			
 			// Check for map changes and game resets
 			CacheManager.CheckForMapChange();
 			CacheManager.CheckForGameReset();
+			
+			// Perform periodic refresh of pawn skip lists
+			var skipListCache = CacheManager.GetRegisteredCaches().OfType<WorkGiver_HaulToInventory.PawnSkipListCache>().FirstOrDefault();
+			skipListCache?.PeriodicRefresh();
 		}
 		catch (Exception ex)
 		{
@@ -499,4 +505,6 @@ static class HarmonyPatches
                 Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
         }
 	}
+
+
 }

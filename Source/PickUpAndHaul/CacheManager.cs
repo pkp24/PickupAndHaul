@@ -45,6 +45,14 @@ namespace PickUpAndHaul
         }
         
         /// <summary>
+        /// Gets all registered caches
+        /// </summary>
+        public static IEnumerable<ICache> GetRegisteredCaches()
+        {
+            return _registeredCaches.AsReadOnly();
+        }
+        
+        /// <summary>
         /// Performs cleanup of all registered caches
         /// </summary>
         public static void CleanupAllCaches()
