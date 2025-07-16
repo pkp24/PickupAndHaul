@@ -257,6 +257,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
                 var map = pawn.Map;
+                
+                // Refresh skip lists to clear outdated entries that now have capacity
+                RefreshPawnSkipLists(pawn, map, thing);
                 var designationManager = map.designationManager;
                 var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
                 var traverseParms = TraverseParms.For(pawn);
@@ -1287,6 +1290,70 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 	}
 
+	/// <summary>
+	/// Refreshes pawn-specific skip lists by removing entries that now have capacity
+	/// </summary>
+	private static void RefreshPawnSkipLists(Pawn pawn, Map map, Thing thingToHaul = null)
+	{
+		if (pawn == null || map == null)
+		{
+			return;
+		}
+
+		var cellsRemoved = 0;
+		var thingsRemoved = 0;
+
+		// Refresh cells that now have capacity
+		if (_pawnSkipCells.TryGetValue(pawn, out var cells))
+		{
+			// Use the actual thing being hauled if available, otherwise use a generic item
+			var sampleThing = thingToHaul ?? ThingMaker.MakeThing(ThingDefOf.WoodLog);
+			if (sampleThing != null)
+			{
+				var initialCount = cells.Count;
+				cells.RemoveWhere(cell => 
+				{
+					var capacity = CapacityAt(sampleThing, cell, map);
+					return capacity > 0;
+				});
+				cellsRemoved = initialCount - cells.Count;
+			}
+		}
+
+		// Refresh containers that now have capacity
+		if (_pawnSkipThings.TryGetValue(pawn, out var things))
+		{
+			// Use the actual thing being hauled if available, otherwise use a generic item
+			var sampleThing = thingToHaul ?? ThingMaker.MakeThing(ThingDefOf.WoodLog);
+			if (sampleThing != null)
+			{
+				var initialCount = things.Count;
+				things.RemoveWhere(container => 
+				{
+					if (container == null || container.Destroyed)
+					{
+						return true; // Remove null/destroyed containers
+					}
+					
+					var thingOwner = container.TryGetInnerInteractableThingOwner();
+					if (thingOwner == null)
+					{
+						return true; // Remove containers without thing owners
+					}
+					
+					var capacity = thingOwner.GetCountCanAccept(sampleThing);
+					return capacity > 0;
+				});
+				thingsRemoved = initialCount - things.Count;
+			}
+		}
+
+		if (Settings.EnableDebugLogging && (cellsRemoved > 0 || thingsRemoved > 0))
+		{
+			Log.Message($"[PickUpAndHaul] Refreshed skip lists for {pawn}: removed {cellsRemoved} cells, {thingsRemoved} containers that now have capacity");
+		}
+	}
+
 	public static bool TryFindBestBetterStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner, bool strictSkip = false)
 	{
 		var storagePriority = StoragePriority.Unstored;
@@ -1782,14 +1849,56 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	/// </summary>
 	internal class PawnSkipListCache : ICache
 	{
+		private static int _lastRefreshTick = 0;
+		private const int RefreshInterval = 300; // Refresh every 5 seconds (300 ticks)
+		
 		public void ForceCleanup()
 		{
 			CleanupPawnSkipLists();
 		}
 		
+		/// <summary>
+		/// Performs periodic refresh of skip lists for all living pawns
+		/// </summary>
+		public void PeriodicRefresh()
+		{
+			var currentTick = Find.TickManager?.TicksGame ?? 0;
+			
+			// Only refresh periodically to avoid performance impact
+			if (currentTick - _lastRefreshTick < RefreshInterval)
+			{
+				return;
+			}
+			
+			_lastRefreshTick = currentTick;
+			
+			// Get all living pawns on the current map
+			var map = Find.CurrentMap;
+			if (map == null) return;
+			
+			var livingPawns = map.mapPawns.FreeColonistsAndPrisonersSpawned;
+			var refreshedCount = 0;
+			
+			foreach (var pawn in livingPawns)
+			{
+				if (pawn != null && !pawn.Dead && !pawn.Destroyed)
+				{
+					RefreshPawnSkipLists(pawn, map);
+					refreshedCount++;
+				}
+			}
+			
+			if (Settings.EnableDebugLogging && refreshedCount > 0)
+			{
+				Log.Message($"[PickUpAndHaul] Periodic refresh: checked skip lists for {refreshedCount} living pawns");
+			}
+		}
+		
 		public string GetDebugInfo()
 		{
-			return $"Pawn skip lists: {_pawnSkipCells.Count} pawns tracked";
+			var totalCells = _pawnSkipCells.Values.Sum(cells => cells?.Count ?? 0);
+			var totalThings = _pawnSkipThings.Values.Sum(things => things?.Count ?? 0);
+			return $"Pawn skip lists: {_pawnSkipCells.Count} pawns tracked, {totalCells} cells, {totalThings} containers";
 		}
 	}
 

@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Reflection.Emit;
+using System.Linq;
 using HarmonyLib;
 
 namespace PickUpAndHaul;
@@ -265,7 +266,7 @@ static class HarmonyPatches
 	{
 		try
 		{
-			// PRun cache management every 30 ticks (0.5 seconds at 60 TPS)
+			// Run cache management every 30 ticks (0.5 seconds at 60 TPS)
 			// Increased frequency to catch invalid pawns faster while maintaining good performance
 			var currentTick = Find.TickManager?.TicksGame ?? 0;
 			if (currentTick % 30 != 0)
@@ -276,6 +277,10 @@ static class HarmonyPatches
 			// Check for map changes and game resets
 			CacheManager.CheckForMapChange();
 			CacheManager.CheckForGameReset();
+			
+			// Perform periodic refresh of pawn skip lists
+			var skipListCache = CacheManager.GetRegisteredCaches().OfType<WorkGiver_HaulToInventory.PawnSkipListCache>().FirstOrDefault();
+			skipListCache?.PeriodicRefresh();
 		}
 		catch (Exception ex)
 		{
