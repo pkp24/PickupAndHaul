@@ -23,22 +23,19 @@ public class CompHauledToInventory : ThingComp
 
 	public override void PostExposeData()
 	{
-		// Don't save any data for this component to prevent save corruption
-		// when the mod is removed
+		// Don't save any data for this component to prevent save corruption when the mod is removed
 		if (Scribe.mode == LoadSaveMode.Saving)
 		{
 			Log.Message("[PickUpAndHaul] Skipping save data for CompHauledToInventory");
 			return;
 		}
 		
-		// Handle loading by properly handling the scribing but ignoring data
+		// Don't load any data for this component to prevent save corruption when the mod is removed
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
-			Log.Message("[PickUpAndHaul] Ignoring load data for CompHauledToInventory");
+			Log.Message("[PickUpAndHaul] Skipping load data for CompHauledToInventory");
 			// Initialize with empty collection to prevent null reference errors
 			takenToInventory = new HashSet<Thing>();
-			// Properly handle the scribing to avoid errors
-			Scribe_Collections.Look(ref takenToInventory, "ThingsHauledToInventory", LookMode.Reference);
 			return;
 		}
 		
