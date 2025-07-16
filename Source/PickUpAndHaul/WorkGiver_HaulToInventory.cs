@@ -145,31 +145,31 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
-		// Add null check to prevent issues with AllowTool
+		// Add null check
 		if (pawn == null || thing == null)
 		{
 			return false;
 		}
 		
-		// Check if save operation is in progress (same as JobOnThing)
+		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			return false;
 		}
 
-		// Do not create hauling jobs for pawns in a mental state (same as JobOnThing)
+		// Do not create hauling jobs for pawns in a mental state
 		if (pawn.InMentalState)
 		{
 			return false;
 		}
 
-		// Check if mod is active (same as JobOnThing)
+		// Check if mod is active
 		if (!PickupAndHaulSaveLoadLogger.IsModActive())
 		{
 			return false;
 		}
 
-		// Check if pawn has the required component (same as JobOnThing)
+		// Check if pawn has the required component
 		if (pawn.GetComp<CompHauledToInventory>() is null)
 		{
 			// For pawns without the component, let vanilla handle it
@@ -196,6 +196,30 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 			else
 			{
+				// Check storage type compatibility
+				if (haulDestination is ISlotGroupParent)
+				{
+					// Check if it's a hopper job 
+					if (HaulToHopperJob(thing, foundCell, pawn.Map))
+					{
+						result = false; // Let vanilla handle hopper jobs
+					}
+				}
+				else if (haulDestination is Thing destinationAsThing)
+				{
+					var thingOwner = destinationAsThing.TryGetInnerInteractableThingOwner();
+					if (thingOwner == null)
+					{
+						// Unknown storage type
+						result = false;
+					}
+				}
+				else
+				{
+					// Unknown storage type
+					result = false;
+				}
+
 				// Check if pawn can physically carry the item and if storage has meaningful capacity
 				var currentMass = MassUtility.GearAndInventoryMass(pawn);
 				var capacity = MassUtility.Capacity(pawn);
@@ -208,8 +232,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					{
 						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
 					}
-					// Don't return false here - let the vanilla hauling system handle it
-					// The JobOnThing method will handle the fallback to HaulAIUtility.HaulToStorageJob
+					return false; // Let vanilla handle it
 				}
 				else if (actualCarriableAmount <= 0)
 				{
@@ -236,13 +259,63 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					
 					if (capacityStoreCell <= 0)
 					{
-						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Storage for {thing} has no capacity, returning false");
-						result = false;
+						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Storage for {thing} has no capacity, checking for alternative storage");
+						
+						// Try to find alternative storage, similar to JobOnThing logic
+						if (TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out var alternativeCell, out var alternativeDestination, out var alternativeThingOwner, true))
+						{
+							Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Found alternative storage for {thing}: {alternativeDestination?.ToStringSafe() ?? alternativeCell.ToString()}");
+							
+							// Check capacity at alternative location
+							var alternativeCapacity = 0;
+							if (alternativeDestination is Thing destinationAsThing && alternativeThingOwner != null)
+							{
+								alternativeCapacity = alternativeThingOwner.GetCountCanAccept(thing);
+							}
+							else if (alternativeCell.IsValid)
+							{
+								alternativeCapacity = CapacityAt(thing, alternativeCell, pawn.Map);
+							}
+							
+							if (alternativeCapacity > 0)
+							{
+								var effectiveAmount = Math.Min(actualCarriableAmount, alternativeCapacity);
+								if (effectiveAmount > 0)
+								{
+									Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Alternative storage has {alternativeCapacity} capacity, effective amount: {effectiveAmount}");
+									result = true;
+								}
+								else
+								{
+									Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Alternative storage has no effective capacity");
+									result = false;
+								}
+							}
+							else
+							{
+								Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Alternative storage has no capacity");
+								result = false;
+							}
+						}
+						else
+						{
+							Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: No alternative storage found for {thing}");
+							result = false;
+						}
 					}
 					else
 					{
-						// At least some capacity exists, let JobOnThing handle the detailed allocation
-						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: {pawn} can carry {actualCarriableAmount} of {thing}, storage has {capacityStoreCell} capacity");
+						// Check if we can effectively haul the item
+						var effectiveAmount = Math.Min(actualCarriableAmount, capacityStoreCell);
+						if (effectiveAmount <= 0)
+						{
+							result = false;
+						}
+						else
+						{
+							// At least some capacity exists, let JobOnThing handle the detailed allocation
+							Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: {pawn} can carry {actualCarriableAmount} of {thing}, storage has {capacityStoreCell} capacity");
+						}
 					}
 				}
 			}
