@@ -196,7 +196,7 @@ namespace PickUpAndHaul
         }
 
         /// <summary>
-        /// Clean up all allocations for a pawn (when they die or job fails)
+        /// Clean up all allocations for a pawn
         /// </summary>
         public void CleanupPawnAllocations(Pawn pawn)
         {
@@ -219,7 +219,30 @@ namespace PickUpAndHaul
                     }
                 }
                 
-                Log.Message($"[StorageAllocationTracker] Cleaned up all allocations for {pawn}");
+                if (Settings.EnableDebugLogging)
+                {
+                    Log.Message($"[StorageAllocationTracker] Cleaned up all allocations for {pawn}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Release all reservations for all pawns
+        /// </summary>
+        public void ReleaseAllReservations()
+        {
+            lock (_lockObject)
+            {
+                var allPawns = new List<Pawn>(_pawnAllocations.Keys);
+                foreach (var pawn in allPawns)
+                {
+                    CleanupPawnAllocations(pawn);
+                }
+                
+                if (Settings.EnableDebugLogging)
+                {
+                    Log.Message("[StorageAllocationTracker] Released all reservations for all pawns");
+                }
             }
         }
 
@@ -447,26 +470,33 @@ namespace PickUpAndHaul
         {
             lock (_lockObject)
             {
-                // Clean up allocations for dead pawns
-                var deadPawns = new List<Pawn>();
+                // Clean up allocations for invalid pawns
+                var invalidPawns = new List<Pawn>();
                 
                 foreach (var kvp in _pawnAllocations)
                 {
                     var pawn = kvp.Key;
-                    if (pawn == null || pawn.Destroyed || !pawn.Spawned)
+                    
+                    if (pawn == null || 
+                        pawn.Destroyed || 
+                        !pawn.Spawned || 
+                        pawn.Dead ||
+                        pawn.Map == null ||
+                        pawn.Faction == null ||
+                        pawn.thingIDNumber == 0) // Invalid thing ID
                     {
-                        deadPawns.Add(pawn);
+                        invalidPawns.Add(pawn);
                     }
                 }
                 
-                foreach (var deadPawn in deadPawns)
+                foreach (var invalidPawn in invalidPawns)
                 {
-                    CleanupPawnAllocations(deadPawn);
+                    CleanupPawnAllocations(invalidPawn);
                 }
                 
-                if (deadPawns.Count > 0 && Settings.EnableDebugLogging)
+                if (invalidPawns.Count > 0 && Settings.EnableDebugLogging)
                 {
-                    Log.Message($"[StorageAllocationTracker] Cleaned up allocations for {deadPawns.Count} dead pawns");
+                    Log.Message($"[StorageAllocationTracker] Cleaned up allocations for {invalidPawns.Count} invalid pawns");
                 }
             }
         }
