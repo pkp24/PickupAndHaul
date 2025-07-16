@@ -225,14 +225,27 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				var capacity = MassUtility.Capacity(pawn);
 				var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity, pawn);
 		
-				// If pawn has no capacity (like animals), fall back to vanilla behavior
+				// If pawn has no capacity (like animals), allow JobOnThing to handle fallback to vanilla behavior
 				if (capacity <= 0)
 				{
 					if (Settings.EnableDebugLogging)
 					{
-						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
+						Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} has no capacity ({capacity}), checking if vanilla hauling is possible");
 					}
-					return false; // Let vanilla handle it
+					// Only return true if vanilla would actually create a job
+					var vanillaJob = HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
+					if (vanillaJob != null)
+					{
+						return true;
+					}
+					else
+					{
+						if (Settings.EnableDebugLogging)
+						{
+							Log.Message($"[PickUpAndHaul] DEBUG: HasJobOnThing: Pawn {pawn} has no capacity and vanilla hauling is not possible, returning false");
+						}
+						return false;
+					}
 				}
 				else if (actualCarriableAmount <= 0)
 				{
