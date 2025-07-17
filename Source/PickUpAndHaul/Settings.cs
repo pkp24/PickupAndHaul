@@ -44,6 +44,10 @@ public class Settings : ModSettings
 			{
 				Log.ClearDebugLogFile();
 			}
+			if (ls.ButtonText("Clear Error Log File"))
+			{
+				Log.ClearErrorLogFile();
+			}
 		}
 
 		ls.End();

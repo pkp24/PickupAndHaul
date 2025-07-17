@@ -81,6 +81,15 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Pawn), nameof(Pawn.Kill)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_Kill_Postfix)));
 
+		// Add patches to capture Verse.Log errors and warnings
+		harmony.Patch(original: AccessTools.Method(typeof(Verse.Log), nameof(Verse.Log.Error)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(VerseLog_Error_Postfix)));
+		harmony.Patch(original: AccessTools.Method(typeof(Verse.Log), nameof(Verse.Log.Warning)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(VerseLog_Warning_Postfix)));
+
+		// Initialize global error handling to capture all errors
+		Log.InitializeGlobalErrorHandling();
+
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
 
@@ -485,6 +494,32 @@ internal static class HarmonyPatches
 		{
 			StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance);
 			Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
+		}
+	}
+
+	/// <summary>
+	/// Capture Verse.Log.Error calls to our error log file
+	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
+	private static void VerseLog_Error_Postfix(string text)
+	{
+		// Skip our own error messages to avoid infinite recursion
+		if (!text.Contains("[PickUpAndHaul]"))
+		{
+			Log.CaptureVerseLogError(text);
+		}
+	}
+
+	/// <summary>
+	/// Capture Verse.Log.Warning calls to our error log file
+	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
+	private static void VerseLog_Warning_Postfix(string text)
+	{
+		// Skip our own warning messages to avoid infinite recursion
+		if (!text.Contains("[PickUpAndHaul]"))
+		{
+			Log.CaptureVerseLogWarning(text);
 		}
 	}
 }
