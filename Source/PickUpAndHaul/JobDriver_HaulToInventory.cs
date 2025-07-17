@@ -90,7 +90,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		}
 
 		// FIXED: Add bounds checking before accessing targetQueueA[0]
-		bool targetAReserved = false;
+		var targetAReserved = false;
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
 		{
 			Log.Message($"[PickUpAndHaul] DEBUG: Reserving targetQueueA[0]: {job.targetQueueA[0]}");
@@ -107,7 +107,7 @@ public class JobDriver_HaulToInventory : JobDriver
 			return false;
 		}
 
-		bool targetBReserved = false;
+		var targetBReserved = false;
 		if (job.targetB != null)
 		{
 			Log.Message($"[PickUpAndHaul] DEBUG: Reserving targetB: {job.targetB}");
@@ -242,7 +242,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				var haulMoreWork = DefDatabase<WorkGiverDef>.AllDefsListForReading.First(wg => wg.Worker is WorkGiver_HaulToInventory).Worker as WorkGiver_HaulToInventory;
 				Job haulMoreJob = null;
 				var haulMoreThing = WorkGiver_HaulToInventory.GetClosestAndRemove(pawn.Position, pawn.Map, haulables, PathEndMode.ClosestTouch,
-					   TraverseParms.For(pawn), 12, t => (haulMoreJob = haulMoreWork.JobOnThing(pawn, t)) != null);
+					   TraverseParms.For(pawn), 50, t => (haulMoreJob = haulMoreWork.JobOnThing(pawn, t)) != null);
 
 				//WorkGiver_HaulToInventory found more work nearby
 				if (haulMoreThing != null)
@@ -290,7 +290,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		yield return wait;
 	}
 
-	private static List<Thing> TempListForThings { get; } = new();
+	private static List<Thing> TempListForThings { get; } = [];
 
 	/// <summary>
 	/// the workgiver checks for encumbered, this is purely extra for CE
@@ -378,7 +378,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		}
 
 		// Validate that all targets are still valid
-		for (int i = 0; i < job.targetQueueA.Count; i++)
+		for (var i = 0; i < job.targetQueueA.Count; i++)
 		{
 			var target = job.targetQueueA[i];
 			if (target == null || target.Thing == null)
@@ -395,7 +395,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		}
 
 		// Validate that all counts are positive
-		for (int i = 0; i < job.countQueue.Count; i++)
+		for (var i = 0; i < job.countQueue.Count; i++)
 		{
 			if (job.countQueue[i] <= 0)
 			{

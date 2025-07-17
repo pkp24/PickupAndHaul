@@ -1,15 +1,12 @@
-using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
-using Verse;
-using Verse.AI;
 
 namespace PickUpAndHaul;
 
 public class PickupAndHaulSaveLoadLogger : GameComponent
 {
 	private static readonly object _jobLock = new();
-	private static List<JobInfo> _suspendedJobs = new();
+	private static readonly ConcurrentBag<JobInfo> _suspendedJobs = [];
 	private static bool _isSaving = false;
 	private static bool _modRemoved = false;
 
@@ -112,7 +109,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 						if (IsPickupAndHaulJob(currentJob))
 						{
 							// Create job info with additional null checks
-							var jobQueue = pawn.jobs.jobQueue?.ToList() ?? new List<QueuedJob>();
+							var jobQueue = pawn.jobs.jobQueue?.ToList() ?? [];
 
 							var jobInfo = new JobInfo
 							{
@@ -227,11 +224,11 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 								// Copy job properties safely
 								if (jobInfo.Job.targetQueueA != null)
-									newJob.targetQueueA = new List<LocalTargetInfo>(jobInfo.Job.targetQueueA);
+									newJob.targetQueueA = [.. jobInfo.Job.targetQueueA];
 								if (jobInfo.Job.targetQueueB != null)
-									newJob.targetQueueB = new List<LocalTargetInfo>(jobInfo.Job.targetQueueB);
+									newJob.targetQueueB = [.. jobInfo.Job.targetQueueB];
 								if (jobInfo.Job.countQueue != null)
-									newJob.countQueue = new List<int>(jobInfo.Job.countQueue);
+									newJob.countQueue = [.. jobInfo.Job.countQueue];
 
 								newJob.count = jobInfo.Job.count;
 								newJob.haulMode = jobInfo.Job.haulMode;
@@ -285,74 +282,50 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	/// Checks if a job is a pickup and haul job that should be suspended during save
 	/// </summary>
 	private static bool IsPickupAndHaulJob(Job job)
-	{
-		return (job?.def?.defName) != null && job.def.defName is "HaulToInventory" or
-			   "UnloadYourHauledInventory";
-	}
+		=> (job?.def?.defName) != null
+		&& (job.def.defName == "HaulToInventory" ||
+			job.def.defName == "UnloadYourHauledInventory");
 
 	/// <summary>
 	/// Provides a public method to check if a save operation is in progress
 	/// </summary>
-	public static bool IsSaveInProgress()
-	{
-		lock (_jobLock)
-		{
-			return _isSaving;
-		}
-	}
+	public static bool IsSaveInProgress() => _isSaving;
 
 	/// <summary>
 	/// Provides a public method to manually suspend jobs (for external use)
 	/// </summary>
-	public static void ManualSuspendJobs()
-	{
-		SuspendPickupAndHaulJobs();
-	}
+	public static void ManualSuspendJobs() => SuspendPickupAndHaulJobs();
 
 	/// <summary>
 	/// Provides a public method to manually restore jobs (for external use)
 	/// </summary>
-	public static void ManualRestoreJobs()
-	{
-		RestorePickupAndHaulJobs();
-	}
+	public static void ManualRestoreJobs() => RestorePickupAndHaulJobs();
 
 	/// <summary>
 	/// Emergency cleanup method to reset the save state if something goes wrong
 	/// </summary>
 	public static void EmergencyCleanup()
 	{
-		lock (_jobLock)
-		{
-			Log.Warning("[PickUpAndHaul] Performing emergency cleanup of save state");
-			_suspendedJobs.Clear();
-			_isSaving = false;
-		}
+		Log.Warning("[PickUpAndHaul] Performing emergency cleanup of save state");
+		_suspendedJobs.Clear();
+		_isSaving = false;
 	}
 
 	/// <summary>
 	/// Gets the current status of the save system for debugging
 	/// </summary>
 	public static string GetSaveStatus()
-	{
-		lock (_jobLock)
-		{
-			return $"Save in progress: {_isSaving}, Suspended jobs: {_suspendedJobs.Count}, Mod removed: {_modRemoved}";
-		}
-	}
+		=> $"Save in progress: {_isSaving}, Suspended jobs: {_suspendedJobs.Count}, Mod removed: {_modRemoved}";
 
 	/// <summary>
 	/// Marks the mod as removed to prevent save data corruption
 	/// </summary>
 	public static void MarkModAsRemoved()
 	{
-		lock (_jobLock)
-		{
-			Log.Warning("[PickUpAndHaul] Mod marked as removed, preventing save data corruption");
-			_modRemoved = true;
-			_suspendedJobs.Clear();
-			_isSaving = false;
-		}
+		Log.Warning("[PickUpAndHaul] Mod marked as removed, preventing save data corruption");
+		_modRemoved = true;
+		_suspendedJobs.Clear();
+		_isSaving = false;
 	}
 
 	/// <summary>

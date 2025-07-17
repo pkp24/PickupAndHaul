@@ -69,7 +69,6 @@ public class PawnUnloadChecker
 }
 
 [DefOf]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Has to match defName")]
 public static class PickUpAndHaulJobDefOf
 {
 	public static JobDef UnloadYourHauledInventory;

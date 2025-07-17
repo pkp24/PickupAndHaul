@@ -1,6 +1,6 @@
-using System.Collections.Generic;
-using Verse;
-using Verse.AI;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Text;
 
 namespace PickUpAndHaul;
 
@@ -9,85 +9,62 @@ namespace PickUpAndHaul;
 /// </summary>
 public class HaulToInventoryJob : Job
 {
-	private List<HaulItem> _haulItems;
-	private List<LocalTargetInfo> _storageTargets;
-	private Dictionary<StorageAllocationTracker.StorageLocation, int> _storageReservations;
-
 	public HaulToInventoryJob() : base()
 	{
-		_haulItems = new List<HaulItem>();
-		_storageTargets = new List<LocalTargetInfo>();
-		_storageReservations = new Dictionary<StorageAllocationTracker.StorageLocation, int>();
+		HaulItems = [];
+		StorageTargets = [];
+		StorageReservations = new ConcurrentDictionary<StorageAllocationTracker.StorageLocation, int>();
 	}
 
 	public HaulToInventoryJob(JobDef jobDef) : base(jobDef)
 	{
-		_haulItems = new List<HaulItem>();
-		_storageTargets = new List<LocalTargetInfo>();
-		_storageReservations = new Dictionary<StorageAllocationTracker.StorageLocation, int>();
+		HaulItems = [];
+		StorageTargets = [];
+		StorageReservations = new ConcurrentDictionary<StorageAllocationTracker.StorageLocation, int>();
 	}
 
 	/// <summary>
 	/// Gets the haul items in a thread-safe manner
 	/// </summary>
-	public List<HaulItem> HaulItems
-	{
-		get
-		{
-			lock (this)
-			{
-				return new List<HaulItem>(_haulItems);
-			}
-		}
-	}
+	public ConcurrentBag<HaulItem> HaulItems;
 
 	/// <summary>
 	/// Gets the storage targets in a thread-safe manner
 	/// </summary>
-	public List<LocalTargetInfo> StorageTargets
-	{
-		get
-		{
-			lock (this)
-			{
-				return new List<LocalTargetInfo>(_storageTargets);
-			}
-		}
-	}
+	public ConcurrentBag<LocalTargetInfo> StorageTargets;
+
+	public ConcurrentDictionary<StorageAllocationTracker.StorageLocation, int> StorageReservations;
 
 	/// <summary>
 	/// Adds a haul item atomically
 	/// </summary>
 	public void AddHaulItem(Thing thing, int count, StorageAllocationTracker.StorageLocation storageLocation)
 	{
-		lock (this)
+		var haulItem = new HaulItem
 		{
-			var haulItem = new HaulItem
-			{
-				Thing = thing,
-				Count = count,
-				StorageLocation = storageLocation
-			};
+			Thing = thing,
+			Count = count,
+			StorageLocation = storageLocation
+		};
 
-			_haulItems.Add(haulItem);
+		HaulItems.Add(haulItem);
 
-			// Add to storage targets if not already present
-			var target = storageLocation.Container != null
-				? new LocalTargetInfo(storageLocation.Container)
-				: new LocalTargetInfo(storageLocation.Cell);
+		// Add to storage targets if not already present
+		var target = storageLocation.Container != null
+			? new LocalTargetInfo(storageLocation.Container)
+			: new LocalTargetInfo(storageLocation.Cell);
 
-			if (!_storageTargets.Contains(target))
-			{
-				_storageTargets.Add(target);
-			}
+		if (!StorageTargets.Contains(target))
+			StorageTargets.Add(target);
 
-			// Track storage reservation
-			if (!_storageReservations.ContainsKey(storageLocation))
-			{
-				_storageReservations[storageLocation] = 0;
-			}
-			_storageReservations[storageLocation] += count;
+		// Track storage reservation
+		if (StorageReservations.TryGetValue(storageLocation, out var resultStorageReservations))
+		{
+			var oldStorageReservations = resultStorageReservations;
+			resultStorageReservations += count;
+			StorageReservations.TryUpdate(storageLocation, resultStorageReservations, oldStorageReservations);
 		}
+		GetDebugInfo();
 	}
 
 	/// <summary>
@@ -95,30 +72,31 @@ public class HaulToInventoryJob : Job
 	/// </summary>
 	public bool RemoveHaulItem(Thing thing)
 	{
-		lock (this)
+		for (var i = 0; i < HaulItems.Count; i++)
 		{
-			for (int i = 0; i < _haulItems.Count; i++)
+			HaulItems.TryPeek(out var result);
+			if (result.Thing == thing)
 			{
-				if (_haulItems[i].Thing == thing)
+				HaulItems.TryTake(out var item);
+
+				if (item == null)
+					return false;
+
+				if (StorageReservations.TryGetValue(item.StorageLocation, out var storageLocation))
 				{
-					var item = _haulItems[i];
-					_haulItems.RemoveAt(i);
-
-					// Update storage reservation
-					if (_storageReservations.ContainsKey(item.StorageLocation))
-					{
-						_storageReservations[item.StorageLocation] -= item.Count;
-						if (_storageReservations[item.StorageLocation] <= 0)
-						{
-							_storageReservations.Remove(item.StorageLocation);
-						}
-					}
-
-					return true;
+					var oldStorageLocation = storageLocation;
+					storageLocation -= item.Count;
+					if (storageLocation <= 0)
+						StorageReservations.TryRemove(item.StorageLocation, out _);
+					else
+						StorageReservations.TryUpdate(item.StorageLocation, storageLocation, oldStorageLocation);
 				}
+
+				return true;
 			}
-			return false;
 		}
+		GetDebugInfo();
+		return false;
 	}
 
 	/// <summary>
@@ -126,27 +104,24 @@ public class HaulToInventoryJob : Job
 	/// </summary>
 	public HaulItem GetNextHaulItem()
 	{
-		lock (this)
+		if (!HaulItems.IsEmpty)
 		{
-			if (_haulItems.Count > 0)
+			HaulItems.TryPeek(out var item);
+
+			// Update storage reservation
+			if (StorageReservations.TryGetValue(item.StorageLocation, out var storageLocation))
 			{
-				var item = _haulItems[0];
-				_haulItems.RemoveAt(0);
-
-				// Update storage reservation
-				if (_storageReservations.ContainsKey(item.StorageLocation))
-				{
-					_storageReservations[item.StorageLocation] -= item.Count;
-					if (_storageReservations[item.StorageLocation] <= 0)
-					{
-						_storageReservations.Remove(item.StorageLocation);
-					}
-				}
-
-				return item;
+				var oldStorageLocation = storageLocation;
+				storageLocation -= item.Count;
+				if (storageLocation <= 0)
+					StorageReservations.TryRemove(item.StorageLocation, out _);
+				else
+					StorageReservations.TryUpdate(item.StorageLocation, storageLocation, oldStorageLocation);
 			}
-			return null;
+
+			return item;
 		}
+		return null;
 	}
 
 	/// <summary>
@@ -154,49 +129,40 @@ public class HaulToInventoryJob : Job
 	/// </summary>
 	public bool IsValid()
 	{
-		lock (this)
+		// Check that we have items
+		if (HaulItems.IsEmpty)
+			return false;
+
+		// Check that all items have valid things
+		foreach (var item in HaulItems)
 		{
-			// Check that we have items
-			if (_haulItems.Count == 0)
+			if (item.Thing == null || item.Thing.Destroyed || !item.Thing.Spawned)
+				return false;
+
+			if (item.Count <= 0)
+				return false;
+		}
+
+		// Check that storage reservations match items
+		var expectedReservations = new Dictionary<StorageAllocationTracker.StorageLocation, int>();
+		foreach (var item in HaulItems)
+		{
+			if (!expectedReservations.ContainsKey(item.StorageLocation))
+			{
+				expectedReservations[item.StorageLocation] = 0;
+			}
+			expectedReservations[item.StorageLocation] += item.Count;
+		}
+
+		foreach (var kvp in expectedReservations)
+		{
+			if (!StorageReservations.TryGetValue(kvp.Key, out var value) || value != kvp.Value)
 			{
 				return false;
 			}
-
-			// Check that all items have valid things
-			foreach (var item in _haulItems)
-			{
-				if (item.Thing == null || item.Thing.Destroyed || !item.Thing.Spawned)
-				{
-					return false;
-				}
-
-				if (item.Count <= 0)
-				{
-					return false;
-				}
-			}
-
-			// Check that storage reservations match items
-			var expectedReservations = new Dictionary<StorageAllocationTracker.StorageLocation, int>();
-			foreach (var item in _haulItems)
-			{
-				if (!expectedReservations.ContainsKey(item.StorageLocation))
-				{
-					expectedReservations[item.StorageLocation] = 0;
-				}
-				expectedReservations[item.StorageLocation] += item.Count;
-			}
-
-			foreach (var kvp in expectedReservations)
-			{
-				if (!_storageReservations.ContainsKey(kvp.Key) || _storageReservations[kvp.Key] != kvp.Value)
-				{
-					return false;
-				}
-			}
-
-			return true;
 		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -204,39 +170,29 @@ public class HaulToInventoryJob : Job
 	/// </summary>
 	public void ReleaseAllReservations(Pawn pawn)
 	{
-		lock (this)
-		{
-			foreach (var kvp in _storageReservations)
-			{
-				StorageAllocationTracker.Instance.ReleaseCapacity(kvp.Key, null, kvp.Value, pawn);
-			}
-			_storageReservations.Clear();
-		}
+		foreach (var kvp in StorageReservations)
+			StorageAllocationTracker.Instance.ReleaseCapacity(kvp.Key, null, kvp.Value, pawn);
+		StorageReservations.Clear();
 	}
 
 	/// <summary>
 	/// Gets debug information about the job
 	/// </summary>
-	public string GetDebugInfo()
+	public void GetDebugInfo()
 	{
-		lock (this)
+		if (Settings.EnableDebugLogging)
 		{
-			var info = new System.Text.StringBuilder();
-			info.AppendLine($"HaulToInventoryJob: {_haulItems.Count} items, {_storageTargets.Count} targets");
+			var info = new StringBuilder();
+			info.AppendLine($"HaulToInventoryJob: {HaulItems.Count} items, {StorageTargets.Count} targets");
 
-			for (int i = 0; i < _haulItems.Count; i++)
-			{
-				var item = _haulItems[i];
-				info.AppendLine($"  Item {i}: {item.Thing} x{item.Count} -> {item.StorageLocation}");
-			}
+			foreach (var item in HaulItems)
+				info.AppendLine($"  Item: {item.Thing} x{item.Count} -> {item.StorageLocation}");
 
 			info.AppendLine("Storage reservations:");
-			foreach (var kvp in _storageReservations)
-			{
+			foreach (var kvp in StorageReservations)
 				info.AppendLine($"  {kvp.Key}: {kvp.Value}");
-			}
 
-			return info.ToString();
+			Log.Message(info.ToString());
 		}
 	}
 
@@ -252,9 +208,9 @@ public class HaulToInventoryJob : Job
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
 			Log.Message("[PickUpAndHaul] Skipping load data for HaulToInventoryJob");
-			_haulItems = new List<HaulItem>();
-			_storageTargets = new List<LocalTargetInfo>();
-			_storageReservations = new Dictionary<StorageAllocationTracker.StorageLocation, int>();
+			HaulItems = [];
+			StorageTargets = [];
+			StorageReservations = new ConcurrentDictionary<StorageAllocationTracker.StorageLocation, int>();
 			return;
 		}
 

@@ -19,22 +19,22 @@ public static class FishTranspiler
 			OpCode = instruction.opcode;
 			Operand = instruction.operand;
 		}
-		public override string ToString() => $"{OpCode} {Operand}";
-		public CodeInstruction ToInstruction() => new(OpCode, Operand);
-		public CodeInstruction ToLoadLocal() => new(OpCode.ToLoadLocal(), Operand);
-		public CodeInstruction ToStoreLocal() => new(OpCode.ToStoreLocal(), Operand);
-		public CodeInstruction ToLoadField() => new(OpCode.ToLoadField(), Operand);
-		public CodeInstruction ToStoreField() => new(OpCode.ToStoreField(), Operand);
-		public CodeInstruction ToAddress() => new(OpCode.ToAddress(), GetIndex());
-		public CodeInstruction WithLabels(params Label[] labels) => ToInstruction().WithLabels(labels);
-		public CodeInstruction WithLabels(IEnumerable<Label> labels) => ToInstruction().WithLabels(labels);
-		public int GetIndex() => Operand is LocalBuilder builder ? builder.LocalIndex
+		public override readonly string ToString() => $"{OpCode} {Operand}";
+		public readonly CodeInstruction ToInstruction() => new(OpCode, Operand);
+		public readonly CodeInstruction ToLoadLocal() => new(OpCode.ToLoadLocal(), Operand);
+		public readonly CodeInstruction ToStoreLocal() => new(OpCode.ToStoreLocal(), Operand);
+		public readonly CodeInstruction ToLoadField() => new(OpCode.ToLoadField(), Operand);
+		public readonly CodeInstruction ToStoreField() => new(OpCode.ToStoreField(), Operand);
+		public readonly CodeInstruction ToAddress() => new(OpCode.ToAddress(), GetIndex());
+		public readonly CodeInstruction WithLabels(params Label[] labels) => ToInstruction().WithLabels(labels);
+		public readonly CodeInstruction WithLabels(IEnumerable<Label> labels) => ToInstruction().WithLabels(labels);
+		public readonly int GetIndex() => Operand is LocalBuilder builder ? builder.LocalIndex
 			: Operand is ushort ushortVar ? ushortVar
 			: Operand is byte byteVar ? byteVar
 			: OpCode.TryGetIndex() is { } index ? index
 			: Operand as int? ?? throw new ArgumentException($"{OpCode} has operand {Operand}. This is not a supported index.");
-		public override bool Equals(object obj) => obj is CodeInstruction code ? this == code : obj is Container helper && this == helper;
-		public override int GetHashCode() => unchecked((((1009 * 9176) + OpCode.GetHashCode()) * 9176) + Operand.GetHashCode());
+		public override readonly bool Equals(object obj) => obj is CodeInstruction code ? this == code : obj is Container helper && this == helper;
+		public override readonly int GetHashCode() => unchecked((((1009 * 9176) + OpCode.GetHashCode()) * 9176) + Operand.GetHashCode());
 		public static bool operator ==(Container lhs, Container rhs) => lhs.OpCode == rhs.OpCode && CompareOperands(lhs.Operand, rhs.Operand);
 		public static bool operator !=(Container lhs, Container rhs) => !(lhs == rhs);
 		public static bool operator ==(Container helper, CodeInstruction code) => helper.OpCode == code.opcode && CompareOperands(helper.Operand, code.operand);

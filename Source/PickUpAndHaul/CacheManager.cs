@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using Verse;
-
 namespace PickUpAndHaul;
 
 /// <summary>
@@ -9,7 +5,7 @@ namespace PickUpAndHaul;
 /// </summary>
 public static class CacheManager
 {
-	private static readonly List<ICache> _registeredCaches = new();
+	private static readonly List<ICache> _registeredCaches = [];
 	private static int _lastMapChangeTick = 0;
 	private static int _lastGameResetTick = 0;
 	private static Map _lastMap = null;
@@ -24,22 +20,7 @@ public static class CacheManager
 			_registeredCaches.Add(cache);
 			if (Settings.EnableDebugLogging)
 			{
-				Log.Message($"[CacheManager] Registered cache: {cache.GetType().Name}");
-			}
-		}
-	}
-
-	/// <summary>
-	/// Unregisters a cache from automatic cleanup
-	/// </summary>
-	public static void UnregisterCache(ICache cache)
-	{
-		if (cache != null && _registeredCaches.Contains(cache))
-		{
-			_registeredCaches.Remove(cache);
-			if (Settings.EnableDebugLogging)
-			{
-				Log.Message($"[CacheManager] Unregistered cache: {cache.GetType().Name}");
+				Log.Message($"[CacheManager] Registered cache: {cache.GetType().FullName}");
 			}
 		}
 	}
@@ -61,7 +42,7 @@ public static class CacheManager
 			}
 			catch (Exception ex)
 			{
-				Log.Warning($"[CacheManager] Error cleaning cache {cache.GetType().Name}: {ex.Message}");
+				Log.Warning($"[CacheManager] Error cleaning cache {cache.GetType().FullName}: {ex.Message}");
 			}
 		}
 
@@ -127,49 +108,6 @@ public static class CacheManager
 
 		_lastGameResetTick = currentTick;
 	}
-
-	/// <summary>
-	/// Gets debug information about all registered caches
-	/// </summary>
-	public static string GetDebugInfo()
-	{
-		var info = new System.Text.StringBuilder();
-		info.AppendLine("[CacheManager] Registered caches:");
-
-		foreach (var cache in _registeredCaches)
-		{
-			try
-			{
-				info.AppendLine($"  {cache.GetType().Name}: {cache.GetDebugInfo()}");
-			}
-			catch (Exception ex)
-			{
-				info.AppendLine($"  {cache.GetType().Name}: Error getting debug info - {ex.Message}");
-			}
-		}
-
-		info.AppendLine($"Last map change: {_lastMapChangeTick}");
-		info.AppendLine($"Last game reset: {_lastGameResetTick}");
-		info.AppendLine($"Current map: {_lastMap}");
-
-		return info.ToString();
-	}
-
-	/// <summary>
-	/// Forces a complete reset of all caches (for testing or emergency cleanup)
-	/// </summary>
-	public static void ForceResetAllCaches()
-	{
-		if (Settings.EnableDebugLogging)
-		{
-			Log.Message("[CacheManager] Force resetting all caches");
-		}
-
-		CleanupAllCaches();
-		_lastMap = null;
-		_lastMapChangeTick = 0;
-		_lastGameResetTick = 0;
-	}
 }
 
 /// <summary>
@@ -181,9 +119,4 @@ public interface ICache
 	/// Forces a cleanup of the cache
 	/// </summary>
 	void ForceCleanup();
-
-	/// <summary>
-	/// Gets debug information about the cache
-	/// </summary>
-	string GetDebugInfo();
 }
