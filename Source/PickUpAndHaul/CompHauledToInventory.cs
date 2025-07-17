@@ -2,21 +2,16 @@
 
 public class CompHauledToInventory : ThingComp
 {
-	private HashSet<Thing> takenToInventory = new();
+	private HashSet<Thing> takenToInventory;
 
+	// Don't modify the collection here - this causes concurrent modification exceptions
+	// Instead, handle null removal at specific safe points
 	public HashSet<Thing> GetHashSet()
-	{
-		takenToInventory ??= new HashSet<Thing>();
-		// Don't modify the collection here - this causes concurrent modification exceptions
-		// Instead, handle null removal at specific safe points
-		return takenToInventory;
-	}
+		=> takenToInventory ??= [];
 
-	public void CleanupNulls()
-	{
-		// Separate method to clean nulls that can be called at safe points
+	// Separate method to clean nulls that can be called at safe points
+	public void CleanupNulls() =>
 		takenToInventory?.RemoveWhere(x => x == null);
-	}
 
 	public void RegisterHauledItem(Thing thing) => takenToInventory.Add(thing);
 
@@ -33,9 +28,8 @@ public class CompHauledToInventory : ThingComp
 		// Handle loading by properly handling the scribing but ignoring data
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
-			Log.Message("[PickUpAndHaul] Ignoring load data for CompHauledToInventory");
 			// Initialize with empty collection to prevent null reference errors
-			takenToInventory = new HashSet<Thing>();
+			takenToInventory ??= [];
 			// Properly handle the scribing to avoid errors
 			Scribe_Collections.Look(ref takenToInventory, "ThingsHauledToInventory", LookMode.Reference);
 			return;

@@ -1,16 +1,13 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using UnityEngine;
 
 namespace PickUpAndHaul;
 
 public static class PerformanceProfiler
 {
-	private static readonly Dictionary<string, PerformanceMetric> _metrics = new();
-	private static readonly Dictionary<string, Stopwatch> _activeTimers = new();
+	private static readonly Dictionary<string, PerformanceMetric> _metrics = [];
+	private static readonly Dictionary<string, Stopwatch> _activeTimers = [];
 	private static int _lastReportTick = 0;
 	private static readonly int REPORT_INTERVAL_TICKS = 6000; // Report every 10 seconds at 60 TPS
 	private static readonly string LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaul_Performance.txt");
@@ -39,12 +36,12 @@ public static class PerformanceProfiler
 		var elapsedTicks = timer.ElapsedTicks;
 		_activeTimers.Remove(operationName);
 
-		if (!_metrics.ContainsKey(operationName))
+		if (!_metrics.TryGetValue(operationName, out var metric))
 		{
-			_metrics[operationName] = new PerformanceMetric();
+			metric = new PerformanceMetric();
+			_metrics[operationName] = metric;
 		}
 
-		var metric = _metrics[operationName];
 		metric.AddMeasurement(elapsedTicks);
 	}
 
@@ -53,12 +50,13 @@ public static class PerformanceProfiler
 		if (!Settings.EnableDebugLogging)
 			return;
 
-		if (!_metrics.ContainsKey(operationName))
+		if (!_metrics.TryGetValue(operationName, out var value))
 		{
-			_metrics[operationName] = new PerformanceMetric();
+			value = new PerformanceMetric();
+			_metrics[operationName] = value;
 		}
 
-		_metrics[operationName].AddMeasurement(tickCount);
+		value.AddMeasurement(tickCount);
 	}
 
 	public static void Update()

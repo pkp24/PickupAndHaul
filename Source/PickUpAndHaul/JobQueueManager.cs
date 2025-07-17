@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Verse;
-using Verse.AI;
-
 namespace PickUpAndHaul;
 
 /// <summary>
@@ -34,24 +28,24 @@ public static class JobQueueManager
 		{
 			// DEBUG: Log job queues before any modification
 			Log.Message($"[JobQueueManager] DEBUG: (Before AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
-			Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueA: {string.Join(", ", job.targetQueueA ?? new List<LocalTargetInfo>())}");
-			Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueB: {string.Join(", ", job.targetQueueB ?? new List<LocalTargetInfo>())}");
-			Log.Message($"[JobQueueManager] DEBUG: Contents countQueue: {string.Join(", ", job.countQueue ?? new List<int>())}");
+			Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueA: {string.Join(", ", job.targetQueueA ?? [])}");
+			Log.Message($"[JobQueueManager] DEBUG: Contents targetQueueB: {string.Join(", ", job.targetQueueB ?? [])}");
+			Log.Message($"[JobQueueManager] DEBUG: Contents countQueue: {string.Join(", ", job.countQueue ?? [])}");
 			// Initialize queues if they don't exist
-			job.targetQueueA ??= new List<LocalTargetInfo>();
-			job.countQueue ??= new List<int>();
-			job.targetQueueB ??= new List<LocalTargetInfo>();
+			job.targetQueueA ??= [];
+			job.countQueue ??= [];
+			job.targetQueueB ??= [];
 
 			// Store initial queue counts for rollback
-			int initialTargetQueueACount = job.targetQueueA.Count;
-			int initialCountQueueCount = job.countQueue.Count;
-			int initialTargetQueueBCount = job.targetQueueB.Count;
+			var initialTargetQueueACount = job.targetQueueA.Count;
+			var initialCountQueueCount = job.countQueue.Count;
+			var initialTargetQueueBCount = job.targetQueueB.Count;
 
 			try
 			{
 				// Validate all items before adding any
 				var validItems = new List<(Thing thing, int count, LocalTargetInfo target)>();
-				for (int i = 0; i < things.Count; i++)
+				for (var i = 0; i < things.Count; i++)
 				{
 					var thing = things[i];
 					var count = counts[i];
@@ -169,7 +163,7 @@ public static class JobQueueManager
 				var actualCount = Math.Min(count, job.targetQueueA.Count);
 
 				// Remove items from the end (most recently added)
-				for (int i = 0; i < actualCount; i++)
+				for (var i = 0; i < actualCount; i++)
 				{
 					if (job.targetQueueA.Count > 0)
 						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
@@ -311,7 +305,7 @@ public static class JobQueueManager
 				}
 
 				// Check for invalid targets in targetQueueA
-				for (int i = 0; i < job.targetQueueA.Count; i++)
+				for (var i = 0; i < job.targetQueueA.Count; i++)
 				{
 					var target = job.targetQueueA[i];
 					if (target.Thing == null)
@@ -327,7 +321,7 @@ public static class JobQueueManager
 				}
 
 				// Check for invalid targets in targetQueueB
-				for (int i = 0; i < job.targetQueueB.Count; i++)
+				for (var i = 0; i < job.targetQueueB.Count; i++)
 				{
 					var target = job.targetQueueB[i];
 					if (target.Thing == null)
@@ -351,7 +345,7 @@ public static class JobQueueManager
 				}
 
 				// Check for non-positive counts
-				for (int i = 0; i < job.countQueue.Count; i++)
+				for (var i = 0; i < job.countQueue.Count; i++)
 				{
 					if (job.countQueue[i] <= 0)
 					{
@@ -426,19 +420,19 @@ public static class JobQueueManager
 				if (job.targetQueueA.Count > 0)
 				{
 					info.AppendLine("  targetQueueA contents:");
-					for (int i = 0; i < Math.Min(job.targetQueueA.Count, 5); i++)
+					for (var i = 0; i < Math.Min(job.targetQueueA.Count, 5); i++)
 					{
 						info.AppendLine($"    [{i}]: {job.targetQueueA[i]}");
 					}
 
 					info.AppendLine("  countQueue contents:");
-					for (int i = 0; i < Math.Min(job.countQueue.Count, 5); i++)
+					for (var i = 0; i < Math.Min(job.countQueue.Count, 5); i++)
 					{
 						info.AppendLine($"    [{i}]: {job.countQueue[i]}");
 					}
 
 					info.AppendLine("  targetQueueB contents:");
-					for (int i = 0; i < Math.Min(job.targetQueueB.Count, 5); i++)
+					for (var i = 0; i < Math.Min(job.targetQueueB.Count, 5); i++)
 					{
 						info.AppendLine($"    [{i}]: {job.targetQueueB[i]}");
 					}

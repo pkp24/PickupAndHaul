@@ -1,10 +1,11 @@
 ﻿using HarmonyLib;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Reflection.Emit;
 
 namespace PickUpAndHaul;
 [StaticConstructorOnStartup]
-static class HarmonyPatches
+internal static class HarmonyPatches
 {
 	static HarmonyPatches()
 	{
@@ -17,7 +18,7 @@ static class HarmonyPatches
 
 		if (!ModCompatibilityCheck.CombatExtendedIsActive)
 		{
-			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.GetMaxAllowedToPickUp), new[] { typeof(Pawn), typeof(ThingDef) }),
+			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.GetMaxAllowedToPickUp), [typeof(Pawn), typeof(ThingDef)]),
 				prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(MaxAllowedToPickUpPrefix)));
 
 			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.CanPickUp)),
@@ -117,7 +118,7 @@ static class HarmonyPatches
 			var jobQueue = __instance.jobQueue;
 			if (jobQueue != null)
 			{
-				for (int i = jobQueue.Count - 1; i >= 0; i--)
+				for (var i = jobQueue.Count - 1; i >= 0; i--)
 				{
 					if (jobQueue[i]?.job?.def != null && IsModSpecificJob(jobQueue[i].job.def))
 					{
@@ -155,22 +156,18 @@ static class HarmonyPatches
 	/// <summary>
 	/// Checks if a job definition is mod-specific
 	/// </summary>
-	private static bool IsModSpecificJob(JobDef jobDef)
-	{
-		return jobDef != null && (jobDef.defName == "HaulToInventory" ||
+	private static bool IsModSpecificJob(JobDef jobDef) =>
+		jobDef != null && (jobDef.defName == "HaulToInventory" ||
 			   jobDef.defName == "UnloadYourHauledInventory" ||
 			   jobDef.driverClass == typeof(JobDriver_HaulToInventory) ||
 			   jobDef.driverClass == typeof(JobDriver_UnloadYourHauledInventory));
-	}
 
 	/// <summary>
 	/// Checks if a job driver is mod-specific
 	/// </summary>
-	private static bool IsModSpecificJobDriver(JobDriver jobDriver)
-	{
-		return jobDriver != null && (jobDriver.GetType() == typeof(JobDriver_HaulToInventory) ||
+	private static bool IsModSpecificJobDriver(JobDriver jobDriver) =>
+		jobDriver != null && (jobDriver.GetType() == typeof(JobDriver_HaulToInventory) ||
 			   jobDriver.GetType() == typeof(JobDriver_UnloadYourHauledInventory));
-	}
 
 	private static bool Drop_Prefix(Pawn pawn, Thing thing)
 	{
@@ -258,10 +255,10 @@ static class HarmonyPatches
 	{
 		try
 		{
-			// PERFORMANCE OPTIMIZATION: Only run cache management every 60 ticks (1 second at 60 TPS)
+			// PERFORMANCE OPTIMIZATION: Only run cache management every 30 ticks (0.5 second at 60 TPS)
 			// This reduces the performance impact from 33ms to <1ms per frame
 			var currentTick = Find.TickManager?.TicksGame ?? 0;
-			if (currentTick % 60 != 0)
+			if (currentTick % 30 != 0)
 			{
 				return; // Skip this tick to reduce performance impact
 			}
@@ -320,7 +317,7 @@ static class HarmonyPatches
 	/// </summary>
 	public static IEnumerable<CodeInstruction> JobGiver_Haul_TryGiveJob_Transpiler(IEnumerable<CodeInstruction> instructions)
 	{
-		var originalMethod = AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.HaulToStorageJob), new[] { typeof(Pawn), typeof(Thing), typeof(bool) });
+		var originalMethod = AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.HaulToStorageJob), [typeof(Pawn), typeof(Thing), typeof(bool)]);
 		var replacementMethod = AccessTools.Method(typeof(HarmonyPatches), nameof(HaulToStorageJobByRace));
 		foreach (var instruction in instructions)
 		{
@@ -376,7 +373,7 @@ static class HarmonyPatches
 			var components = __instance.components;
 			if (components != null)
 			{
-				for (int i = components.Count - 1; i >= 0; i--)
+				for (var i = components.Count - 1; i >= 0; i--)
 				{
 					var component = components[i];
 					if (component != null && IsModSpecificComponent(component))
@@ -410,6 +407,7 @@ static class HarmonyPatches
 	/// <summary>
 	/// Suspends pickup and haul jobs before saving
 	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	private static void Game_ExposeData_Prefix(Game __instance)
 	{
 		try
@@ -430,6 +428,7 @@ static class HarmonyPatches
 	/// <summary>
 	/// Restores pickup and haul jobs after saving is complete
 	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	private static void Game_ExposeData_Postfix(Game __instance)
 	{
 		try
@@ -450,6 +449,7 @@ static class HarmonyPatches
 	/// <summary>
 	/// Clean up storage allocations when a job ends
 	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	private static void Pawn_JobTracker_EndCurrentJob_Postfix(Pawn_JobTracker __instance, JobCondition condition, bool startNewJob = true, bool canReturnToPool = true)
 	{
 		// Check if save operation is in progress

@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using UnityEngine;
+using System.Collections.Concurrent;
 
 namespace PickUpAndHaul;
 
@@ -19,23 +18,15 @@ public class StorageAllocationTracker : ICache
 	/// Key: Storage location identifier (cell position or container thing)
 	/// Value: Dictionary of item def to allocated count
 	/// </summary>
-	private readonly Dictionary<StorageLocation, Dictionary<ThingDef, int>> _pendingAllocations = new();
+	private readonly ConcurrentDictionary<StorageLocation, Dictionary<ThingDef, int>> _pendingAllocations = new();
 
 	/// <summary>
 	/// Tracks which pawns have pending allocations to clean up when they die or jobs fail
 	/// </summary>
-	private readonly Dictionary<Pawn, HashSet<StorageLocation>> _pawnAllocations = new();
+	private readonly ConcurrentDictionary<Pawn, HashSet<StorageLocation>> _pawnAllocations = new();
 
-	/// <summary>
-	/// Lock object for thread safety
-	/// </summary>
-	private readonly object _lockObject = new();
-
-	static StorageAllocationTracker()
-	{
-		// Register with cache manager for automatic cleanup
+	static StorageAllocationTracker() =>
 		CacheManager.RegisterCache(Instance);
-	}
 
 	/// <summary>
 	/// Represents a storage location (either a cell or a container thing)
@@ -57,46 +48,16 @@ public class StorageAllocationTracker : ICache
 			Container = container;
 		}
 
-		public bool Equals(StorageLocation other)
-		{
-			return Container != null ? Container == other.Container : Cell == other.Cell;
-		}
+		public bool Equals(StorageLocation other) => Container != null ? Container == other.Container : Cell == other.Cell;
 
-		public override bool Equals(object obj)
-		{
-			return obj is StorageLocation other && Equals(other);
-		}
+		public override bool Equals(object obj) => obj is StorageLocation other && Equals(other);
 
-		public override int GetHashCode()
-		{
-			return Container?.GetHashCode() ?? Cell.GetHashCode();
-		}
+		public override int GetHashCode() => Container?.GetHashCode() ?? Cell.GetHashCode();
 
-		public override string ToString()
-		{
-			return Container?.ToString() ?? Cell.ToString();
-		}
-	}
+		public override string ToString() => Container?.ToString() ?? Cell.ToString();
+		public static bool operator ==(StorageLocation left, StorageLocation right) => left.Equals(right);
 
-	/// <summary>
-	/// Check if there's enough available capacity at a storage location for a given item
-	/// </summary>
-	public bool HasAvailableCapacity(StorageLocation location, ThingDef itemDef, int requestedAmount, Map map)
-	{
-		lock (_lockObject)
-		{
-			// Get actual storage capacity
-			int actualCapacity = GetActualCapacity(location, itemDef, map);
-
-			// Subtract pending allocations
-			int pendingAmount = GetPendingAllocation(location, itemDef);
-
-			int availableCapacity = actualCapacity - pendingAmount;
-
-			Log.Message($"[StorageAllocationTracker] Location {location}: actual={actualCapacity}, pending={pendingAmount}, available={availableCapacity}, requested={requestedAmount}");
-
-			return availableCapacity >= requestedAmount;
-		}
+		public static bool operator !=(StorageLocation left, StorageLocation right) => !(left == right);
 	}
 
 	/// <summary>
@@ -104,86 +65,88 @@ public class StorageAllocationTracker : ICache
 	/// </summary>
 	public bool ReserveCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
 	{
-		lock (_lockObject)
+		var actualCapacity = GetActualCapacity(location, itemDef, pawn.Map);
+		// Subtract pending allocations
+		var pendingAmount = GetPendingAllocation(location, itemDef);
+		var availableCapacity = actualCapacity - pendingAmount;
+		Log.Message($"[StorageAllocationTracker] Location {location}: actual={actualCapacity}, pending={pendingAmount}, available={availableCapacity}, requested={amount}");
+
+		// Check if we can reserve this amount
+		if (availableCapacity < amount)
 		{
-			// Check if we can reserve this amount
-			if (!HasAvailableCapacity(location, itemDef, amount, pawn.Map))
-			{
-				Log.Message($"[StorageAllocationTracker] Cannot reserve {amount} of {itemDef} at {location} - insufficient capacity");
-				return false;
-			}
-
-			// Add to pending allocations
-			if (!_pendingAllocations.ContainsKey(location))
-			{
-				_pendingAllocations[location] = new Dictionary<ThingDef, int>();
-			}
-
-			if (!_pendingAllocations[location].ContainsKey(itemDef))
-			{
-				_pendingAllocations[location][itemDef] = 0;
-			}
-
-			_pendingAllocations[location][itemDef] += amount;
-
-			// Track this allocation for the pawn
-			if (!_pawnAllocations.ContainsKey(pawn))
-			{
-				_pawnAllocations[pawn] = new HashSet<StorageLocation>();
-			}
-			_pawnAllocations[pawn].Add(location);
-
-			Log.Message($"[StorageAllocationTracker] Reserved {amount} of {itemDef} at {location} for {pawn}");
-			return true;
+			Log.Message($"[StorageAllocationTracker] Cannot reserve {amount} of {itemDef} at {location} - insufficient capacity");
+			return false;
 		}
+
+		// Add to pending allocations
+		if (!_pendingAllocations.TryGetValue(location, out var resultLocation))
+		{
+			resultLocation = [];
+			_pendingAllocations.TryAdd(location, resultLocation);
+		}
+		var oldLocation = resultLocation;
+		if (!resultLocation.ContainsKey(itemDef))
+			resultLocation[itemDef] = 0;
+
+		resultLocation[itemDef] += amount;
+		var isAllocationUpdated = _pendingAllocations.TryUpdate(location, resultLocation, oldLocation);
+
+		if (!isAllocationUpdated)
+			return false;
+		// Track this allocation for the pawn
+		if (!_pawnAllocations.TryGetValue(pawn, out var resultPawn))
+		{
+			resultPawn = [];
+			_pawnAllocations.TryAdd(pawn, resultPawn);
+
+		}
+		var oldResultPawn = resultPawn;
+		resultPawn.Add(location);
+
+		var isPawnAllocated = _pawnAllocations.TryUpdate(pawn, resultPawn, oldResultPawn);
+
+		Log.Message($"[StorageAllocationTracker] Is reserved: {isPawnAllocated} Reserved {amount} of {itemDef} at {location} for {pawn}");
+		return isPawnAllocated;
 	}
 
 	/// <summary>
 	/// Check if a pawn currently has any pending allocations
 	/// </summary>
-	public bool HasAllocations(Pawn pawn)
-	{
-		lock (_lockObject)
-		{
-			return _pawnAllocations.ContainsKey(pawn) && _pawnAllocations[pawn].Count > 0;
-		}
-	}
+	public bool HasAllocations(Pawn pawn) =>
+		_pawnAllocations.TryGetValue(pawn, out var result) && result.Count > 0;
 
 	/// <summary>
 	/// Release storage capacity when a hauling job is completed or cancelled
 	/// </summary>
 	public void ReleaseCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
 	{
-		lock (_lockObject)
+		if (_pendingAllocations.TryGetValue(location, out var result) && result.TryGetValue(itemDef, out var value))
 		{
-			if (_pendingAllocations.ContainsKey(location) && _pendingAllocations[location].ContainsKey(itemDef))
-			{
-				_pendingAllocations[location][itemDef] = Math.Max(0, _pendingAllocations[location][itemDef] - amount);
+			var oldItemDef = result;
+			result[itemDef] = Math.Max(0, value - amount);
 
-				// Remove location from pawn's allocations if no more pending allocations
-				if (_pendingAllocations[location][itemDef] == 0)
-				{
-					_pendingAllocations[location].Remove(itemDef);
-				}
-
-				if (_pendingAllocations[location].Count == 0)
-				{
-					_pendingAllocations.Remove(location);
-				}
-			}
-
-			// Remove from pawn's allocation tracking
-			if (_pawnAllocations.ContainsKey(pawn))
-			{
-				_pawnAllocations[pawn].Remove(location);
-				if (_pawnAllocations[pawn].Count == 0)
-				{
-					_pawnAllocations.Remove(pawn);
-				}
-			}
-
-			Log.Message($"[StorageAllocationTracker] Released {amount} of {itemDef} at {location} for {pawn}");
+			// Remove location from pawn's allocations if no more pending allocations
+			if (result[itemDef] == 0)
+				result.Remove(itemDef);
+			if (result.Count == 0)
+				_pendingAllocations.TryRemove(location, out _);
+			else
+				_pendingAllocations.TryUpdate(location, result, oldItemDef);
 		}
+
+		// Remove from pawn's allocation tracking
+		if (_pawnAllocations.TryGetValue(pawn, out var pawnResult))
+		{
+			var oldResult = pawnResult;
+			pawnResult.Remove(location);
+			if (pawnResult.Count == 0)
+				_pawnAllocations.TryRemove(pawn, out _);
+			else
+				_pawnAllocations.TryUpdate(pawn, pawnResult, oldResult);
+
+		}
+
+		Log.Message($"[StorageAllocationTracker] Released {amount} of {itemDef} at {location} for {pawn}");
 	}
 
 	/// <summary>
@@ -191,33 +154,30 @@ public class StorageAllocationTracker : ICache
 	/// </summary>
 	public void CleanupPawnAllocations(Pawn pawn)
 	{
-		lock (_lockObject)
-		{
-			if (!_pawnAllocations.ContainsKey(pawn))
-				return;
+		if (!_pawnAllocations.TryGetValue(pawn, out var resultPawn))
+			return;
 
-			var locations = new List<StorageLocation>(_pawnAllocations[pawn]);
-			foreach (var location in locations)
+		var locations = new List<StorageLocation>(resultPawn);
+		foreach (var location in locations)
+		{
+			if (_pendingAllocations.TryGetValue(location, out var resultLocation))
 			{
-				if (_pendingAllocations.ContainsKey(location))
+				var itemDefs = new List<ThingDef>(resultLocation.Keys);
+				foreach (var itemDef in itemDefs)
 				{
-					var itemDefs = new List<ThingDef>(_pendingAllocations[location].Keys);
-					foreach (var itemDef in itemDefs)
-					{
-						var amount = _pendingAllocations[location][itemDef];
-						ReleaseCapacity(location, itemDef, amount, pawn);
-					}
+					var amount = resultLocation[itemDef];
+					ReleaseCapacity(location, itemDef, amount, pawn);
 				}
 			}
-
-			Log.Message($"[StorageAllocationTracker] Cleaned up all allocations for {pawn}");
 		}
+
+		Log.Message($"[StorageAllocationTracker] Cleaned up all allocations for {pawn}");
 	}
 
 	/// <summary>
 	/// Get the actual storage capacity at a location
 	/// </summary>
-	private int GetActualCapacity(StorageLocation location, ThingDef itemDef, Map map)
+	private static int GetActualCapacity(StorageLocation location, ThingDef itemDef, Map map)
 	{
 		if (location.Container != null)
 		{
@@ -290,12 +250,12 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Safely create a temporary thing for capacity checking
 	/// </summary>
-	private Thing CreateTempThing(ThingDef itemDef)
+	private static Thing CreateTempThing(ThingDef itemDef)
 	{
 		try
 		{
 			// Validate stack limit and use a safe default if invalid
-			int safeStackCount = GetSafeStackCount(itemDef);
+			var safeStackCount = GetSafeStackCount(itemDef);
 
 			if (itemDef.MadeFromStuff)
 			{
@@ -330,7 +290,7 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Properly dispose of a temporary thing to prevent memory leaks
 	/// </summary>
-	private void DisposeTempThing(Thing tempThing)
+	private static void DisposeTempThing(Thing tempThing)
 	{
 		if (tempThing == null)
 			return;
@@ -339,19 +299,9 @@ public class StorageAllocationTracker : ICache
 		{
 			// If the thing is spawned, destroy it properly
 			if (tempThing.Spawned)
-			{
 				tempThing.Destroy();
-			}
 			else
-			{
-				// For unspawned things, we need to clean up any references they might hold
-				// Clear any potential references that might cause memory leaks
-				tempThing.stackCount = 0;
-
-				// Note: We cannot directly clear the Stuff reference as SetStuffDirect doesn't exist
-				// The garbage collector will handle cleanup of unspawned objects
 				tempThing = null;
-			}
 		}
 		catch (Exception ex)
 		{
@@ -362,7 +312,7 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Get a safe stack count for capacity calculations, validating against itemDef.stackLimit
 	/// </summary>
-	private int GetSafeStackCount(ThingDef itemDef)
+	private static int GetSafeStackCount(ThingDef itemDef)
 	{
 		// Validate stack limit - must be positive
 		if (itemDef.stackLimit <= 0)
@@ -392,64 +342,28 @@ public class StorageAllocationTracker : ICache
 	/// Get the amount of pending allocations for a specific item at a location
 	/// </summary>
 	private int GetPendingAllocation(StorageLocation location, ThingDef itemDef)
-	{
-		return _pendingAllocations.ContainsKey(location) && _pendingAllocations[location].ContainsKey(itemDef)
-			? _pendingAllocations[location][itemDef]
-			: 0;
-	}
-
-	/// <summary>
-	/// Clear all allocations (for testing or when save is loaded)
-	/// </summary>
-	public void ClearAllAllocations()
-	{
-		lock (_lockObject)
-		{
-			_pendingAllocations.Clear();
-			_pawnAllocations.Clear();
-			Log.Message("[StorageAllocationTracker] Cleared all allocations");
-		}
-	}
+		=> _pendingAllocations.TryGetValue(location, out var result) && result.TryGetValue(itemDef, out var value)
+			? value : 0;
 
 	/// <summary>
 	/// Forces a cleanup of the storage allocation tracker
 	/// </summary>
 	public void ForceCleanup()
 	{
-		lock (_lockObject)
+		// Clean up allocations for dead pawns
+		var deadPawns = new List<Pawn>();
+
+		foreach (var kvp in _pawnAllocations)
 		{
-			// Clean up allocations for dead pawns
-			var deadPawns = new List<Pawn>();
-
-			foreach (var kvp in _pawnAllocations)
-			{
-				var pawn = kvp.Key;
-				if (pawn == null || pawn.Destroyed || !pawn.Spawned)
-				{
-					deadPawns.Add(pawn);
-				}
-			}
-
-			foreach (var deadPawn in deadPawns)
-			{
-				CleanupPawnAllocations(deadPawn);
-			}
-
-			if (deadPawns.Count > 0 && Settings.EnableDebugLogging)
-			{
-				Log.Message($"[StorageAllocationTracker] Cleaned up allocations for {deadPawns.Count} dead pawns");
-			}
+			var pawn = kvp.Key;
+			if (pawn == null || pawn.Destroyed || !pawn.Spawned)
+				deadPawns.Add(pawn);
 		}
-	}
 
-	/// <summary>
-	/// Gets debug information about the storage allocation tracker
-	/// </summary>
-	public string GetDebugInfo()
-	{
-		lock (_lockObject)
-		{
-			return $"StorageAllocationTracker: {_pendingAllocations.Count} pending allocations, {_pawnAllocations.Count} pawn allocations";
-		}
+		foreach (var deadPawn in deadPawns)
+			CleanupPawnAllocations(deadPawn);
+
+		if (deadPawns.Count > 0 && Settings.EnableDebugLogging)
+			Log.Message($"[StorageAllocationTracker] Cleaned up allocations for {deadPawns.Count} dead pawns");
 	}
 }

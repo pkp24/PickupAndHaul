@@ -1,57 +1,56 @@
-﻿using System;
+﻿using System.Diagnostics;
 using System.IO;
-using Verse;
+using System.Threading.Tasks;
 
 namespace PickUpAndHaul;
 
-static class Log
+internal static class Log
 {
 	private static readonly string DEBUG_LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaul_Debug.txt");
 	private static readonly object _fileLock = new();
 
-	[System.Diagnostics.Conditional("DEBUG")]
+	[Conditional("DEBUG")]
 	public static void Message(string x)
 	{
 		if (Settings.EnableDebugLogging)
 		{
 			Verse.Log.Message(x);
-			WriteToFile(x);
+			Task.Run(() => WriteToFile(x));
 		}
 	}
 
-	[System.Diagnostics.Conditional("DEBUG")]
+	[Conditional("DEBUG")]
 	public static void Warning(string x)
 	{
 		if (Settings.EnableDebugLogging)
 		{
 			Verse.Log.Warning(x);
-			WriteToFile($"[WARNING] {x}");
+			Task.Run(() => WriteToFile($"[WARNING] {x}"));
 		}
 	}
 
-	[System.Diagnostics.Conditional("DEBUG")]
+	[Conditional("DEBUG")]
 	public static void Error(string x)
 	{
 		if (Settings.EnableDebugLogging)
 		{
 			Verse.Log.Error(x);
-			WriteToFile($"[ERROR] {x}");
+			Task.Run(() => WriteToFile($"[ERROR] {x}"));
 		}
 	}
 
-	[System.Diagnostics.Conditional("DEBUG")]
+	[Conditional("DEBUG")]
 	public static void MessageToFile(string x)
 	{
 		if (Settings.EnableDebugLogging)
-		{
-			WriteToFile(x);
-		}
+			Task.Run(() => WriteToFile(x));
 	}
 
 	private static void WriteToFile(string message)
 	{
 		try
 		{
+			PerformanceProfiler.Update();
 			lock (_fileLock)
 			{
 				// Ensure the directory exists

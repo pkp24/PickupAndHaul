@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
-using Verse;
-using Verse.AI;
+using System.Text;
 
 namespace PickUpAndHaul;
 
@@ -11,7 +9,7 @@ namespace PickUpAndHaul;
 /// </summary>
 public static class JobRollbackManager
 {
-	private static readonly Dictionary<Job, JobRollbackState> _rollbackStates = new();
+	private static readonly ConcurrentDictionary<Job, JobRollbackState> _rollbackStates = new();
 	private static readonly object _lockObject = new();
 
 	/// <summary>
@@ -22,24 +20,19 @@ public static class JobRollbackManager
 		if (job == null)
 			return;
 
-		lock (_lockObject)
+		var state = new JobRollbackState
 		{
-			var state = new JobRollbackState
-			{
-				TargetQueueACount = job.targetQueueA?.Count ?? 0,
-				TargetQueueBCount = job.targetQueueB?.Count ?? 0,
-				CountQueueCount = job.countQueue?.Count ?? 0,
-				CreatedTick = Find.TickManager.TicksGame,
-				Pawn = pawn
-			};
+			TargetQueueACount = job.targetQueueA?.Count ?? 0,
+			TargetQueueBCount = job.targetQueueB?.Count ?? 0,
+			CountQueueCount = job.countQueue?.Count ?? 0,
+			CreatedTick = Find.TickManager.TicksGame,
+			Pawn = pawn
+		};
+		if (_rollbackStates.TryGetValue(job, out var oldState))
+			_rollbackStates.TryUpdate(job, state, oldState);
 
-			_rollbackStates[job] = state;
-
-			if (Settings.EnableDebugLogging)
-			{
-				Log.Message($"[JobRollbackManager] Created rollback point for {pawn} - queues: A={state.TargetQueueACount}, B={state.TargetQueueBCount}, C={state.CountQueueCount}");
-			}
-		}
+		if (Settings.EnableDebugLogging)
+			Log.Message($"[JobRollbackManager] Created rollback point for {pawn} - queues: A={state.TargetQueueACount}, B={state.TargetQueueBCount}, C={state.CountQueueCount}");
 	}
 
 	/// <summary>
@@ -64,7 +57,7 @@ public static class JobRollbackManager
 				if (job.targetQueueA != null && job.targetQueueA.Count > state.TargetQueueACount)
 				{
 					var itemsToRemove = job.targetQueueA.Count - state.TargetQueueACount;
-					for (int i = 0; i < itemsToRemove; i++)
+					for (var i = 0; i < itemsToRemove; i++)
 					{
 						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
 					}
@@ -74,7 +67,7 @@ public static class JobRollbackManager
 				if (job.countQueue != null && job.countQueue.Count > state.CountQueueCount)
 				{
 					var itemsToRemove = job.countQueue.Count - state.CountQueueCount;
-					for (int i = 0; i < itemsToRemove; i++)
+					for (var i = 0; i < itemsToRemove; i++)
 					{
 						job.countQueue.RemoveAt(job.countQueue.Count - 1);
 					}
@@ -84,7 +77,7 @@ public static class JobRollbackManager
 				if (job.targetQueueB != null && job.targetQueueB.Count > state.TargetQueueBCount)
 				{
 					var itemsToRemove = job.targetQueueB.Count - state.TargetQueueBCount;
-					for (int i = 0; i < itemsToRemove; i++)
+					for (var i = 0; i < itemsToRemove; i++)
 					{
 						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
 					}
@@ -114,7 +107,7 @@ public static class JobRollbackManager
 			finally
 			{
 				// Remove the rollback state after use
-				_rollbackStates.Remove(job);
+				_rollbackStates.Remove(job, out _);
 			}
 		}
 	}
@@ -124,29 +117,15 @@ public static class JobRollbackManager
 	/// </summary>
 	public static void CleanupRollbackStates()
 	{
-		lock (_lockObject)
-		{
-			var currentTick = Find.TickManager.TicksGame;
-			var keysToRemove = _rollbackStates.Keys.Where(job =>
-			{
-				if (_rollbackStates.TryGetValue(job, out var state))
-				{
-					// Remove states older than 1000 ticks (about 16 seconds)
-					return currentTick - state.CreatedTick > 1000;
-				}
-				return true;
-			}).ToList();
+		var currentTick = Find.TickManager.TicksGame;
+		var initialRollbackStates = _rollbackStates.Count;
+		foreach (var state in _rollbackStates)
+			if (currentTick - state.Value.CreatedTick > 1000) // Remove states older than 1000 ticks (about 16 seconds)
+				_rollbackStates.Remove(state.Key, out _);
 
-			foreach (var key in keysToRemove)
-			{
-				_rollbackStates.Remove(key);
-			}
-
-			if (keysToRemove.Count > 0 && Settings.EnableDebugLogging)
-			{
-				Log.Message($"[JobRollbackManager] Cleaned up {keysToRemove.Count} old rollback states");
-			}
-		}
+		var diff = initialRollbackStates - _rollbackStates.Count;
+		if (diff > 0 && Settings.EnableDebugLogging)
+			Log.Message($"[JobRollbackManager] Rollback states Before cleanup {initialRollbackStates} and after {_rollbackStates.Count}, diff: {diff}");
 	}
 
 	/// <summary>
@@ -156,7 +135,7 @@ public static class JobRollbackManager
 	{
 		lock (_lockObject)
 		{
-			var info = new System.Text.StringBuilder();
+			var info = new StringBuilder();
 			info.AppendLine($"[JobRollbackManager] Rollback states: {_rollbackStates.Count}");
 
 			foreach (var kvp in _rollbackStates.Take(5)) // Show first 5
