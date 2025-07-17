@@ -11,182 +11,182 @@ namespace PickUpAndHaul;
 /// <typeparam name="T">The type of data to cache per pawn</typeparam>
 public class PawnCache<T> : ICache
 {
-    private readonly Dictionary<System.WeakReference<Pawn>, T> _cache = new();
-    private readonly object _lockObject = new();
-    private int _lastCleanupTick = 0;
-    private const int CLEANUP_INTERVAL_TICKS = 1000; // Clean up every ~16 seconds at 60 TPS
+	private readonly Dictionary<System.WeakReference<Pawn>, T> _cache = new();
+	private readonly object _lockObject = new();
+	private int _lastCleanupTick = 0;
+	private const int CLEANUP_INTERVAL_TICKS = 1000; // Clean up every ~16 seconds at 60 TPS
 
-    /// <summary>
-    /// Sets a value for a pawn in the cache
-    /// </summary>
-    public void Set(Pawn pawn, T value)
-    {
-        if (pawn == null)
-            return;
+	/// <summary>
+	/// Sets a value for a pawn in the cache
+	/// </summary>
+	public void Set(Pawn pawn, T value)
+	{
+		if (pawn == null)
+			return;
 
-        lock (_lockObject)
-        {
-            TryCleanupDeadReferences();
+		lock (_lockObject)
+		{
+			TryCleanupDeadReferences();
 
-            // Find existing entry for this pawn and update it
-            foreach (var kvp in _cache)
-            {
-                if (kvp.Key.TryGetTarget(out var cachedPawn) && cachedPawn == pawn)
-                {
-                    _cache[kvp.Key] = value;
-                    return;
-                }
-            }
+			// Find existing entry for this pawn and update it
+			foreach (var kvp in _cache)
+			{
+				if (kvp.Key.TryGetTarget(out var cachedPawn) && cachedPawn == pawn)
+				{
+					_cache[kvp.Key] = value;
+					return;
+				}
+			}
 
-            // If no existing entry found, create a new one
-            _cache[new System.WeakReference<Pawn>(pawn)] = value;
-        }
-    }
+			// If no existing entry found, create a new one
+			_cache[new System.WeakReference<Pawn>(pawn)] = value;
+		}
+	}
 
-    /// <summary>
-    /// Tries to get a value for a pawn from the cache
-    /// </summary>
-    public bool TryGet(Pawn pawn, out T value)
-    {
-        value = default;
-        if (pawn == null)
-            return false;
+	/// <summary>
+	/// Tries to get a value for a pawn from the cache
+	/// </summary>
+	public bool TryGet(Pawn pawn, out T value)
+	{
+		value = default;
+		if (pawn == null)
+			return false;
 
-        lock (_lockObject)
-        {
-            TryCleanupDeadReferences();
+		lock (_lockObject)
+		{
+			TryCleanupDeadReferences();
 
-            foreach (var kvp in _cache)
-            {
-                if (kvp.Key.TryGetTarget(out var cachedPawn) && cachedPawn == pawn)
-                {
-                    value = kvp.Value;
-                    return true;
-                }
-            }
+			foreach (var kvp in _cache)
+			{
+				if (kvp.Key.TryGetTarget(out var cachedPawn) && cachedPawn == pawn)
+				{
+					value = kvp.Value;
+					return true;
+				}
+			}
 
-            return false;
-        }
-    }
+			return false;
+		}
+	}
 
-    /// <summary>
-    /// Removes a specific pawn from the cache
-    /// </summary>
-    public void Remove(Pawn pawn)
-    {
-        if (pawn == null)
-            return;
+	/// <summary>
+	/// Removes a specific pawn from the cache
+	/// </summary>
+	public void Remove(Pawn pawn)
+	{
+		if (pawn == null)
+			return;
 
-        lock (_lockObject)
-        {
-            var keysToRemove = new List<System.WeakReference<Pawn>>();
+		lock (_lockObject)
+		{
+			var keysToRemove = new List<System.WeakReference<Pawn>>();
 
-            foreach (var kvp in _cache)
-            {
-                if (kvp.Key.TryGetTarget(out var cachedPawn) && cachedPawn == pawn)
-                {
-                    keysToRemove.Add(kvp.Key);
-                }
-            }
+			foreach (var kvp in _cache)
+			{
+				if (kvp.Key.TryGetTarget(out var cachedPawn) && cachedPawn == pawn)
+				{
+					keysToRemove.Add(kvp.Key);
+				}
+			}
 
-            foreach (var key in keysToRemove)
-            {
-                _cache.Remove(key);
-            }
-        }
-    }
+			foreach (var key in keysToRemove)
+			{
+				_cache.Remove(key);
+			}
+		}
+	}
 
-    /// <summary>
-    /// Clears all entries from the cache
-    /// </summary>
-    public void Clear()
-    {
-        lock (_lockObject)
-        {
-            _cache.Clear();
-        }
-    }
+	/// <summary>
+	/// Clears all entries from the cache
+	/// </summary>
+	public void Clear()
+	{
+		lock (_lockObject)
+		{
+			_cache.Clear();
+		}
+	}
 
-    /// <summary>
-    /// Gets the current number of entries in the cache
-    /// </summary>
-    public int Count
-    {
-        get
-        {
-            lock (_lockObject)
-            {
-                TryCleanupDeadReferences();
-                return _cache.Count;
-            }
-        }
-    }
+	/// <summary>
+	/// Gets the current number of entries in the cache
+	/// </summary>
+	public int Count
+	{
+		get
+		{
+			lock (_lockObject)
+			{
+				TryCleanupDeadReferences();
+				return _cache.Count;
+			}
+		}
+	}
 
-    /// <summary>
-    /// Attempts to clean up dead references if enough time has passed
-    /// </summary>
-    private void TryCleanupDeadReferences()
-    {
-        var currentTick = Find.TickManager?.TicksGame ?? 0;
-        if (currentTick - _lastCleanupTick < CLEANUP_INTERVAL_TICKS)
-        {
-            return;
-        }
+	/// <summary>
+	/// Attempts to clean up dead references if enough time has passed
+	/// </summary>
+	private void TryCleanupDeadReferences()
+	{
+		var currentTick = Find.TickManager?.TicksGame ?? 0;
+		if (currentTick - _lastCleanupTick < CLEANUP_INTERVAL_TICKS)
+		{
+			return;
+		}
 
-        CleanupDeadReferences();
-        _lastCleanupTick = currentTick;
-    }
+		CleanupDeadReferences();
+		_lastCleanupTick = currentTick;
+	}
 
-    /// <summary>
-    /// Cleans up all dead references from the cache
-    /// </summary>
-    private void CleanupDeadReferences()
-    {
-        var keysToRemove = new List<System.WeakReference<Pawn>>();
+	/// <summary>
+	/// Cleans up all dead references from the cache
+	/// </summary>
+	private void CleanupDeadReferences()
+	{
+		var keysToRemove = new List<System.WeakReference<Pawn>>();
 
-        foreach (var kvp in _cache)
-        {
-            // If the weak reference is dead (pawn was garbage collected)
-            if (!kvp.Key.TryGetTarget(out _))
-            {
-                keysToRemove.Add(kvp.Key);
-            }
-        }
+		foreach (var kvp in _cache)
+		{
+			// If the weak reference is dead (pawn was garbage collected)
+			if (!kvp.Key.TryGetTarget(out _))
+			{
+				keysToRemove.Add(kvp.Key);
+			}
+		}
 
-        if (keysToRemove.Count > 0)
-        {
-            foreach (var key in keysToRemove)
-            {
-                _cache.Remove(key);
-            }
+		if (keysToRemove.Count > 0)
+		{
+			foreach (var key in keysToRemove)
+			{
+				_cache.Remove(key);
+			}
 
-            if (Settings.EnableDebugLogging)
-            {
-                Log.Message($"[PawnCache] Cleaned up {keysToRemove.Count} dead references from cache");
-            }
-        }
-    }
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Message($"[PawnCache] Cleaned up {keysToRemove.Count} dead references from cache");
+			}
+		}
+	}
 
-    /// <summary>
-    /// Forces a cleanup of dead references (for testing or manual cleanup)
-    /// </summary>
-    public void ForceCleanup()
-    {
-        lock (_lockObject)
-        {
-            CleanupDeadReferences();
-        }
-    }
+	/// <summary>
+	/// Forces a cleanup of dead references (for testing or manual cleanup)
+	/// </summary>
+	public void ForceCleanup()
+	{
+		lock (_lockObject)
+		{
+			CleanupDeadReferences();
+		}
+	}
 
-    /// <summary>
-    /// Gets debug information about the cache
-    /// </summary>
-    public string GetDebugInfo()
-    {
-        lock (_lockObject)
-        {
-            TryCleanupDeadReferences();
-            return $"PawnCache<{typeof(T).Name}>: {_cache.Count} entries, last cleanup: {_lastCleanupTick}";
-        }
-    }
+	/// <summary>
+	/// Gets debug information about the cache
+	/// </summary>
+	public string GetDebugInfo()
+	{
+		lock (_lockObject)
+		{
+			TryCleanupDeadReferences();
+			return $"PawnCache<{typeof(T).Name}>: {_cache.Count} entries, last cleanup: {_lastCleanupTick}";
+		}
+	}
 }
