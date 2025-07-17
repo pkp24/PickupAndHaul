@@ -74,21 +74,19 @@ public class HaulToInventoryJob : Job
 	{
 		foreach(var item in HaulItems)
 		{
-			if (item.Thing == thing)
+			if (item.Thing == thing && HaulItems.TryTake(out var result))
 			{
-				HaulItems.TryTake(out var result);
-
-				if (item == null)
+				if (result == null)
 					return false;
 
-				if (StorageReservations.TryGetValue(item.StorageLocation, out var storageLocation))
+				if (StorageReservations.TryGetValue(result.StorageLocation, out var storageLocation))
 				{
 					var oldStorageLocation = storageLocation;
-					storageLocation -= item.Count;
+					storageLocation -= result.Count;
 					if (storageLocation <= 0)
-						StorageReservations.TryRemove(item.StorageLocation, out _);
+						StorageReservations.TryRemove(result.StorageLocation, out _);
 					else
-						StorageReservations.TryUpdate(item.StorageLocation, storageLocation, oldStorageLocation);
+						StorageReservations.TryUpdate(result.StorageLocation, storageLocation, oldStorageLocation);
 				}
 
 				return true;
