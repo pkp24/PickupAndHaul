@@ -7,13 +7,13 @@
 		<LangVersion>13.0</LangVersion>
 		<Optimize>true</Optimize>
 		<DebugType>none</DebugType>
-        <OutputPath>..\..\1.6\Assemblies\</OutputPath>
+		<OutputPath>..\..\1.6\Assemblies\</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<PublicizeAsReferenceAssemblies>false</PublicizeAsReferenceAssemblies>
 		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 		<EnableNETAnalyzers>True</EnableNETAnalyzers>
 	</PropertyGroup>
 	<ItemGroup>
-        <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.*" />
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.*" />
 	</ItemGroup>
 </Project>
