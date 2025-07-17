@@ -6,7 +6,8 @@
 param(
     [string]$Configuration = "Debug",
     [switch]$Clean,
-    [switch]$Verbose
+    [switch]$Verbose,
+    [switch]$Format
 )
 
 # Set error action preference
@@ -173,6 +174,32 @@ function Clean-Projects {
     }
 }
 
+# Function to format projects
+function Format-Projects {
+    Write-ColorOutput "Formatting projects..." $Yellow
+    
+    $projects = @(
+        "Source/IHoldMultipleThings/IHoldMultipleThings.csproj",
+        "Source/PickUpAndHaul/PickUpAndHaul16.csproj"
+    )
+    
+    foreach ($project in $projects) {
+        Write-ColorOutput "Formatting $project..." $Cyan
+        try {
+            & dotnet format $project --verbosity normal
+            if ($LASTEXITCODE -eq 0) {
+                Write-ColorOutput "✓ Formatted $project" $Green
+            }
+            else {
+                Write-ColorOutput "✗ Failed to format $project" $Red
+            }
+        }
+        catch {
+            Write-ColorOutput "✗ Error formatting $project : $($_.Exception.Message)" $Red
+        }
+    }
+}
+
 # Main execution
 Write-ColorOutput "=== PickUpAndHaul Build Script ===" $Cyan
 Write-ColorOutput "Configuration: $Configuration" $Yellow
@@ -196,6 +223,12 @@ Set-Location $scriptDir
 # Clean if requested
 if ($Clean) {
     Clean-Projects
+    Write-ColorOutput ""
+}
+
+# Format if requested
+if ($Format) {
+    Format-Projects
     Write-ColorOutput ""
 }
 
