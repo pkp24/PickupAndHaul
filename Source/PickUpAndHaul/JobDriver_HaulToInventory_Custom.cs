@@ -72,12 +72,11 @@ public class HaulToInventoryJob : Job
 	/// </summary>
 	public bool RemoveHaulItem(Thing thing)
 	{
-		for (var i = 0; i < HaulItems.Count; i++)
+		foreach(var item in HaulItems)
 		{
-			HaulItems.TryPeek(out var result);
-			if (result.Thing == thing)
+			if (item.Thing == thing)
 			{
-				HaulItems.TryTake(out var item);
+				HaulItems.TryTake(out var result);
 
 				if (item == null)
 					return false;
