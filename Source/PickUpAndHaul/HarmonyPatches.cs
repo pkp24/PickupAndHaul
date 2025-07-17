@@ -1,15 +1,16 @@
-﻿using System.Reflection;
+﻿using HarmonyLib;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Reflection.Emit;
-using HarmonyLib;
 
 namespace PickUpAndHaul;
 [StaticConstructorOnStartup]
-static class HarmonyPatches
+internal static class HarmonyPatches
 {
 	static HarmonyPatches()
 	{
-		var harmony = new Harmony("mehni.rimworld.pickupandhaul.main");
-		
+		var harmony = new Harmony("teemo.rimworld.pickupandhaulforked.main");
+
 		if (Settings.EnableDebugLogging)
 		{
 			Harmony.DEBUG = true;
@@ -17,7 +18,7 @@ static class HarmonyPatches
 
 		if (!ModCompatibilityCheck.CombatExtendedIsActive)
 		{
-			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.GetMaxAllowedToPickUp), new[] { typeof(Pawn), typeof(ThingDef) }),
+			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.GetMaxAllowedToPickUp), [typeof(Pawn), typeof(ThingDef)]),
 				prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(MaxAllowedToPickUpPrefix)));
 
 			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.CanPickUp)),
@@ -80,8 +81,6 @@ static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Pawn), nameof(Pawn.Kill)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_Kill_Postfix)));
 
-
-
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
 
@@ -94,7 +93,7 @@ static class HarmonyPatches
 		if (__instance?.def != null && IsModSpecificJob(__instance.def))
 		{
 			// Don't save mod-specific job data to prevent corruption when mod is removed
-			                Log.Warning($"[PickUpAndHaul] Preventing save of mod-specific job: {__instance.def.defName}");
+			Log.Warning($"[PickUpAndHaul] Preventing save of mod-specific job: {__instance.def.defName}");
 			return false; // Skip the original method entirely
 		}
 		return true;
@@ -111,7 +110,7 @@ static class HarmonyPatches
 			// Check if current job is mod-specific and should be cleared
 			if (__instance.curJob?.def != null && IsModSpecificJob(__instance.curJob.def))
 			{
-				                Log.Warning($"[PickUpAndHaul] Clearing mod-specific job from pawn {__instance.pawn?.NameShortColored}: {__instance.curJob.def.defName}");
+				Log.Warning($"[PickUpAndHaul] Clearing mod-specific job from pawn {__instance.pawn?.NameShortColored}: {__instance.curJob.def.defName}");
 				__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
 			}
 
@@ -119,12 +118,12 @@ static class HarmonyPatches
 			var jobQueue = __instance.jobQueue;
 			if (jobQueue != null)
 			{
-				for (int i = jobQueue.Count - 1; i >= 0; i--)
+				for (var i = jobQueue.Count - 1; i >= 0; i--)
 				{
 					if (jobQueue[i]?.job?.def != null && IsModSpecificJob(jobQueue[i].job.def))
 					{
-						                                        Log.Warning($"[PickUpAndHaul] Removing mod-specific job from queue: {jobQueue[i].job.def.defName}");
-                        jobQueue.Extract(jobQueue[i].job);
+						Log.Warning($"[PickUpAndHaul] Removing mod-specific job from queue: {jobQueue[i].job.def.defName}");
+						jobQueue.Extract(jobQueue[i].job);
 					}
 				}
 			}
@@ -132,7 +131,7 @@ static class HarmonyPatches
 			// Also clear any mod-specific job drivers
 			if (__instance.curDriver != null && IsModSpecificJobDriver(__instance.curDriver))
 			{
-				                Log.Warning($"[PickUpAndHaul] Clearing mod-specific job driver from pawn {__instance.pawn?.NameShortColored}");
+				Log.Warning($"[PickUpAndHaul] Clearing mod-specific job driver from pawn {__instance.pawn?.NameShortColored}");
 				__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
 			}
 
@@ -142,14 +141,14 @@ static class HarmonyPatches
 				var job = __instance.curJob;
 				if (job.def != null && IsModSpecificJob(job.def))
 				{
-					                Log.Warning($"[PickUpAndHaul] Clearing mod-specific job reference: {job.def.defName}");
+					Log.Warning($"[PickUpAndHaul] Clearing mod-specific job reference: {job.def.defName}");
 					__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
 				}
 			}
 		}
 		catch (Exception ex)
 		{
-			                Log.Error($"[PickUpAndHaul] Error in Pawn_JobTracker_ExposeData_Prefix: {ex.Message}");
+			Log.Error($"[PickUpAndHaul] Error in Pawn_JobTracker_ExposeData_Prefix: {ex.Message}");
 		}
 		return true;
 	}
@@ -157,26 +156,18 @@ static class HarmonyPatches
 	/// <summary>
 	/// Checks if a job definition is mod-specific
 	/// </summary>
-	private static bool IsModSpecificJob(JobDef jobDef)
-	{
-		if (jobDef == null) return false;
-		
-		return jobDef.defName == "HaulToInventory" || 
+	private static bool IsModSpecificJob(JobDef jobDef) =>
+		jobDef != null && (jobDef.defName == "HaulToInventory" ||
 			   jobDef.defName == "UnloadYourHauledInventory" ||
 			   jobDef.driverClass == typeof(JobDriver_HaulToInventory) ||
-			   jobDef.driverClass == typeof(JobDriver_UnloadYourHauledInventory);
-	}
+			   jobDef.driverClass == typeof(JobDriver_UnloadYourHauledInventory));
 
 	/// <summary>
 	/// Checks if a job driver is mod-specific
 	/// </summary>
-	private static bool IsModSpecificJobDriver(JobDriver jobDriver)
-	{
-		if (jobDriver == null) return false;
-		
-		return jobDriver.GetType() == typeof(JobDriver_HaulToInventory) ||
-			   jobDriver.GetType() == typeof(JobDriver_UnloadYourHauledInventory);
-	}
+	private static bool IsModSpecificJobDriver(JobDriver jobDriver) =>
+		jobDriver != null && (jobDriver.GetType() == typeof(JobDriver_HaulToInventory) ||
+			   jobDriver.GetType() == typeof(JobDriver_UnloadYourHauledInventory));
 
 	private static bool Drop_Prefix(Pawn pawn, Thing thing)
 	{
@@ -245,14 +236,14 @@ static class HarmonyPatches
 		}
 	}
 
-	public static void IdleJoy_Postfix(Pawn pawn) 
+	public static void IdleJoy_Postfix(Pawn pawn)
 	{
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			return; // Skip idle joy postfix during save
 		}
-		PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn, true); 
+		PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn, true);
 	}
 
 	public static void TickManagerUpdate_Postfix()
@@ -264,14 +255,14 @@ static class HarmonyPatches
 	{
 		try
 		{
-			// PERFORMANCE OPTIMIZATION: Only run cache management every 60 ticks (1 second at 60 TPS)
+			// PERFORMANCE OPTIMIZATION: Only run cache management every 30 ticks (0.5 second at 60 TPS)
 			// This reduces the performance impact from 33ms to <1ms per frame
 			var currentTick = Find.TickManager?.TicksGame ?? 0;
-			if (currentTick % 60 != 0)
+			if (currentTick % 30 != 0)
 			{
 				return; // Skip this tick to reduce performance impact
 			}
-			
+
 			// Check for map changes and game resets
 			CacheManager.CheckForMapChange();
 			CacheManager.CheckForGameReset();
@@ -282,14 +273,14 @@ static class HarmonyPatches
 		}
 	}
 
-	public static void DropUnusedInventory_PostFix(Pawn pawn) 
+	public static void DropUnusedInventory_PostFix(Pawn pawn)
 	{
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
 			return; // Skip drop unused inventory postfix during save
 		}
-		PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn); 
+		PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn);
 	}
 
 	public static bool MaxAllowedToPickUpPrefix(Pawn pawn, ref int __result)
@@ -326,18 +317,11 @@ static class HarmonyPatches
 	/// </summary>
 	public static IEnumerable<CodeInstruction> JobGiver_Haul_TryGiveJob_Transpiler(IEnumerable<CodeInstruction> instructions)
 	{
-		var originalMethod = AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.HaulToStorageJob), new[] { typeof(Pawn), typeof(Thing), typeof(bool) });
+		var originalMethod = AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.HaulToStorageJob), [typeof(Pawn), typeof(Thing), typeof(bool)]);
 		var replacementMethod = AccessTools.Method(typeof(HarmonyPatches), nameof(HaulToStorageJobByRace));
 		foreach (var instruction in instructions)
 		{
-			if (instruction.Calls(originalMethod))
-			{
-				yield return new CodeInstruction(OpCodes.Call, replacementMethod);
-			}
-			else
-			{
-				yield return instruction;
-			}
+			yield return instruction.Calls(originalMethod) ? new CodeInstruction(OpCodes.Call, replacementMethod) : instruction;
 		}
 	}
 
@@ -389,12 +373,12 @@ static class HarmonyPatches
 			var components = __instance.components;
 			if (components != null)
 			{
-				for (int i = components.Count - 1; i >= 0; i--)
+				for (var i = components.Count - 1; i >= 0; i--)
 				{
 					var component = components[i];
 					if (component != null && IsModSpecificComponent(component))
 					{
-						                Log.Warning($"[PickUpAndHaul] Removing mod-specific component during save/load: {component.GetType().Name}");
+						Log.Warning($"[PickUpAndHaul] Removing mod-specific component during save/load: {component.GetType().Name}");
 						components.RemoveAt(i);
 					}
 				}
@@ -402,7 +386,7 @@ static class HarmonyPatches
 		}
 		catch (Exception ex)
 		{
-			                Log.Error($"[PickUpAndHaul] Error in Game_ExposeSmallComponents_Prefix: {ex.Message}");
+			Log.Error($"[PickUpAndHaul] Error in Game_ExposeSmallComponents_Prefix: {ex.Message}");
 		}
 		return true;
 	}
@@ -412,8 +396,9 @@ static class HarmonyPatches
 	/// </summary>
 	private static bool IsModSpecificComponent(GameComponent component)
 	{
-		if (component == null) return false;
-		
+		if (component == null)
+			return false;
+
 		var componentType = component.GetType();
 		return componentType == typeof(PickupAndHaulSaveLoadLogger) ||
 			   componentType.Namespace?.StartsWith("PickUpAndHaul") == true;
@@ -422,6 +407,7 @@ static class HarmonyPatches
 	/// <summary>
 	/// Suspends pickup and haul jobs before saving
 	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	private static void Game_ExposeData_Prefix(Game __instance)
 	{
 		try
@@ -442,6 +428,7 @@ static class HarmonyPatches
 	/// <summary>
 	/// Restores pickup and haul jobs after saving is complete
 	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	private static void Game_ExposeData_Postfix(Game __instance)
 	{
 		try
@@ -462,6 +449,7 @@ static class HarmonyPatches
 	/// <summary>
 	/// Clean up storage allocations when a job ends
 	/// </summary>
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	private static void Pawn_JobTracker_EndCurrentJob_Postfix(Pawn_JobTracker __instance, JobCondition condition, bool startNewJob = true, bool canReturnToPool = true)
 	{
 		// Check if save operation is in progress
@@ -470,15 +458,15 @@ static class HarmonyPatches
 			return; // Skip cleanup during save
 		}
 
-        // Clean up storage allocations for the pawn if relevant
-        if (__instance.pawn != null && !__instance.pawn.RaceProps.Animal)
-        {
-                if (StorageAllocationTracker.Instance.HasAllocations(__instance.pawn))
-                {
-                        StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance.pawn);
-                        Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
-                }
-        }
+		// Clean up storage allocations for the pawn if relevant
+		if (__instance.pawn != null && !__instance.pawn.RaceProps.Animal)
+		{
+			if (StorageAllocationTracker.Instance.HasAllocations(__instance.pawn))
+			{
+				StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance.pawn);
+				Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
+			}
+		}
 	}
 
 	/// <summary>
@@ -492,11 +480,11 @@ static class HarmonyPatches
 			return; // Skip cleanup during save
 		}
 
-        // Clean up storage allocations for the dead pawn if relevant
-        if (!__instance.RaceProps.Animal && StorageAllocationTracker.Instance.HasAllocations(__instance))
-        {
-                StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance);
-                Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
-        }
+		// Clean up storage allocations for the dead pawn if relevant
+		if (!__instance.RaceProps.Animal && StorageAllocationTracker.Instance.HasAllocations(__instance))
+		{
+			StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance);
+			Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
+		}
 	}
 }

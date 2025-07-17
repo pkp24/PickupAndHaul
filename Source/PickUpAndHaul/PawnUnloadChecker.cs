@@ -1,19 +1,19 @@
 ﻿namespace PickUpAndHaul;
 public class PawnUnloadChecker
 {
-        public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
-        {
-                // Check if save operation is in progress
-                if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-                {
-                        return; // Skip unload checking during save operations
-                }
+	public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
+	{
+		// Check if save operation is in progress
+		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		{
+			return; // Skip unload checking during save operations
+		}
 
-        // Ignore pawns that are currently in a mental state
-        if (pawn == null || pawn.InMentalState)
-        {
-            return;
-        }
+		// Ignore pawns that are currently in a mental state
+		if (pawn == null || pawn.InMentalState)
+		{
+			return;
+		}
 
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
 		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
@@ -25,7 +25,7 @@ public class PawnUnloadChecker
 
 		// Clean up nulls at a safe point before accessing the collection
 		itemsTakenToInventory.CleanupNulls();
-		
+
 		var carriedThing = itemsTakenToInventory.GetHashSet();
 
 		if (pawn.Faction != Faction.OfPlayerSilentFail || !Settings.IsAllowedRace(pawn.RaceProps)
@@ -69,7 +69,6 @@ public class PawnUnloadChecker
 }
 
 [DefOf]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Has to match defName")]
 public static class PickUpAndHaulJobDefOf
 {
 	public static JobDef UnloadYourHauledInventory;
