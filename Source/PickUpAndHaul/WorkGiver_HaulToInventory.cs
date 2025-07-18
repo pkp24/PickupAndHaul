@@ -132,14 +132,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				{
 					if (Settings.EnableDebugLogging)
 					{
-						Log.Message($"HasJobOnThing: Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
+						Log.Message($"Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
 					}
 					// Don't return false here - let the vanilla hauling system handle it
 					// The JobOnThing method will handle the fallback to HaulAIUtility.HaulToStorageJob
 				}
 				else if (actualCarriableAmount <= 0)
 				{
-					Log.Message($"HasJobOnThing: Pawn {pawn} cannot carry any of {thing} due to encumbrance, returning false");
+					Log.Message($"Pawn {pawn} cannot carry any of {thing} due to encumbrance, returning false");
 					result = false;
 				}
 				else
@@ -162,13 +162,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 					if (storageCapacity <= 0)
 					{
-						Log.Message($"HasJobOnThing: Storage for {thing} has no capacity, returning false");
+						Log.Message($"Storage for {thing} has no capacity, returning false");
 						result = false;
 					}
 					else
 					{
 						// At least some capacity exists, let JobOnThing handle the detailed allocation
-						Log.Message($"HasJobOnThing: {pawn} can carry {actualCarriableAmount} of {thing}, storage has {storageCapacity} capacity");
+						Log.Message($"Has{pawn} can carry {actualCarriableAmount} of {thing}, storage has {storageCapacity} capacity");
 					}
 				}
 			}
@@ -306,7 +306,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Validate job after creation using JobQueueManager
 		if (!JobQueueManager.ValidateJobQueues(job, pawn))
 		{
-			Log.Error($"CRITICAL Job queue validation failed after creation for {pawn}!");
+			Log.Error($"Job queue failed after creation for {pawn}!");
 			return null;
 		}
 
@@ -430,7 +430,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			if (Settings.EnableDebugLogging)
 			{
-				Log.Message($"JobOnThing: Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
+				Log.Message($"Pawn {pawn} has no capacity ({capacity}), falling back to vanilla hauling");
 			}
 			skipCells = null;
 			skipThings = null;
@@ -521,11 +521,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 		Log.Message($"Initial item {thing} allocated successfully");
 
-		// CRITICAL FIX: Validate that we have at least one item allocated before proceeding
+		// Validate that we have at least one item allocated before proceeding
 		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
 		{
-			Log.Error($"CRITICAL Initial item allocation failed - targetQueueA is empty for {pawn}");
-			Log.Error($"CRITICAL Releasing storage reservation and returning null");
+			Log.Error($"Initial item allocation failed - targetQueueA is empty for {pawn}");
+			Log.Error($"Releasing storage reservation and returning null");
 
 			// Release the storage reservation we made earlier
 			StorageAllocationTracker.Instance.ReleaseCapacity(storageLocation, thing.def, effectiveAmount, pawn);
@@ -625,7 +625,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				// Get the last item count safely - check if countQueue has items first
 				if (job.countQueue == null || job.countQueue.Count == 0)
 				{
-					Log.Error($"CRITICAL countQueue is null or empty when trying to adjust count for {pawn}");
+					Log.Error($"countQueue is null or empty when trying to adjust count for {pawn}");
 					CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
 					return null;
 				}
@@ -638,7 +638,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					// Use JobQueueManager to atomically remove the last item from all queues
 					if (!JobQueueManager.RemoveItemsFromJob(job, 1, pawn))
 					{
-						Log.Error($"CRITICAL Failed to atomically remove last item from job queues for {pawn}");
+						Log.Error($"Failed to atomically remove last item from job queues for {pawn}");
 						// Clean up and return null to prevent crash
 						CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
 						return null;
@@ -657,7 +657,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					// Use JobQueueManager to atomically update the count
 					if (!JobQueueManager.UpdateLastItemCount(job, adjustedCount, pawn))
 					{
-						Log.Error($"CRITICAL Failed to atomically update last item count for {pawn}");
+						Log.Error($"Failed to atomically update last item count for {pawn}");
 						// Clean up and return null to prevent crash
 						CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
 						return null;
@@ -672,12 +672,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		Log.Message($"Final job state before return:");
 		Log.Message($"targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 
-		// CRITICAL FIX: Ensure job is never returned with empty targetQueueA
+		// Ensure job is never returned with empty targetQueueA
 		// This prevents ArgumentOutOfRangeException in JobDriver_HaulToInventory
 		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
 		{
-			Log.Error($"CRITICAL Job has empty targetQueueA for {pawn} - this would cause ArgumentOutOfRangeException!");
-			Log.Error($"CRITICAL Releasing all reservations and returning null to prevent crash");
+			Log.Error($"Job has empty targetQueueA for {pawn} - this would cause ArgumentOutOfRangeException!");
+			Log.Error($"Releasing all reservations and returning null to prevent crash");
 
 			// Use CleanupInvalidJob to properly release storage capacity based on actual allocated amounts
 			CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
@@ -688,10 +688,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Validate job before returning
 		ValidateJobQueues(job, pawn, "Job Return");
 
-		// CRITICAL FIX: Final validation to ensure job is completely valid
+		// Final to ensure job is completely valid
 		if (!IsJobValid(job, pawn))
 		{
-			Log.Error($"CRITICAL Job failed final validation for {pawn} - cleaning up and returning null");
+			Log.Error($"Job failed final for {pawn} - cleaning up and returning null");
 			CleanupInvalidJob(job, storeCellCapacity, thing, pawn);
 			return null;
 		}
@@ -748,11 +748,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		if (searchSet == null || !searchSet.Any())
 		{
-			Log.Message($"GetClosestAndRemove - searchSet is null or empty");
+			Log.Message($"searchSet is null or empty");
 			return null;
 		}
 
-		Log.Message($"GetClosestAndRemove - searching {searchSet.Count} items from {center} with max distance {maxDistance}");
+		Log.Message($"searching {searchSet.Count} items from {center} with max distance {maxDistance}");
 		var maxDistanceSquared = maxDistance * maxDistance;
 		var itemsChecked = 0;
 		var itemsFiltered = 0;
@@ -789,7 +789,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (validator == null || validator(thing))
 			{
-				Log.Message($"GetClosestAndRemove - found valid item {thing} at distance {Math.Sqrt(distanceSquared):F1}");
+				Log.Message($"found valid item {thing} at distance {Math.Sqrt(distanceSquared):F1}");
 				searchSet.RemoveAt(i);
 				return thing;
 			}
@@ -799,7 +799,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 		}
 
-		Log.Message($"GetClosestAndRemove - no valid items found. Checked: {itemsChecked}, Unspawned: {itemsUnspawned}, Too far: {itemsTooFar}, Unreachable: {itemsUnreachable}, Filtered: {itemsFiltered}");
+		Log.Message($"no valid items found. Checked: {itemsChecked}, Unspawned: {itemsUnspawned}, Too far: {itemsTooFar}, Unreachable: {itemsUnreachable}, Filtered: {itemsFiltered}");
 		return null;
 	}
 
@@ -902,7 +902,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var bCountBefore = job.targetQueueB.Count;
 
 		// Log initial state
-		Log.Message($"AllocateThingAtCell called for {pawn} with {nextThing}");
+		Log.Message($"Called for {pawn} with {nextThing}");
 		Log.Message($"Initial job queues - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 		Log.Message($"Current mass: {currentMass}, capacity: {capacity}, encumbrance: {currentMass / capacity}");
 
@@ -1179,7 +1179,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		if (!JobQueueManager.AddItemsToJob(job, things, counts, targets, pawn))
 		{
-			Log.Error($"CRITICAL Failed to add items to job queues for {pawn}!");
+			Log.Error($"Failed to add items to job queues for {pawn}!");
 			// Clean up any targets we added
 			CleanupAllocateThingAtCell(job, targetsAdded, reservationsMade, pawn);
 			return false;
@@ -1552,7 +1552,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		if (job == null)
 		{
-			Log.Error($"VALIDATION Job is null in {context} for {pawn}");
+			Log.Error($"Job is null in {context} for {pawn}");
 			return;
 		}
 
@@ -1560,33 +1560,33 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var targetQueueBCount = job.targetQueueB?.Count ?? 0;
 		var countQueueCount = job.countQueue?.Count ?? 0;
 
-		Log.Message($"VALIDATION [{context}]: {pawn} - targetQueueA: {targetQueueACount}, targetQueueB: {targetQueueBCount}, countQueue: {countQueueCount}");
+		Log.Message($"[{context}]: {pawn} - targetQueueA: {targetQueueACount}, targetQueueB: {targetQueueBCount}, countQueue: {countQueueCount}");
 
 		// Check for null queues
 		if (job.targetQueueA == null)
 		{
-			Log.Error($"VALIDATION targetQueueA is null in {context} for {pawn}");
+			Log.Error($"targetQueueA is null in {context} for {pawn}");
 		}
 		if (job.targetQueueB == null)
 		{
-			Log.Error($"VALIDATION targetQueueB is null in {context} for {pawn}");
+			Log.Error($"targetQueueB is null in {context} for {pawn}");
 		}
 		if (job.countQueue == null)
 		{
-			Log.Error($"VALIDATION countQueue is null in {context} for {pawn}");
+			Log.Error($"countQueue is null in {context} for {pawn}");
 		}
 
 		// Check for queue synchronization issues
 		if (targetQueueACount != countQueueCount)
 		{
-			Log.Error($"VALIDATION Queue synchronization issue in {context} for {pawn} - targetQueueA.Count ({targetQueueACount}) != countQueue.Count ({countQueueCount})");
+			Log.Error($"Queue synchronization issue in {context} for {pawn} - targetQueueA.Count ({targetQueueACount}) != countQueue.Count ({countQueueCount})");
 		}
 
 		// Check for empty targetQueueA (this would cause the ArgumentOutOfRangeException)
 		// But only flag as error if it's not during job creation (where empty is expected)
 		if (targetQueueACount == 0 && context != "Job Creation")
 		{
-			Log.Error($"VALIDATION targetQueueA is empty in {context} for {pawn} - this will cause ArgumentOutOfRangeException!");
+			Log.Error($"targetQueueA is empty in {context} for {pawn} - this will cause ArgumentOutOfRangeException!");
 		}
 
 		// Check for negative or zero counts
@@ -1596,12 +1596,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			{
 				if (job.countQueue[i] <= 0)
 				{
-					Log.Error($"VALIDATION Found negative/zero count {job.countQueue[i]} at index {i} in {context} for {pawn}");
+					Log.Error($"Found negative/zero count {job.countQueue[i]} at index {i} in {context} for {pawn}");
 				}
 			}
 		}
 
-		// CRITICAL FIX: Additional validation for job integrity
+		// Additional for job integrity
 		if (job.targetQueueA != null && job.countQueue != null)
 		{
 			// Check if any targets in targetQueueA are null or invalid
@@ -1610,11 +1610,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				var target = job.targetQueueA[i];
 				if (target == null || target.Thing == null)
 				{
-					Log.Error($"VALIDATION Found null target at index {i} in targetQueueA in {context} for {pawn}");
+					Log.Error($"Found null target at index {i} in targetQueueA in {context} for {pawn}");
 				}
 				else if (target.Thing.Destroyed || !target.Thing.Spawned)
 				{
-					Log.Warning($"VALIDATION Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in {context} for {pawn}");
+					Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in {context} for {pawn}");
 				}
 			}
 		}
@@ -1622,11 +1622,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Log queue contents for debugging
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
 		{
-			Log.Message($"VALIDATION [{context}]: targetQueueA contents: {string.Join(", ", job.targetQueueA.Select(t => t.ToStringSafe()))}");
+			Log.Message($"[{context}]: targetQueueA contents: {string.Join(", ", job.targetQueueA.Select(t => t.ToStringSafe()))}");
 		}
 		if (job.countQueue != null && job.countQueue.Count > 0)
 		{
-			Log.Message($"VALIDATION [{context}]: countQueue contents: {string.Join(", ", job.countQueue)}");
+			Log.Message($"[{context}]: countQueue contents: {string.Join(", ", job.countQueue)}");
 		}
 	}
 
@@ -1634,31 +1634,31 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		if (job == null)
 		{
-			Log.Error($"VALIDATION Job is null in IsJobValid for {pawn}");
+			Log.Error($"Job is null in IsJobValid for {pawn}");
 			return false;
 		}
 
 		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
 		{
-			Log.Error($"VALIDATION Job has empty targetQueueA in IsJobValid for {pawn}");
+			Log.Error($"Job has empty targetQueueA in IsJobValid for {pawn}");
 			return false;
 		}
 
 		if (job.targetQueueB == null || job.targetQueueB.Count == 0)
 		{
-			Log.Error($"VALIDATION Job has empty targetQueueB in IsJobValid for {pawn}");
+			Log.Error($"Job has empty targetQueueB in IsJobValid for {pawn}");
 			return false;
 		}
 
 		if (job.countQueue == null || job.countQueue.Count == 0)
 		{
-			Log.Error($"VALIDATION Job has empty countQueue in IsJobValid for {pawn}");
+			Log.Error($"Job has empty countQueue in IsJobValid for {pawn}");
 			return false;
 		}
 
 		if (job.targetQueueA.Count != job.countQueue.Count)
 		{
-			Log.Error($"VALIDATION Queue synchronization issue in IsJobValid for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+			Log.Error($"Queue synchronization issue in IsJobValid for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
 			return false;
 		}
 
@@ -1667,12 +1667,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			var target = job.targetQueueA[i];
 			if (target == null || target.Thing == null)
 			{
-				Log.Error($"VALIDATION Found null target at index {i} in targetQueueA in IsJobValid for {pawn}");
+				Log.Error($"Found null target at index {i} in targetQueueA in IsJobValid for {pawn}");
 				return false;
 			}
 			if (target.Thing.Destroyed || !target.Thing.Spawned)
 			{
-				Log.Warning($"VALIDATION Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in IsJobValid for {pawn}");
+				Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in IsJobValid for {pawn}");
 				return false;
 			}
 		}
@@ -1681,7 +1681,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			if (job.countQueue[i] <= 0)
 			{
-				Log.Error($"VALIDATION Found negative/zero count {job.countQueue[i]} at index {i} in IsJobValid for {pawn}");
+				Log.Error($"Found negative/zero count {job.countQueue[i]} at index {i} in IsJobValid for {pawn}");
 				return false;
 			}
 		}
