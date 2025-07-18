@@ -7,14 +7,14 @@ public class JobDriver_HaulToInventory : JobDriver
 		// when the mod is removed
 		if (Scribe.mode == LoadSaveMode.Saving)
 		{
-			Log.Message("[PickUpAndHaul] Skipping save data for HaulToInventory job driver");
+			Log.Message("Skipping save data for HaulToInventory job driver");
 			return;
 		}
 
 		// Only load data if we're in loading mode and the mod is active
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
-			Log.Message("[PickUpAndHaul] Skipping load data for HaulToInventory job driver");
+			Log.Message("Skipping load data for HaulToInventory job driver");
 			return;
 		}
 	}
@@ -24,43 +24,43 @@ public class JobDriver_HaulToInventory : JobDriver
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
-			Log.Message($"[PickUpAndHaul] Skipping HaulToInventory job reservations during save operation for {pawn}");
+			Log.Message($"Skipping HaulToInventory job reservations during save operation for {pawn}");
 			return false;
 		}
 
 		// Validate job before making reservations
 		if (!ValidateJobBeforeExecution())
 		{
-			Log.Error($"[PickUpAndHaul] Job validation failed for {pawn}, cannot make reservations");
+			Log.Error($"Job failed for {pawn}, cannot make reservations");
 			return false;
 		}
 
 		// EXTENSIVE DEBUGGING - Track job state
-		Log.Message($"[PickUpAndHaul] DEBUG: {pawn} starting HaulToInventory job reservations");
-		Log.Message($"[PickUpAndHaul] DEBUG: Job targetA: {job.targetA.ToStringSafe()}");
-		Log.Message($"[PickUpAndHaul] DEBUG: Job targetB: {job.targetB.ToStringSafe()}");
-		Log.Message($"[PickUpAndHaul] DEBUG: Job targetQueueA count: {job.targetQueueA?.Count ?? 0}");
-		Log.Message($"[PickUpAndHaul] DEBUG: Job targetQueueB count: {job.targetQueueB?.Count ?? 0}");
-		Log.Message($"[PickUpAndHaul] DEBUG: Job countQueue count: {job.countQueue?.Count ?? 0}");
+		Log.Message($"{pawn} starting HaulToInventory job reservations");
+		Log.Message($"Job targetA: {job.targetA.ToStringSafe()}");
+		Log.Message($"Job targetB: {job.targetB.ToStringSafe()}");
+		Log.Message($"Job targetQueueA count: {job.targetQueueA?.Count ?? 0}");
+		Log.Message($"Job targetQueueB count: {job.targetQueueB?.Count ?? 0}");
+		Log.Message($"Job countQueue count: {job.countQueue?.Count ?? 0}");
 
 		if (job.targetQueueA != null)
 		{
-			Log.Message($"[PickUpAndHaul] DEBUG: targetQueueA contents: {string.Join(", ", job.targetQueueA.Select(t => t.ToStringSafe()))}");
+			Log.Message($"targetQueueA contents: {string.Join(", ", job.targetQueueA.Select(t => t.ToStringSafe()))}");
 		}
 		if (job.targetQueueB != null)
 		{
-			Log.Message($"[PickUpAndHaul] DEBUG: targetQueueB contents: {string.Join(", ", job.targetQueueB.Select(t => t.ToStringSafe()))}");
+			Log.Message($"targetQueueB contents: {string.Join(", ", job.targetQueueB.Select(t => t.ToStringSafe()))}");
 		}
 		if (job.countQueue != null)
 		{
-			Log.Message($"[PickUpAndHaul] DEBUG: countQueue contents: {string.Join(", ", job.countQueue)}");
+			Log.Message($"countQueue contents: {string.Join(", ", job.countQueue)}");
 		}
 
 		// Validate queue synchronization
 		if (job.targetQueueA != null && job.countQueue != null && job.targetQueueA.Count != job.countQueue.Count)
 		{
-			Log.Error($"[PickUpAndHaul] CRITICAL: Queue synchronization error! targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) for {pawn}");
-			Log.Error($"[PickUpAndHaul] CRITICAL: This indicates a bug in AllocateThingAtCell or job creation logic");
+			Log.Error($"Queue synchronization error! targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) for {pawn}");
+			Log.Error($"This indicates a bug in AllocateThingAtCell or job creation logic");
 		}
 
 		// Validate job integrity before proceeding
@@ -69,56 +69,56 @@ public class JobDriver_HaulToInventory : JobDriver
 		// Reserve as many as possible from queues
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
 		{
-			Log.Message($"[PickUpAndHaul] DEBUG: Reserving {job.targetQueueA.Count} items from targetQueueA");
+			Log.Message($"Reserving {job.targetQueueA.Count} items from targetQueueA");
 			pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
 		}
 		else
 		{
-			Log.Warning($"[PickUpAndHaul] WARNING: targetQueueA is null or empty for {pawn}");
+			Log.Warning($"targetQueueA is null or empty for {pawn}");
 		}
 
 		if (job.targetQueueB != null && job.targetQueueB.Count > 0)
 		{
-			Log.Message($"[PickUpAndHaul] DEBUG: Reserving {job.targetQueueB.Count} items from targetQueueB");
+			Log.Message($"Reserving {job.targetQueueB.Count} items from targetQueueB");
 			pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
 		}
 		else
 		{
-			Log.Warning($"[PickUpAndHaul] WARNING: targetQueueB is null or empty for {pawn}");
+			Log.Warning($"targetQueueB is null or empty for {pawn}");
 		}
 
 		// FIXED: Add bounds checking before accessing targetQueueA[0]
 		var targetAReserved = false;
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
 		{
-			Log.Message($"[PickUpAndHaul] DEBUG: Reserving targetQueueA[0]: {job.targetQueueA[0]}");
+			Log.Message($"Reserving targetQueueA[0]: {job.targetQueueA[0]}");
 			targetAReserved = pawn.Reserve(job.targetQueueA[0], job);
 		}
 		else
 		{
-			Log.Error($"[PickUpAndHaul] ERROR: Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
-			Log.Error($"[PickUpAndHaul] ERROR: This job should not have been created with empty targetQueueA");
-			Log.Error($"[PickUpAndHaul] ERROR: Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+			Log.Error($"Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
+			Log.Error($"This job should not have been created with empty targetQueueA");
+			Log.Error($"Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 
-			// CRITICAL FIX: End the job gracefully instead of crashing
-			Log.Error($"[PickUpAndHaul] ERROR: Ending job gracefully to prevent ArgumentOutOfRangeException");
+			// End the job gracefully instead of crashing
+			Log.Error($"Ending job gracefully to prevent ArgumentOutOfRangeException");
 			return false;
 		}
 
 		var targetBReserved = false;
 		if (job.targetB != null)
 		{
-			Log.Message($"[PickUpAndHaul] DEBUG: Reserving targetB: {job.targetB}");
+			Log.Message($"Reserving targetB: {job.targetB}");
 			targetBReserved = pawn.Reserve(job.targetB, job);
 		}
 		else
 		{
-			Log.Error($"[PickUpAndHaul] ERROR: targetB is null for {pawn}");
+			Log.Error($"targetB is null for {pawn}");
 			return false;
 		}
 
 		var result = targetAReserved && targetBReserved;
-		Log.Message($"[PickUpAndHaul] DEBUG: Reservation result: {result} (targetA: {targetAReserved}, targetB: {targetBReserved})");
+		Log.Message($"Reservation result: {result} (targetA: {targetAReserved}, targetB: {targetBReserved})");
 
 		return result;
 	}
@@ -127,10 +127,10 @@ public class JobDriver_HaulToInventory : JobDriver
 	public override IEnumerable<Toil> MakeNewToils()
 	{
 
-		// CRITICAL FIX: Validate job integrity before proceeding
+		// Validate job integrity before proceeding
 		if (!ValidateJobBeforeExecution())
 		{
-			Log.Error($"[PickUpAndHaul] Job validation failed for {pawn} in MakeNewToils");
+			Log.Error($"Job failed for {pawn} in MakeNewToils");
 			EndJobWith(JobCondition.Incompletable);
 			yield break;
 		}
@@ -138,7 +138,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		// Check if save operation is in progress at the start
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
-			Log.Message($"[PickUpAndHaul] Ending HaulToInventory job during save operation for {pawn}");
+			Log.Message($"Ending HaulToInventory job during save operation for {pawn}");
 			EndJobWith(JobCondition.InterruptForced);
 			yield break;
 		}
@@ -340,13 +340,13 @@ public class JobDriver_HaulToInventory : JobDriver
 	{
 		if (job == null)
 		{
-			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job is null for {pawn}");
+			Log.Error($"Job is null for {pawn}");
 			return false;
 		}
 
 		if (pawn == null)
 		{
-			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Pawn is null");
+			Log.Error($"Pawn is null");
 			return false;
 		}
 
@@ -359,19 +359,19 @@ public class JobDriver_HaulToInventory : JobDriver
 		// For regular jobs, validate queue synchronization
 		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
 		{
-			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job has empty targetQueueA for {pawn}");
+			Log.Error($"Job has empty targetQueueA for {pawn}");
 			return false;
 		}
 
 		if (job.countQueue == null || job.countQueue.Count == 0)
 		{
-			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Job has empty countQueue for {pawn}");
+			Log.Error($"Job has empty countQueue for {pawn}");
 			return false;
 		}
 
 		if (job.targetQueueA.Count != job.countQueue.Count)
 		{
-			Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+			Log.Error($"Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
 			return false;
 		}
 
@@ -381,13 +381,13 @@ public class JobDriver_HaulToInventory : JobDriver
 			var target = job.targetQueueA[i];
 			if (target == null || target.Thing == null)
 			{
-				Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Found null target at index {i} for {pawn}");
+				Log.Error($"Found null target at index {i} for {pawn}");
 				return false;
 			}
 
 			if (target.Thing.Destroyed || !target.Thing.Spawned)
 			{
-				Log.Warning($"[PickUpAndHaul] VALIDATION WARNING: Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
+				Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
 				return false;
 			}
 		}
@@ -397,7 +397,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		{
 			if (job.countQueue[i] <= 0)
 			{
-				Log.Error($"[PickUpAndHaul] VALIDATION ERROR: Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
+				Log.Error($"Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
 				return false;
 			}
 		}

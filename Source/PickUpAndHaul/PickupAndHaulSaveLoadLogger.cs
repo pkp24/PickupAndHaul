@@ -20,13 +20,13 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 		if (Scribe.mode == LoadSaveMode.Saving)
 		{
-			Log.Message("[PickUpAndHaul] Skipping save of GameComponent data");
+			Log.Message("Skipping save of GameComponent data");
 			return;
 		}
 
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
-			Log.Message("[PickUpAndHaul] Skipping load of GameComponent data");
+			Log.Message("Skipping load of GameComponent data");
 			return;
 		}
 
@@ -39,7 +39,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 			// Don't save any mod-specific data if the mod is being removed
 			if (_modRemoved)
 			{
-				Log.Warning("[PickUpAndHaul] Mod removed, skipping operations");
+				Log.Warning("Mod removed, skipping operations");
 				return;
 			}
 		}
@@ -48,7 +48,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	public override void FinalizeInit()
 	{
 		base.FinalizeInit();
-		Log.Message("[PickUpAndHaul] GameComponent: On Load (FinalizeInit)");
+		Log.Message("GameComponent: On Load (FinalizeInit)");
 
 		// Perform safety check to ensure mod is active
 		PerformSafetyCheck();
@@ -63,7 +63,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 		{
 			if (_isSaving)
 			{
-				Log.Warning("[PickUpAndHaul] Save operation already in progress, skipping job suspension");
+				Log.Warning("Save operation already in progress, skipping job suspension");
 				return;
 			}
 
@@ -76,7 +76,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 				var maps = Find.Maps;
 				if (maps == null || maps.Count == 0)
 				{
-					Log.Warning("[PickUpAndHaul] No maps found during job suspension");
+					Log.Warning("No maps found during job suspension");
 					return;
 				}
 
@@ -84,7 +84,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 				{
 					if (map?.mapPawns == null)
 					{
-						Log.Warning("[PickUpAndHaul] Map has null mapPawns during job suspension");
+						Log.Warning("Map has null mapPawns during job suspension");
 						continue;
 					}
 
@@ -130,7 +130,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 								}
 								catch (Exception ex)
 								{
-									Log.Warning($"[PickUpAndHaul] Error ending job for {pawn.NameShortColored}: {ex.Message}");
+									Log.Warning($"Error ending job for {pawn.NameShortColored}: {ex.Message}");
 								}
 							}
 
@@ -143,20 +143,20 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 								}
 								catch (Exception ex)
 								{
-									Log.Warning($"[PickUpAndHaul] Error clearing job queue for {pawn.NameShortColored}: {ex.Message}");
+									Log.Warning($"Error clearing job queue for {pawn.NameShortColored}: {ex.Message}");
 								}
 							}
 
-							Log.Message($"[PickUpAndHaul] Suspended job for {pawn.NameShortColored}: {currentJob.def?.defName ?? "Unknown"}");
+							Log.Message($"Suspended job for {pawn.NameShortColored}: {currentJob.def?.defName ?? "Unknown"}");
 						}
 					}
 				}
 
-				Log.Message($"[PickUpAndHaul] Suspended {_suspendedJobs.Count} pickup and haul jobs for save operation");
+				Log.Message($"Suspended {_suspendedJobs.Count} pickup and haul jobs for save operation");
 			}
 			catch (Exception ex)
 			{
-				Log.Error($"[PickUpAndHaul] Error during job suspension: {ex.Message}");
+				Log.Error($"Error during job suspension: {ex.Message}");
 				// Don't reset _isSaving here - it should be handled by the restoration method
 				// Emergency cleanup if needed
 				EmergencyCleanup();
@@ -174,7 +174,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 		{
 			if (!_isSaving)
 			{
-				Log.Warning("[PickUpAndHaul] No save operation in progress, skipping job restoration");
+				Log.Warning("No save operation in progress, skipping job restoration");
 				return;
 			}
 
@@ -207,7 +207,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 							}
 							catch (Exception ex)
 							{
-								Log.Warning($"[PickUpAndHaul] Error restoring job queue for {jobInfo.Pawn.NameShortColored}: {ex.Message}");
+								Log.Warning($"Error restoring job queue for {jobInfo.Pawn.NameShortColored}: {ex.Message}");
 							}
 						}
 
@@ -235,39 +235,39 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 								if (newJob.TryMakePreToilReservations(jobInfo.Pawn, false))
 								{
 									jobInfo.Pawn.jobs.StartJob(newJob, JobCondition.InterruptForced);
-									Log.Message($"[PickUpAndHaul] Restored job for {jobInfo.Pawn.NameShortColored}: {jobInfo.JobDef.defName ?? "Unknown"}");
+									Log.Message($"Restored job for {jobInfo.Pawn.NameShortColored}: {jobInfo.JobDef.defName ?? "Unknown"}");
 									restoredCount++;
 								}
 								else
 								{
-									Log.Warning($"[PickUpAndHaul] Failed to restore job for {jobInfo.Pawn.NameShortColored}: reservation failed");
+									Log.Warning($"Failed to restore job for {jobInfo.Pawn.NameShortColored}: reservation failed");
 									failedCount++;
 								}
 							}
 							catch (Exception ex)
 							{
-								Log.Warning($"[PickUpAndHaul] Error creating new job for {jobInfo.Pawn.NameShortColored}: {ex.Message}");
+								Log.Warning($"Error creating new job for {jobInfo.Pawn.NameShortColored}: {ex.Message}");
 								failedCount++;
 							}
 						}
 						else
 						{
-							Log.Message($"[PickUpAndHaul] Could not restore job for {jobInfo.Pawn.NameShortColored}: pawn unavailable or already has job");
+							Log.Message($"Could not restore job for {jobInfo.Pawn.NameShortColored}: pawn unavailable or already has job");
 							failedCount++;
 						}
 					}
 					else
 					{
-						Log.Warning($"[PickUpAndHaul] Could not restore job: pawn no longer spawned or valid");
+						Log.Warning($"Could not restore job: pawn no longer spawned or valid");
 						failedCount++;
 					}
 				}
 
-				Log.Message($"[PickUpAndHaul] Job restoration complete: {restoredCount} restored, {failedCount} failed");
+				Log.Message($"Job restoration complete: {restoredCount} restored, {failedCount} failed");
 			}
 			catch (Exception ex)
 			{
-				Log.Error($"[PickUpAndHaul] Error during job restoration: {ex.Message}");
+				Log.Error($"Error during job restoration: {ex.Message}");
 			}
 			finally
 			{
@@ -311,7 +311,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	{
 		lock (_jobLock)
 		{
-			Log.Warning("[PickUpAndHaul] Performing emergency cleanup of save state");
+			Log.Warning("Performing emergency cleanup of save state");
 			_suspendedJobs.Clear();
 			_isSaving = false;
 		}
@@ -338,7 +338,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	{
 		lock (_jobLock)
 		{
-			Log.Warning("[PickUpAndHaul] Mod marked as removed, preventing save data corruption");
+			Log.Warning("Mod marked as removed, preventing save data corruption");
 			_modRemoved = true;
 			_suspendedJobs.Clear();
 			_isSaving = false;
@@ -360,7 +360,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 		}
 		catch (Exception ex)
 		{
-			Log.Warning($"[PickUpAndHaul] Error checking mod active status: {ex.Message}");
+			Log.Warning($"Error checking mod active status: {ex.Message}");
 			return false;
 		}
 	}
@@ -372,7 +372,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	{
 		if (!IsModActive())
 		{
-			Log.Warning("[PickUpAndHaul] Mod appears to be inactive, performing safety cleanup");
+			Log.Warning("Mod appears to be inactive, performing safety cleanup");
 			MarkModAsRemoved();
 
 			// Clear any remaining mod-specific jobs from all pawns
@@ -381,7 +381,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 				var maps = Find.Maps;
 				if (maps == null || maps.Count == 0)
 				{
-					Log.Warning("[PickUpAndHaul] No maps found during safety check");
+					Log.Warning("No maps found during safety check");
 					return;
 				}
 
@@ -389,7 +389,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 				{
 					if (map?.mapPawns == null)
 					{
-						Log.Warning("[PickUpAndHaul] Map has null mapPawns during safety check");
+						Log.Warning("Map has null mapPawns during safety check");
 						continue;
 					}
 
@@ -406,7 +406,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 							var jobDef = pawn.jobs.curJob.def;
 							if (jobDef.defName is "HaulToInventory" or "UnloadYourHauledInventory")
 							{
-								Log.Warning($"[PickUpAndHaul] Clearing mod-specific job from {pawn.NameShortColored}");
+								Log.Warning($"Clearing mod-specific job from {pawn.NameShortColored}");
 
 								try
 								{
@@ -414,7 +414,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 								}
 								catch (Exception ex)
 								{
-									Log.Warning($"[PickUpAndHaul] Error clearing job from {pawn.NameShortColored}: {ex.Message}");
+									Log.Warning($"Error clearing job from {pawn.NameShortColored}: {ex.Message}");
 								}
 							}
 						}
@@ -423,7 +423,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 			}
 			catch (Exception ex)
 			{
-				Log.Error($"[PickUpAndHaul] Error during safety cleanup: {ex.Message}");
+				Log.Error($"Error during safety cleanup: {ex.Message}");
 			}
 		}
 	}

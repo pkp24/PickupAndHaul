@@ -1,6 +1,4 @@
-﻿using Verse;
-
-namespace IHoldMultipleThings;
+﻿namespace PickUpAndHaul;
 
 public interface IHoldMultipleThings
 {

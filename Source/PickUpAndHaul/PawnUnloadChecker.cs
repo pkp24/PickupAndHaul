@@ -61,7 +61,7 @@ public static class PawnUnloadChecker
 		var staggeredCheck = (Find.TickManager.TicksGame + (pawn.thingIDNumber % 50)) % 50 == 0;
 		if (staggeredCheck && inventoryContainer.Count < carriedThing.Count)
 		{
-			Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
+			Log.Warning("" + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
 			carriedThing.Clear();
 			pawn.inventory.UnloadEverything = true;
 		}

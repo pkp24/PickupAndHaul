@@ -6,15 +6,15 @@ public static class HoldMultipleThings_Support
 		capacity = 0;
 
 		if ((map.haulDestinationManager.SlotGroupParentAt(storeCell) as ThingWithComps)?
-		   .AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings)
-		   is IHoldMultipleThings.IHoldMultipleThings compOfHolding)
+		   .AllComps.FirstOrDefault(x => x is IHoldMultipleThings)
+		   is IHoldMultipleThings compOfHolding)
 		{
 			return compOfHolding.CapacityAt(thing, storeCell, map, out capacity);
 		}
 
 		foreach (var t in storeCell.GetThingList(map))
 		{
-			if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
+			if (t is IHoldMultipleThings holderOfMultipleThings)
 			{
 				return holderOfMultipleThings.CapacityAt(thing, storeCell, map, out capacity);
 			}
@@ -26,15 +26,15 @@ public static class HoldMultipleThings_Support
 	public static bool StackableAt(Thing thing, IntVec3 storeCell, Map map)
 	{
 		if ((map.haulDestinationManager.SlotGroupParentAt(storeCell) as ThingWithComps)?
-		   .AllComps.FirstOrDefault(x => x is IHoldMultipleThings.IHoldMultipleThings)
-		   is IHoldMultipleThings.IHoldMultipleThings compOfHolding)
+		   .AllComps.FirstOrDefault(x => x is IHoldMultipleThings)
+		   is IHoldMultipleThings compOfHolding)
 		{
 			return compOfHolding.StackableAt(thing, storeCell, map);
 		}
 
 		foreach (var t in storeCell.GetThingList(map))
 		{
-			if (t is IHoldMultipleThings.IHoldMultipleThings holderOfMultipleThings)
+			if (t is IHoldMultipleThings holderOfMultipleThings)
 			{
 				return holderOfMultipleThings.StackableAt(thing, storeCell, map);
 			}

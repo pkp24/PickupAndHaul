@@ -20,7 +20,7 @@ public static class CacheManager
 			_registeredCaches.Add(cache);
 			if (Settings.EnableDebugLogging)
 			{
-				Log.Message($"[CacheManager] Registered cache: {cache.GetType().Name}");
+				Log.Message($"Registered cache: {cache.GetType().Name}");
 			}
 		}
 	}
@@ -35,7 +35,7 @@ public static class CacheManager
 			_registeredCaches.Remove(cache);
 			if (Settings.EnableDebugLogging)
 			{
-				Log.Message($"[CacheManager] Unregistered cache: {cache.GetType().Name}");
+				Log.Message($"Unregistered cache: {cache.GetType().Name}");
 			}
 		}
 	}
@@ -57,7 +57,7 @@ public static class CacheManager
 			}
 			catch (Exception ex)
 			{
-				Log.Warning($"[CacheManager] Error cleaning cache {cache.GetType().Name}: {ex.Message}");
+				Log.Warning($"Cleaning cache {cache.GetType().Name}: {ex.Message}");
 			}
 		}
 
@@ -69,12 +69,12 @@ public static class CacheManager
 		}
 		catch (Exception ex)
 		{
-			Log.Warning($"[CacheManager] Error cleaning rollback states: {ex.Message}");
+			Log.Warning($"Cleaning rollback states: {ex.Message}");
 		}
 
 		if (Settings.EnableDebugLogging && cleanedCount > 0)
 		{
-			Log.Message($"[CacheManager] Cleaned {cleanedCount} caches at tick {currentTick}");
+			Log.Message($"Cleaned {cleanedCount} caches at tick {currentTick}");
 		}
 	}
 
@@ -93,7 +93,7 @@ public static class CacheManager
 			{
 				if (Settings.EnableDebugLogging)
 				{
-					Log.Message($"[CacheManager] Map changed from {_lastMap} to {currentMap}, triggering cache cleanup");
+					Log.Message($"Map changed from {_lastMap} to {currentMap}, triggering cache cleanup");
 				}
 				CleanupAllCaches();
 			}
@@ -115,7 +115,7 @@ public static class CacheManager
 		{
 			if (Settings.EnableDebugLogging)
 			{
-				Log.Message($"[CacheManager] Game reset detected (tick {currentTick} < {_lastGameResetTick}), triggering cache cleanup");
+				Log.Message($"Game reset detected (tick {currentTick} < {_lastGameResetTick}), triggering cache cleanup");
 			}
 			CleanupAllCaches();
 			_lastMap = null;
@@ -127,28 +127,25 @@ public static class CacheManager
 	/// <summary>
 	/// Gets debug information about all registered caches
 	/// </summary>
-	public static string GetDebugInfo()
+	public static void GetDebugInfo()
 	{
-		var info = new System.Text.StringBuilder();
-		info.AppendLine("[CacheManager] Registered caches:");
+		Log.Message("Registered caches:");
 
 		foreach (var cache in _registeredCaches)
 		{
 			try
 			{
-				info.AppendLine($"  {cache.GetType().Name}: {cache.GetDebugInfo()}");
+				Log.Message($"{cache.GetType().Name}: {cache.GetDebugInfo()}");
 			}
 			catch (Exception ex)
 			{
-				info.AppendLine($"  {cache.GetType().Name}: Error getting debug info - {ex.Message}");
+				Log.Error($"{cache.GetType().Name}: Exception {ex.Message}");
 			}
 		}
 
-		info.AppendLine($"Last map change: {_lastMapChangeTick}");
-		info.AppendLine($"Last game reset: {_lastGameResetTick}");
-		info.AppendLine($"Current map: {_lastMap}");
-
-		return info.ToString();
+		Log.Message($"Last map change: {_lastMapChangeTick}");
+		Log.Message($"Last game reset: {_lastGameResetTick}");
+		Log.Message($"Current map: {_lastMap}");
 	}
 
 	/// <summary>
@@ -158,7 +155,7 @@ public static class CacheManager
 	{
 		if (Settings.EnableDebugLogging)
 		{
-			Log.Message("[CacheManager] Force resetting all caches");
+			Log.Message("Force resetting all caches");
 		}
 
 		CleanupAllCaches();
