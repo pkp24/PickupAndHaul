@@ -1,7 +1,7 @@
 ﻿namespace PickUpAndHaul;
 public static class FishTranspiler
 {
-	public struct Container
+	public struct Container : IEquatable<Container>
 	{
 		public Container(OpCode opcode, object operand = null)
 		{
@@ -38,6 +38,11 @@ public static class FishTranspiler
 		public static implicit operator CodeInstruction(Container helper) => helper.ToInstruction();
 		public OpCode OpCode { get; set; }
 		public object Operand { get; set; }
+
+		public bool Equals(Container other)
+		{
+			throw new NotImplementedException();
+		}
 	}
 
 	public static Container Copy(CodeInstruction instruction) => new(instruction);
