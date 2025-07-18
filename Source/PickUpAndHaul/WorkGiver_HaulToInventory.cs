@@ -38,50 +38,21 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
 
-	private int _nextWorkCacheTick = 0;
+	private int _nextWorkCacheTick = Find.TickManager.TicksGame;
 	private static List<Thing> _potentialWorkCache = [];
 	private readonly object _lockObject = new();
 
-	private static bool _cachesInitialized = false;
-	private static readonly object _cacheInitLock = new();
-
-	private static void EnsureCachesInitialized()
+	static WorkGiver_HaulToInventory()
 	{
-		if (_cachesInitialized)
-			return;
+		// Register caches for automatic cleanup
+		CacheManager.RegisterCache(_encumbranceCache);
 
-		lock (_cacheInitLock)
-		{
-			if (_cachesInitialized)
-				return;
-
-			try
-			{
-				// Only register caches if RimWorld's stuff is initialized
-				if (Find.TickManager != null)
-				{
-					CacheManager.RegisterCache(_encumbranceCache);
-					CacheManager.RegisterCache(new PawnSkipListCache());
-					_cachesInitialized = true;
-				}
-			}
-			catch
-			{
-				// If initialization fails, it'll get a chance later
-			}
-		}
+		// Register cleanup method for pawn skip lists
+		CacheManager.RegisterCache(new PawnSkipListCache());
 	}
 
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
 	{
-		EnsureCachesInitialized();
-
-		// Initialize the cache tick if it hasn't been set yet
-		if (_nextWorkCacheTick == 0)
-		{
-			_nextWorkCacheTick = Find.TickManager.TicksGame;
-		}
-
 		var currentTick = Find.TickManager.TicksGame;
 		if (currentTick < _nextWorkCacheTick)
 			return _potentialWorkCache;
@@ -193,8 +164,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool OverAllowedGearCapacity(Pawn pawn)
 	{
-		EnsureCachesInitialized();
-
 		var currentTick = Find.TickManager.TicksGame;
 
 		if (_encumbranceCache.TryGet(pawn, out var cache) && cache.tick == currentTick)
