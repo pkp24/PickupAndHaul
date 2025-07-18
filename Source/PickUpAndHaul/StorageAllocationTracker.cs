@@ -79,7 +79,7 @@ public class StorageAllocationTracker : ICache
 
 			var availableCapacity = actualCapacity - pendingAmount;
 
-			Log.Message($"[StorageAllocationTracker] Location {location}: actual={actualCapacity}, pending={pendingAmount}, available={availableCapacity}, requested={requestedAmount}");
+			Log.Message($"Location {location}: actual={actualCapacity}, pending={pendingAmount}, available={availableCapacity}, requested={requestedAmount}");
 
 			return availableCapacity >= requestedAmount;
 		}
@@ -95,7 +95,7 @@ public class StorageAllocationTracker : ICache
 			// Check if we can reserve this amount
 			if (!HasAvailableCapacity(location, itemDef, amount, pawn.Map))
 			{
-				Log.Message($"[StorageAllocationTracker] Cannot reserve {amount} of {itemDef} at {location} - insufficient capacity");
+				Log.Message($"Cannot reserve {amount} of {itemDef} at {location} - insufficient capacity");
 				return false;
 			}
 
@@ -119,7 +119,7 @@ public class StorageAllocationTracker : ICache
 			}
 			_pawnAllocations[pawn].Add(location);
 
-			Log.Message($"[StorageAllocationTracker] Reserved {amount} of {itemDef} at {location} for {pawn}");
+			Log.Message($"Reserved {amount} of {itemDef} at {location} for {pawn}");
 			return true;
 		}
 	}
@@ -168,7 +168,7 @@ public class StorageAllocationTracker : ICache
 				}
 			}
 
-			Log.Message($"[StorageAllocationTracker] Released {amount} of {itemDef} at {location} for {pawn}");
+			Log.Message($"Released {amount} of {itemDef} at {location} for {pawn}");
 		}
 	}
 
@@ -196,7 +196,7 @@ public class StorageAllocationTracker : ICache
 				}
 			}
 
-			Log.Message($"[StorageAllocationTracker] Cleaned up all allocations for {pawn}");
+			Log.Message($"Cleaned up all allocations for {pawn}");
 		}
 	}
 
@@ -221,7 +221,7 @@ public class StorageAllocationTracker : ICache
 					}
 					catch (Exception ex)
 					{
-						Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at container {location.Container}: {ex.Message}");
+						Log.Error($"Error getting capacity for {itemDef} at container {location.Container}: {ex.Message}");
 						// Return safe stack count as fallback
 						return GetSafeStackCount(itemDef);
 					}
@@ -251,7 +251,7 @@ public class StorageAllocationTracker : ICache
 				}
 				catch (Exception ex)
 				{
-					Log.Error($"[StorageAllocationTracker] Error getting capacity for {itemDef} at cell {location.Cell}: {ex.Message}");
+					Log.Error($"Error getting capacity for {itemDef} at cell {location.Cell}: {ex.Message}");
 					// Fallback: check if there's already an item at the location and calculate remaining capacity
 					var existingThing = map.thingGrid.ThingAt(location.Cell, itemDef);
 					return existingThing != null ? GetSafeStackCount(itemDef) - existingThing.stackCount : GetSafeStackCount(itemDef);
@@ -295,7 +295,7 @@ public class StorageAllocationTracker : ICache
 				}
 				else
 				{
-					Log.Warning($"[StorageAllocationTracker] Could not find suitable stuff for {itemDef}, using stackCount for capacity estimation");
+					Log.Warning($"Could not find suitable stuff for {itemDef}, using stackCount for capacity estimation");
 					return null;
 				}
 			}
@@ -308,7 +308,7 @@ public class StorageAllocationTracker : ICache
 		}
 		catch (Exception ex)
 		{
-			Log.Error($"[StorageAllocationTracker] Error creating temp thing for {itemDef}: {ex.Message}");
+			Log.Error($"Error creating temp thing for {itemDef}: {ex.Message}");
 			return null;
 		}
 	}
@@ -341,7 +341,7 @@ public class StorageAllocationTracker : ICache
 		}
 		catch (Exception ex)
 		{
-			Log.Error($"[StorageAllocationTracker] Error disposing temp thing {tempThing}: {ex.Message}");
+			Log.Error($"Error disposing temp thing {tempThing}: {ex.Message}");
 		}
 	}
 
@@ -353,7 +353,7 @@ public class StorageAllocationTracker : ICache
 		// Validate stack limit - must be positive
 		if (itemDef.stackLimit <= 0)
 		{
-			Log.Warning($"[StorageAllocationTracker] Invalid stackLimit ({itemDef.stackLimit}) for {itemDef}, using default of 1");
+			Log.Warning($"Invalid stackLimit ({itemDef.stackLimit}) for {itemDef}, using default of 1");
 			return 1;
 		}
 
@@ -367,7 +367,7 @@ public class StorageAllocationTracker : ICache
 		const int maxReasonableStackLimit = 10000;
 		if (itemDef.stackLimit > maxReasonableStackLimit)
 		{
-			Log.Warning($"[StorageAllocationTracker] Very large stackLimit ({itemDef.stackLimit}) for {itemDef}, capping at {maxReasonableStackLimit}");
+			Log.Warning($"Very large stackLimit ({itemDef.stackLimit}) for {itemDef}, capping at {maxReasonableStackLimit}");
 			return maxReasonableStackLimit;
 		}
 
@@ -390,7 +390,7 @@ public class StorageAllocationTracker : ICache
 		{
 			_pendingAllocations.Clear();
 			_pawnAllocations.Clear();
-			Log.Message("[StorageAllocationTracker] Cleared all allocations");
+			Log.Message("Cleared all allocations");
 		}
 	}
 
@@ -420,7 +420,7 @@ public class StorageAllocationTracker : ICache
 
 			if (deadPawns.Count > 0 && Settings.EnableDebugLogging)
 			{
-				Log.Message($"[StorageAllocationTracker] Cleaned up allocations for {deadPawns.Count} dead pawns");
+				Log.Message($"Cleaned up allocations for {deadPawns.Count} dead pawns");
 			}
 		}
 	}

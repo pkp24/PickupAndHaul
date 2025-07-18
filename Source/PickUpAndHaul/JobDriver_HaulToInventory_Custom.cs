@@ -213,27 +213,19 @@ public class HaulToInventoryJob : Job
 	/// <summary>
 	/// Gets debug information about the job
 	/// </summary>
-	public string GetDebugInfo()
+	public void GetDebugInfo()
 	{
-		lock (this)
+		Log.Message($"HaulToInventoryJob: {_haulItems.Count} items, {_storageTargets.Count} targets");
+
+		for (var i = 0; i < _haulItems.Count; i++)
 		{
-			var info = new System.Text.StringBuilder();
-			info.AppendLine($"HaulToInventoryJob: {_haulItems.Count} items, {_storageTargets.Count} targets");
-
-			for (var i = 0; i < _haulItems.Count; i++)
-			{
-				var item = _haulItems[i];
-				info.AppendLine($"  Item {i}: {item.Thing} x{item.Count} -> {item.StorageLocation}");
-			}
-
-			info.AppendLine("Storage reservations:");
-			foreach (var kvp in _storageReservations)
-			{
-				info.AppendLine($"  {kvp.Key}: {kvp.Value}");
-			}
-
-			return info.ToString();
+			var item = _haulItems[i];
+			Log.Message($"Item {i}: {item.Thing} x{item.Count} -> {item.StorageLocation}");
 		}
+
+		Log.Message("Storage reservations:");
+		foreach (var kvp in _storageReservations)
+			Log.Message($"{kvp.Key}: {kvp.Value}");
 	}
 
 	public new void ExposeData()
@@ -241,13 +233,13 @@ public class HaulToInventoryJob : Job
 		// Don't save custom job data to prevent save corruption
 		if (Scribe.mode == LoadSaveMode.Saving)
 		{
-			Log.Message("[PickUpAndHaul] Skipping save data for HaulToInventoryJob");
+			Log.Message("Skipping save data for HaulToInventoryJob");
 			return;
 		}
 
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
-			Log.Message("[PickUpAndHaul] Skipping load data for HaulToInventoryJob");
+			Log.Message("Skipping load data for HaulToInventoryJob");
 			_haulItems = [];
 			_storageTargets = [];
 			_storageReservations = [];

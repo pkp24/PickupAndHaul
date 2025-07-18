@@ -11,14 +11,14 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		// when the mod is removed
 		if (Scribe.mode == LoadSaveMode.Saving)
 		{
-			Log.Message("[PickUpAndHaul] Skipping save data for UnloadYourHauledInventory job driver");
+			Log.Message("Skipping save data for UnloadYourHauledInventory job driver");
 			return;
 		}
 
 		// Only load data if we're in loading mode and the mod is active
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
-			Log.Message("[PickUpAndHaul] Skipping load data for UnloadYourHauledInventory job driver");
+			Log.Message("Skipping load data for UnloadYourHauledInventory job driver");
 			return;
 		}
 
@@ -32,7 +32,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		// Check if save operation is in progress
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
-			Log.Message($"[PickUpAndHaul] Skipping UnloadYourHauledInventory job reservations during save operation for {pawn}");
+			Log.Message($"Skipping UnloadYourHauledInventory job reservations during save operation for {pawn}");
 			return false;
 		}
 		return true;
@@ -47,7 +47,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		// Check if save operation is in progress at the start
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
-			Log.Message($"[PickUpAndHaul] Ending UnloadYourHauledInventory job during save operation for {pawn}");
+			Log.Message($"Ending UnloadYourHauledInventory job during save operation for {pawn}");
 			EndJobWith(JobCondition.InterruptForced);
 			yield break;
 		}

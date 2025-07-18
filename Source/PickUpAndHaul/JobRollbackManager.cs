@@ -146,21 +146,14 @@ public static class JobRollbackManager
 	/// <summary>
 	/// Gets debug information about rollback states
 	/// </summary>
-	public static string GetRollbackDebugInfo()
+	public static void GetRollbackDebugInfo()
 	{
-		lock (_lockObject)
+		Log.Message($"Rollback states: {_rollbackStates.Count}");
+
+		foreach (var kvp in _rollbackStates.Take(5)) // Show first 5
 		{
-			var info = new System.Text.StringBuilder();
-			info.AppendLine($"[JobRollbackManager] Rollback states: {_rollbackStates.Count}");
-
-			foreach (var kvp in _rollbackStates.Take(5)) // Show first 5
-			{
-				var job = kvp.Key;
-				var state = kvp.Value;
-				info.AppendLine($"  Job for {state.Pawn}: A={state.TargetQueueACount}, B={state.TargetQueueBCount}, C={state.CountQueueCount}, Age={Find.TickManager.TicksGame - state.CreatedTick}");
-			}
-
-			return info.ToString();
+			var state = kvp.Value;
+			Log.Message($"Job for {state.Pawn}: A={state.TargetQueueACount}, B={state.TargetQueueBCount}, C={state.CountQueueCount}, Age={Find.TickManager.TicksGame - state.CreatedTick}");
 		}
 	}
 

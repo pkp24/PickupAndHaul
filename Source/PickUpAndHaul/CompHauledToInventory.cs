@@ -20,14 +20,13 @@ public class CompHauledToInventory : ThingComp
 		// when the mod is removed
 		if (Scribe.mode == LoadSaveMode.Saving)
 		{
-			Log.Message("[PickUpAndHaul] Skipping save data for CompHauledToInventory");
+			Log.Message("Skipping save data for CompHauledToInventory");
 			return;
 		}
 
 		// Handle loading by properly handling the scribing but ignoring data
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
-			Log.Message("[PickUpAndHaul] Ignoring load data for CompHauledToInventory");
 			// Initialize with empty collection to prevent null reference errors
 			takenToInventory = [];
 			// Properly handle the scribing to avoid errors

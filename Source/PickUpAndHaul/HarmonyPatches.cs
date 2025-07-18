@@ -88,7 +88,7 @@ internal static class HarmonyPatches
 		if (__instance?.def != null && IsModSpecificJob(__instance.def))
 		{
 			// Don't save mod-specific job data to prevent corruption when mod is removed
-			Log.Warning($"[PickUpAndHaul] Preventing save of mod-specific job: {__instance.def.defName}");
+			Log.Warning($"Preventing save of mod-specific job: {__instance.def.defName}");
 			return false; // Skip the original method entirely
 		}
 		return true;
@@ -105,7 +105,7 @@ internal static class HarmonyPatches
 			// Check if current job is mod-specific and should be cleared
 			if (__instance.curJob?.def != null && IsModSpecificJob(__instance.curJob.def))
 			{
-				Log.Warning($"[PickUpAndHaul] Clearing mod-specific job from pawn {__instance.pawn?.NameShortColored}: {__instance.curJob.def.defName}");
+				Log.Warning($"Clearing mod-specific job from pawn {__instance.pawn?.NameShortColored}: {__instance.curJob.def.defName}");
 				__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
 			}
 
@@ -117,7 +117,7 @@ internal static class HarmonyPatches
 				{
 					if (jobQueue[i]?.job?.def != null && IsModSpecificJob(jobQueue[i].job.def))
 					{
-						Log.Warning($"[PickUpAndHaul] Removing mod-specific job from queue: {jobQueue[i].job.def.defName}");
+						Log.Warning($"Removing mod-specific job from queue: {jobQueue[i].job.def.defName}");
 						jobQueue.Extract(jobQueue[i].job);
 					}
 				}
@@ -126,7 +126,7 @@ internal static class HarmonyPatches
 			// Also clear any mod-specific job drivers
 			if (__instance.curDriver != null && IsModSpecificJobDriver(__instance.curDriver))
 			{
-				Log.Warning($"[PickUpAndHaul] Clearing mod-specific job driver from pawn {__instance.pawn?.NameShortColored}");
+				Log.Warning($"Clearing mod-specific job driver from pawn {__instance.pawn?.NameShortColored}");
 				__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
 			}
 
@@ -136,14 +136,14 @@ internal static class HarmonyPatches
 				var job = __instance.curJob;
 				if (job.def != null && IsModSpecificJob(job.def))
 				{
-					Log.Warning($"[PickUpAndHaul] Clearing mod-specific job reference: {job.def.defName}");
+					Log.Warning($"Clearing mod-specific job reference: {job.def.defName}");
 					__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
 				}
 			}
 		}
 		catch (Exception ex)
 		{
-			Log.Error($"[PickUpAndHaul] Error in Pawn_JobTracker_ExposeData_Prefix: {ex.Message}");
+			Log.Error($"Pawn_JobTracker_ExposeData_Prefix: {ex.Message}");
 		}
 		return true;
 	}
@@ -262,7 +262,7 @@ internal static class HarmonyPatches
 		}
 		catch (Exception ex)
 		{
-			Log.Warning($"[PickUpAndHaul] Error in cache management: {ex.Message}");
+			Log.Warning($"cache management: {ex.Message}");
 		}
 	}
 
@@ -371,7 +371,7 @@ internal static class HarmonyPatches
 					var component = components[i];
 					if (component != null && IsModSpecificComponent(component))
 					{
-						Log.Warning($"[PickUpAndHaul] Removing mod-specific component during save/load: {component.GetType().Name}");
+						Log.Warning($"Removing mod-specific component during save/load: {component.GetType().Name}");
 						components.RemoveAt(i);
 					}
 				}
@@ -379,7 +379,7 @@ internal static class HarmonyPatches
 		}
 		catch (Exception ex)
 		{
-			Log.Error($"[PickUpAndHaul] Error in Game_ExposeSmallComponents_Prefix: {ex.Message}");
+			Log.Error($"Game_ExposeSmallComponents_Prefix: {ex.Message}");
 		}
 		return true;
 	}
@@ -408,13 +408,13 @@ internal static class HarmonyPatches
 			// Only suspend jobs during saving, not loading
 			if (Scribe.mode == LoadSaveMode.Saving)
 			{
-				Log.Message("[PickUpAndHaul] Save operation starting - suspending pickup and haul jobs");
+				Log.Message("Save operation starting - suspending pickup and haul jobs");
 				PickupAndHaulSaveLoadLogger.SuspendPickupAndHaulJobs();
 			}
 		}
 		catch (Exception ex)
 		{
-			Log.Error($"[PickUpAndHaul] Error in Game_ExposeData_Prefix: {ex.Message}");
+			Log.Error($"Game_ExposeData_Prefix: {ex.Message}");
 		}
 	}
 
@@ -429,13 +429,13 @@ internal static class HarmonyPatches
 			// Only restore jobs after saving is complete
 			if (Scribe.mode == LoadSaveMode.Saving)
 			{
-				Log.Message("[PickUpAndHaul] Save operation complete - restoring pickup and haul jobs");
+				Log.Message("Save operation complete - restoring pickup and haul jobs");
 				PickupAndHaulSaveLoadLogger.RestorePickupAndHaulJobs();
 			}
 		}
 		catch (Exception ex)
 		{
-			Log.Error($"[PickUpAndHaul] Error in Game_ExposeData_Postfix: {ex.Message}");
+			Log.Error($"Game_ExposeData_Postfix: {ex.Message}");
 		}
 	}
 
@@ -457,7 +457,7 @@ internal static class HarmonyPatches
 			if (StorageAllocationTracker.Instance.HasAllocations(__instance.pawn))
 			{
 				StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance.pawn);
-				Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
+				Log.Message($"Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
 			}
 		}
 	}
@@ -478,7 +478,7 @@ internal static class HarmonyPatches
 		if (!__instance.RaceProps.Animal && StorageAllocationTracker.Instance.HasAllocations(__instance))
 		{
 			StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance);
-			Log.Message($"[PickUpAndHaul] DEBUG: Cleaned up storage allocations for dead pawn {__instance}");
+			Log.Message($"Cleaned up storage allocations for dead pawn {__instance}");
 		}
 	}
 }
