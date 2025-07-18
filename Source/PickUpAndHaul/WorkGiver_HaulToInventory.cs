@@ -726,7 +726,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		public Thing Container { get; set; }
 		public IntVec3 Position => Container?.Position ?? Cell;
 
-
 		public StoreTarget(IntVec3 cell)
 		{
 			Cell = cell;
