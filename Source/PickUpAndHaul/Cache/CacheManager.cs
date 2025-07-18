@@ -1,4 +1,4 @@
-namespace PickUpAndHaul;
+namespace PickUpAndHaul.Cache;
 
 /// <summary>
 /// Manages cleanup of all caches in the mod to prevent memory leaks
@@ -19,24 +19,7 @@ public static class CacheManager
 		{
 			_registeredCaches.Add(cache);
 			if (Settings.EnableDebugLogging)
-			{
 				Log.Message($"Registered cache: {cache.GetType().Name}");
-			}
-		}
-	}
-
-	/// <summary>
-	/// Unregisters a cache from automatic cleanup
-	/// </summary>
-	public static void UnregisterCache(ICache cache)
-	{
-		if (cache != null && _registeredCaches.Contains(cache))
-		{
-			_registeredCaches.Remove(cache);
-			if (Settings.EnableDebugLogging)
-			{
-				Log.Message($"Unregistered cache: {cache.GetType().Name}");
-			}
 		}
 	}
 
@@ -49,7 +32,6 @@ public static class CacheManager
 		var cleanedCount = 0;
 
 		foreach (var cache in _registeredCaches)
-		{
 			try
 			{
 				cache.ForceCleanup();
@@ -59,7 +41,6 @@ public static class CacheManager
 			{
 				Log.Warning($"Cleaning cache {cache.GetType().Name}: {ex.Message}");
 			}
-		}
 
 		// Clean up rollback states
 		try
@@ -73,9 +54,7 @@ public static class CacheManager
 		}
 
 		if (Settings.EnableDebugLogging && cleanedCount > 0)
-		{
 			Log.Message($"Cleaned {cleanedCount} caches at tick {currentTick}");
-		}
 	}
 
 	/// <summary>
@@ -92,9 +71,7 @@ public static class CacheManager
 			if (_lastMap != null)
 			{
 				if (Settings.EnableDebugLogging)
-				{
 					Log.Message($"Map changed from {_lastMap} to {currentMap}, triggering cache cleanup");
-				}
 				CleanupAllCaches();
 			}
 
@@ -116,6 +93,7 @@ public static class CacheManager
 			if (Settings.EnableDebugLogging)
 			{
 				Log.Message($"Game reset detected (tick {currentTick} < {_lastGameResetTick}), triggering cache cleanup");
+				GetDebugInfo();
 			}
 			CleanupAllCaches();
 			_lastMap = null;
@@ -132,7 +110,6 @@ public static class CacheManager
 		Log.Message("Registered caches:");
 
 		foreach (var cache in _registeredCaches)
-		{
 			try
 			{
 				Log.Message($"{cache.GetType().Name}: {cache.GetDebugInfo()}");
@@ -141,42 +118,9 @@ public static class CacheManager
 			{
 				Log.Error($"{cache.GetType().Name}: Exception {ex.Message}");
 			}
-		}
 
 		Log.Message($"Last map change: {_lastMapChangeTick}");
 		Log.Message($"Last game reset: {_lastGameResetTick}");
 		Log.Message($"Current map: {_lastMap}");
 	}
-
-	/// <summary>
-	/// Forces a complete reset of all caches (for testing or emergency cleanup)
-	/// </summary>
-	public static void ForceResetAllCaches()
-	{
-		if (Settings.EnableDebugLogging)
-		{
-			Log.Message("Force resetting all caches");
-		}
-
-		CleanupAllCaches();
-		_lastMap = null;
-		_lastMapChangeTick = 0;
-		_lastGameResetTick = 0;
-	}
-}
-
-/// <summary>
-/// Interface for caches that can be managed by CacheManager
-/// </summary>
-public interface ICache
-{
-	/// <summary>
-	/// Forces a cleanup of the cache
-	/// </summary>
-	void ForceCleanup();
-
-	/// <summary>
-	/// Gets debug information about the cache
-	/// </summary>
-	string GetDebugInfo();
 }

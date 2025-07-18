@@ -1,4 +1,6 @@
-﻿namespace PickUpAndHaul;
+﻿using PickUpAndHaul.Cache;
+
+namespace PickUpAndHaul;
 [StaticConstructorOnStartup]
 internal static class HarmonyPatches
 {
@@ -19,25 +21,6 @@ internal static class HarmonyPatches
 			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.CanPickUp)),
 				prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(CanBeMadeToDropStuff)));
 		}
-
-		harmony.Patch(original: AccessTools.Method(typeof(JobGiver_DropUnusedInventory), nameof(JobGiver_DropUnusedInventory.TryGiveJob)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(DropUnusedInventory_PostFix)));
-
-		harmony.Patch(original: AccessTools.Method(typeof(JobDriver_HaulToCell), nameof(JobDriver_HaulToCell.MakeNewToils)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(JobDriver_HaulToCell_PostFix)));
-
-		harmony.Patch(original: AccessTools.Method(typeof(Pawn_InventoryTracker), nameof(Pawn_InventoryTracker.Notify_ItemRemoved)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_InventoryTracker_PostFix)));
-
-		harmony.Patch(original: AccessTools.Method(typeof(JobGiver_DropUnusedInventory), nameof(JobGiver_DropUnusedInventory.Drop)),
-			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Drop_Prefix)));
-
-		harmony.Patch(original: AccessTools.Method(typeof(JobGiver_Idle), nameof(JobGiver_Idle.TryGiveJob)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)));
-
-		// Add performance profiler update to the main tick
-		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(TickManagerUpdate_Postfix)));
 
 		// Add cache management to the main tick
 		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
@@ -162,88 +145,6 @@ internal static class HarmonyPatches
 	private static bool IsModSpecificJobDriver(JobDriver jobDriver) => jobDriver != null && (jobDriver.GetType() == typeof(JobDriver_HaulToInventory) ||
 			   jobDriver.GetType() == typeof(JobDriver_UnloadYourHauledInventory));
 
-	private static bool Drop_Prefix(Pawn pawn, Thing thing)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			return true; // Allow normal drop behavior during save
-		}
-
-		var takenToInventory = pawn.GetComp<CompHauledToInventory>();
-		if (takenToInventory == null)
-		{
-			return true;
-		}
-
-		var carriedThing = takenToInventory.HashSet;
-		return !carriedThing.Contains(thing);
-	}
-
-	private static void Pawn_InventoryTracker_PostFix(Pawn_InventoryTracker __instance, Thing item)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			return; // Skip inventory tracking during save
-		}
-
-		var takenToInventory = __instance.pawn?.GetComp<CompHauledToInventory>();
-		if (takenToInventory == null)
-		{
-			return;
-		}
-
-		var carriedThing = takenToInventory.HashSet;
-		if (carriedThing?.Count > 0)
-		{
-			carriedThing.Remove(item);
-		}
-	}
-
-	private static void JobDriver_HaulToCell_PostFix(JobDriver_HaulToCell __instance)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			return; // Skip job driver postfix during save
-		}
-
-		var pawn = __instance.pawn;
-		var takenToInventory = pawn?.GetComp<CompHauledToInventory>();
-		if (takenToInventory == null)
-		{
-			return;
-		}
-
-		var carriedThing = takenToInventory.HashSet;
-
-		if (__instance.job.haulMode == HaulMode.ToCellStorage
-			&& pawn.Faction == Faction.OfPlayerSilentFail
-			&& Settings.IsAllowedRace(pawn.RaceProps)
-			&& (Settings.AllowCorpses || pawn.carryTracker.CarriedThing is not Corpse)
-			&& carriedThing != null
-			&& carriedThing.Count != 0) //deliberate hauling job. Should unload.
-		{
-			PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn, true);
-		}
-	}
-
-	public static void IdleJoy_Postfix(Pawn pawn)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			return; // Skip idle joy postfix during save
-		}
-		PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn, true);
-	}
-
-	public static void TickManagerUpdate_Postfix()
-	{
-		//PerformanceProfiler.Update();
-	}
-
 	public static void CacheManagement_Postfix()
 	{
 		try
@@ -252,9 +153,7 @@ internal static class HarmonyPatches
 			// This reduces the performance impact from 33ms to <1ms per frame
 			var currentTick = Find.TickManager?.TicksGame ?? 0;
 			if (currentTick % 60 != 0)
-			{
 				return; // Skip this tick to reduce performance impact
-			}
 
 			// Check for map changes and game resets
 			CacheManager.CheckForMapChange();
@@ -264,16 +163,6 @@ internal static class HarmonyPatches
 		{
 			Log.Warning($"cache management: {ex.Message}");
 		}
-	}
-
-	public static void DropUnusedInventory_PostFix(Pawn pawn)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			return; // Skip drop unused inventory postfix during save
-		}
-		PawnUnloadChecker.CheckIfPawnShouldUnloadInventory(pawn);
 	}
 
 	public static bool MaxAllowedToPickUpPrefix(Pawn pawn, ref int __result)

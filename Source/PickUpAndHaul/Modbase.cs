@@ -1,6 +1,7 @@
 ﻿global using HarmonyLib;
 global using RimWorld;
 global using System;
+global using System.Collections.Concurrent;
 global using System.Collections.Generic;
 global using System.Diagnostics;
 global using System.Diagnostics.CodeAnalysis;

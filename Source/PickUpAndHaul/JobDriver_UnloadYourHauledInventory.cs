@@ -57,9 +57,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		comp?.CleanupNulls();
 
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
-		{
 			_unloadDuration = 20;
-		}
 
 		var begin = Toils_General.Wait(_unloadDuration);
 		yield return begin;
@@ -99,15 +97,11 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			// Check for save operation before releasing reservation
 			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-			{
 				return;
-			}
 
 			if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
 				&& !ModCompatibilityCheck.HCSKIsActive)
-			{
 				pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
-			}
 		}
 	};
 
@@ -135,7 +129,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 			var destCell = TargetB.HasThing ? job.targetB.Thing.Position : job.targetB.Cell;
 			if (destCell.IsValid &&
-				HoldMultipleThings_Support.CapacityAt(thing, destCell, pawn.Map, out var cap))
+				thing.CapacityAt(destCell, pawn.Map, out var cap))
 			{
 				if (cap <= 0)
 				{
@@ -188,9 +182,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			job.SetTarget(TargetIndex.A, carried);
 			carried.SetForbidden(false, false);
 			carriedThings.Remove(thing);
-
-			if (ModCompatibilityCheck.CombatExtendedIsActive)
-				CompatHelper.UpdateInventory(pawn);
 		}
 	};
 
@@ -229,12 +220,10 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				var capacity = unloadable.Thing.stackCount;
 				var skipRes = false;
 
-				if (targetCell.IsValid &&
-					HoldMultipleThings_Support.CapacityAt(unloadable.Thing, targetCell,
-														pawn.Map, out var cap))
+				if (targetCell.IsValid && unloadable.Thing.CapacityAt(targetCell, pawn.Map, out var cap))
 				{
 					capacity = cap;
-					skipRes = true;              // handled by the crate itself
+					skipRes = true; // handled by the crate itself
 				}
 
 				// Reserve if necessary
@@ -306,16 +295,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			}
 
 			if (best == null || CompareInventoryOrder(best, thing) > 0)
-			{
 				best = thing;
-			}
 		}
 
 		// Remove all tracked items after iteration completes
 		foreach (var item in itemsToRemove)
-		{
 			carriedThings.Remove(item);
-		}
 
 		return best != null ? new ThingCount(best, best.stackCount) : default;
 

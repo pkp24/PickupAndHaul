@@ -1,4 +1,6 @@
-namespace PickUpAndHaul;
+using PickUpAndHaul.Structs;
+
+namespace PickUpAndHaul.Cache;
 
 /// <summary>
 /// Tracks pending hauling jobs and their storage allocations to prevent race conditions
@@ -33,41 +35,9 @@ public class StorageAllocationTracker : ICache
 		CacheManager.RegisterCache(Instance);
 
 	/// <summary>
-	/// Represents a storage location (either a cell or a container thing)
-	/// </summary>
-	public readonly struct StorageLocation : IEquatable<StorageLocation>
-	{
-		public IntVec3 Cell { get; }
-		public Thing Container { get; }
-
-		public StorageLocation(IntVec3 cell)
-		{
-			Cell = cell;
-			Container = null;
-		}
-
-		public StorageLocation(Thing container)
-		{
-			Cell = IntVec3.Invalid;
-			Container = container;
-		}
-
-		public bool Equals(StorageLocation other) => Container != null ? Container == other.Container : Cell == other.Cell;
-
-		public override bool Equals(object obj) => obj is StorageLocation other && Equals(other);
-
-		public override int GetHashCode() => Container?.GetHashCode() ?? Cell.GetHashCode();
-
-		public override string ToString() => Container?.ToString() ?? Cell.ToString();
-		public static bool operator ==(StorageLocation left, StorageLocation right) => left.Equals(right);
-
-		public static bool operator !=(StorageLocation left, StorageLocation right) => !(left == right);
-	}
-
-	/// <summary>
 	/// Check if there's enough available capacity at a storage location for a given item
 	/// </summary>
-	public bool HasAvailableCapacity(StorageLocation location, ThingDef itemDef, int requestedAmount, Map map)
+	private bool HasAvailableCapacity(StorageLocation location, ThingDef itemDef, int requestedAmount, Map map)
 	{
 		lock (_lockObject)
 		{
@@ -101,22 +71,16 @@ public class StorageAllocationTracker : ICache
 
 			// Add to pending allocations
 			if (!_pendingAllocations.ContainsKey(location))
-			{
 				_pendingAllocations[location] = [];
-			}
 
 			if (!_pendingAllocations[location].ContainsKey(itemDef))
-			{
 				_pendingAllocations[location][itemDef] = 0;
-			}
 
 			_pendingAllocations[location][itemDef] += amount;
 
 			// Track this allocation for the pawn
 			if (!_pawnAllocations.ContainsKey(pawn))
-			{
 				_pawnAllocations[pawn] = [];
-			}
 			_pawnAllocations[pawn].Add(location);
 
 			Log.Message($"Reserved {amount} of {itemDef} at {location} for {pawn}");
@@ -130,9 +94,7 @@ public class StorageAllocationTracker : ICache
 	public bool HasAllocations(Pawn pawn)
 	{
 		lock (_lockObject)
-		{
 			return _pawnAllocations.ContainsKey(pawn) && _pawnAllocations[pawn].Count > 0;
-		}
 	}
 
 	/// <summary>
@@ -148,14 +110,10 @@ public class StorageAllocationTracker : ICache
 
 				// Remove location from pawn's allocations if no more pending allocations
 				if (_pendingAllocations[location][itemDef] == 0)
-				{
 					_pendingAllocations[location].Remove(itemDef);
-				}
 
 				if (_pendingAllocations[location].Count == 0)
-				{
 					_pendingAllocations.Remove(location);
-				}
 			}
 
 			// Remove from pawn's allocation tracking
@@ -163,9 +121,7 @@ public class StorageAllocationTracker : ICache
 			{
 				_pawnAllocations[pawn].Remove(location);
 				if (_pawnAllocations[pawn].Count == 0)
-				{
 					_pawnAllocations.Remove(pawn);
-				}
 			}
 
 			Log.Message($"Released {amount} of {itemDef} at {location} for {pawn}");
@@ -184,7 +140,6 @@ public class StorageAllocationTracker : ICache
 
 			var locations = new List<StorageLocation>(_pawnAllocations[pawn]);
 			foreach (var location in locations)
-			{
 				if (_pendingAllocations.ContainsKey(location))
 				{
 					var itemDefs = new List<ThingDef>(_pendingAllocations[location].Keys);
@@ -194,7 +149,6 @@ public class StorageAllocationTracker : ICache
 						ReleaseCapacity(location, itemDef, amount, pawn);
 					}
 				}
-			}
 
 			Log.Message($"Cleaned up all allocations for {pawn}");
 		}
@@ -213,7 +167,6 @@ public class StorageAllocationTracker : ICache
 				// Create a temporary thing to check capacity
 				var tempThing = CreateTempThing(itemDef);
 				if (tempThing != null)
-				{
 					try
 					{
 						var capacity = thingOwner.GetCountCanAccept(tempThing);
@@ -230,12 +183,9 @@ public class StorageAllocationTracker : ICache
 						// Properly dispose of the temporary thing to prevent memory leaks
 						DisposeTempThing(tempThing);
 					}
-				}
 				else
-				{
 					// Fallback: use safe stack count as approximation
 					return GetSafeStackCount(itemDef);
-				}
 			}
 		}
 		else if (location.Cell.IsValid)
@@ -243,11 +193,9 @@ public class StorageAllocationTracker : ICache
 			// Use the existing CapacityAt method
 			var tempThing = CreateTempThing(itemDef);
 			if (tempThing != null)
-			{
 				try
 				{
-					var capacity = WorkGiver_HaulToInventory.CapacityAt(tempThing, location.Cell, map);
-					return capacity;
+					return StorageCapacityCache.CapacityAt(tempThing, location.Cell, map);
 				}
 				catch (Exception ex)
 				{
@@ -261,7 +209,6 @@ public class StorageAllocationTracker : ICache
 					// Properly dispose of the temporary thing to prevent memory leaks
 					DisposeTempThing(tempThing);
 				}
-			}
 			else
 			{
 				// Fallback: check if there's already an item at the location and calculate remaining capacity
@@ -325,9 +272,7 @@ public class StorageAllocationTracker : ICache
 		{
 			// If the thing is spawned, destroy it properly
 			if (tempThing.Spawned)
-			{
 				tempThing.Destroy();
-			}
 			else
 			{
 				// For unspawned things, we need to clean up any references they might hold
@@ -359,9 +304,7 @@ public class StorageAllocationTracker : ICache
 
 		// For items that can't be stacked, use 1
 		if (itemDef.stackLimit == 1)
-		{
 			return 1;
-		}
 
 		// For items with very large stack limits, cap at a reasonable value to prevent issues
 		const int maxReasonableStackLimit = 10000;
@@ -382,19 +325,6 @@ public class StorageAllocationTracker : ICache
 			: 0;
 
 	/// <summary>
-	/// Clear all allocations (for testing or when save is loaded)
-	/// </summary>
-	public void ClearAllAllocations()
-	{
-		lock (_lockObject)
-		{
-			_pendingAllocations.Clear();
-			_pawnAllocations.Clear();
-			Log.Message("Cleared all allocations");
-		}
-	}
-
-	/// <summary>
 	/// Forces a cleanup of the storage allocation tracker
 	/// </summary>
 	public void ForceCleanup()
@@ -408,20 +338,14 @@ public class StorageAllocationTracker : ICache
 			{
 				var pawn = kvp.Key;
 				if (pawn == null || pawn.Destroyed || !pawn.Spawned)
-				{
 					deadPawns.Add(pawn);
-				}
 			}
 
 			foreach (var deadPawn in deadPawns)
-			{
 				CleanupPawnAllocations(deadPawn);
-			}
 
 			if (deadPawns.Count > 0 && Settings.EnableDebugLogging)
-			{
 				Log.Message($"Cleaned up allocations for {deadPawns.Count} dead pawns");
-			}
 		}
 	}
 
@@ -431,8 +355,6 @@ public class StorageAllocationTracker : ICache
 	public string GetDebugInfo()
 	{
 		lock (_lockObject)
-		{
 			return $"StorageAllocationTracker: {_pendingAllocations.Count} pending allocations, {_pawnAllocations.Count} pawn allocations";
-		}
 	}
 }
