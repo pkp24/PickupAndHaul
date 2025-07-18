@@ -72,7 +72,7 @@ public class HaulToInventoryJob : Job
 	/// </summary>
 	public bool RemoveHaulItem(Thing thing)
 	{
-		foreach (var item in HaulItems)
+		foreach(var item in HaulItems)
 		{
 			if (item.Thing == thing && HaulItems.TryTake(out var result))
 			{
