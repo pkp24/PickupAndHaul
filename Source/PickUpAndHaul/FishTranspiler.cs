@@ -1,10 +1,4 @@
-﻿using HarmonyLib;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Reflection.Emit;
-
-namespace PickUpAndHaul;
+﻿namespace PickUpAndHaul;
 public static class FishTranspiler
 {
 	public struct Container
@@ -81,7 +75,7 @@ public static class FishTranspiler
 	public static Container StoreLocal(LocalBuilder builder) => new() { OpCode = GetStoreLocalOpCode(builder.LocalIndex), Operand = GetOperandFromBuilder(builder) };
 	public static Container StoreLocal(int index) => new() { OpCode = GetStoreLocalOpCode(index), Operand = GetOperandFromIndex(index) };
 
-	public static Container LoadConstant(int integer) => new() { OpCode = GetLoadConstantOpCode(integer), Operand = GetOperandOfConstant(integer) };
+	public static Container LoadConstant(int i) => new() { OpCode = GetLoadConstantOpCode(i), Operand = GetOperandOfConstant(i) };
 
 	public static Container Call<T>(T method, bool forceNoCallvirt = false) where T : Delegate => Call(method.Method, forceNoCallvirt);
 	public static Container Call(Expression<Action> expression, bool forceNoCallvirt = false) => Call(SymbolExtensions.GetMethodInfo(expression), forceNoCallvirt);
@@ -187,7 +181,7 @@ public static class FishTranspiler
 		}
 	}
 
-	public static IEnumerable<CodeInstruction> MethodReplacer<T, V>(this IEnumerable<CodeInstruction> instructions, T from, V to) where T : Delegate where V : Delegate
+	public static IEnumerable<CodeInstruction> MethodReplacer<T, TV>(this IEnumerable<CodeInstruction> instructions, T from, TV to) where T : Delegate where TV : Delegate
 		=> instructions.MethodReplacer(from.Method, to.Method);
 
 	public static bool LoadsLocal(this OpCode opcode) => opcode == OpCodes.Ldloc_S || opcode == OpCodes.Ldloc_0 || opcode == OpCodes.Ldloc_1 || opcode == OpCodes.Ldloc_2 || opcode == OpCodes.Ldloc_3 || opcode == OpCodes.Ldloc;
@@ -291,7 +285,7 @@ public static class FishTranspiler
 		: opcode == OpCodes.Ldc_I4_M1 ? -1
 		: null;
 	public static object GetOperandFromIndex(int index) => index > 3 ? index : null;
-	public static object GetOperandOfConstant(int integer) => integer is < 9 and > -2 ? null : integer;
+	public static object GetOperandOfConstant(int i) => i is < 9 and > -2 ? null : i;
 	public static object GetOperandFromBuilder(LocalBuilder builder) => builder.LocalIndex > 3 ? builder : null;
 	public static bool CompareOperands(object lhs, object rhs) => (lhs is LocalBuilder lhBuilder ? lhBuilder.LocalIndex : lhs) == (rhs is LocalBuilder rhBuilder ? rhBuilder.LocalIndex : rhs);
 }

@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using UnityEngine;
-
 namespace PickUpAndHaul;
 
 /// <summary>
@@ -19,31 +16,29 @@ public class StorageAllocationTracker : ICache
 	/// Key: Storage location identifier (cell position or container thing)
 	/// Value: Dictionary of item def to allocated count
 	/// </summary>
-	private readonly Dictionary<StorageLocation, Dictionary<ThingDef, int>> _pendingAllocations = new();
+	private readonly Dictionary<StorageLocation, Dictionary<ThingDef, int>> _pendingAllocations = [];
 
 	/// <summary>
 	/// Tracks which pawns have pending allocations to clean up when they die or jobs fail
 	/// </summary>
-	private readonly Dictionary<Pawn, HashSet<StorageLocation>> _pawnAllocations = new();
+	private readonly Dictionary<Pawn, HashSet<StorageLocation>> _pawnAllocations = [];
 
 	/// <summary>
 	/// Lock object for thread safety
 	/// </summary>
 	private readonly object _lockObject = new();
 
-	static StorageAllocationTracker()
-	{
+	static StorageAllocationTracker() =>
 		// Register with cache manager for automatic cleanup
 		CacheManager.RegisterCache(Instance);
-	}
 
 	/// <summary>
 	/// Represents a storage location (either a cell or a container thing)
 	/// </summary>
 	public readonly struct StorageLocation : IEquatable<StorageLocation>
 	{
-		public readonly IntVec3 Cell;
-		public readonly Thing Container;
+		public IntVec3 Cell { get; }
+		public Thing Container { get; }
 
 		public StorageLocation(IntVec3 cell)
 		{
@@ -57,25 +52,16 @@ public class StorageAllocationTracker : ICache
 			Container = container;
 		}
 
-		public bool Equals(StorageLocation other)
-		{
-			return Container != null ? Container == other.Container : Cell == other.Cell;
-		}
+		public bool Equals(StorageLocation other) => Container != null ? Container == other.Container : Cell == other.Cell;
 
-		public override bool Equals(object obj)
-		{
-			return obj is StorageLocation other && Equals(other);
-		}
+		public override bool Equals(object obj) => obj is StorageLocation other && Equals(other);
 
-		public override int GetHashCode()
-		{
-			return Container?.GetHashCode() ?? Cell.GetHashCode();
-		}
+		public override int GetHashCode() => Container?.GetHashCode() ?? Cell.GetHashCode();
 
-		public override string ToString()
-		{
-			return Container?.ToString() ?? Cell.ToString();
-		}
+		public override string ToString() => Container?.ToString() ?? Cell.ToString();
+		public static bool operator ==(StorageLocation left, StorageLocation right) => left.Equals(right);
+
+		public static bool operator !=(StorageLocation left, StorageLocation right) => !(left == right);
 	}
 
 	/// <summary>
@@ -86,12 +72,12 @@ public class StorageAllocationTracker : ICache
 		lock (_lockObject)
 		{
 			// Get actual storage capacity
-			int actualCapacity = GetActualCapacity(location, itemDef, map);
+			var actualCapacity = GetActualCapacity(location, itemDef, map);
 
 			// Subtract pending allocations
-			int pendingAmount = GetPendingAllocation(location, itemDef);
+			var pendingAmount = GetPendingAllocation(location, itemDef);
 
-			int availableCapacity = actualCapacity - pendingAmount;
+			var availableCapacity = actualCapacity - pendingAmount;
 
 			Log.Message($"[StorageAllocationTracker] Location {location}: actual={actualCapacity}, pending={pendingAmount}, available={availableCapacity}, requested={requestedAmount}");
 
@@ -116,7 +102,7 @@ public class StorageAllocationTracker : ICache
 			// Add to pending allocations
 			if (!_pendingAllocations.ContainsKey(location))
 			{
-				_pendingAllocations[location] = new Dictionary<ThingDef, int>();
+				_pendingAllocations[location] = [];
 			}
 
 			if (!_pendingAllocations[location].ContainsKey(itemDef))
@@ -129,7 +115,7 @@ public class StorageAllocationTracker : ICache
 			// Track this allocation for the pawn
 			if (!_pawnAllocations.ContainsKey(pawn))
 			{
-				_pawnAllocations[pawn] = new HashSet<StorageLocation>();
+				_pawnAllocations[pawn] = [];
 			}
 			_pawnAllocations[pawn].Add(location);
 
@@ -217,7 +203,7 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Get the actual storage capacity at a location
 	/// </summary>
-	private int GetActualCapacity(StorageLocation location, ThingDef itemDef, Map map)
+	private static int GetActualCapacity(StorageLocation location, ThingDef itemDef, Map map)
 	{
 		if (location.Container != null)
 		{
@@ -290,12 +276,12 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Safely create a temporary thing for capacity checking
 	/// </summary>
-	private Thing CreateTempThing(ThingDef itemDef)
+	private static Thing CreateTempThing(ThingDef itemDef)
 	{
 		try
 		{
 			// Validate stack limit and use a safe default if invalid
-			int safeStackCount = GetSafeStackCount(itemDef);
+			var safeStackCount = GetSafeStackCount(itemDef);
 
 			if (itemDef.MadeFromStuff)
 			{
@@ -330,7 +316,7 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Properly dispose of a temporary thing to prevent memory leaks
 	/// </summary>
-	private void DisposeTempThing(Thing tempThing)
+	private static void DisposeTempThing(Thing tempThing)
 	{
 		if (tempThing == null)
 			return;
@@ -362,7 +348,7 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Get a safe stack count for capacity calculations, validating against itemDef.stackLimit
 	/// </summary>
-	private int GetSafeStackCount(ThingDef itemDef)
+	private static int GetSafeStackCount(ThingDef itemDef)
 	{
 		// Validate stack limit - must be positive
 		if (itemDef.stackLimit <= 0)
@@ -391,12 +377,9 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Get the amount of pending allocations for a specific item at a location
 	/// </summary>
-	private int GetPendingAllocation(StorageLocation location, ThingDef itemDef)
-	{
-		return _pendingAllocations.ContainsKey(location) && _pendingAllocations[location].ContainsKey(itemDef)
+	private int GetPendingAllocation(StorageLocation location, ThingDef itemDef) => _pendingAllocations.ContainsKey(location) && _pendingAllocations[location].ContainsKey(itemDef)
 			? _pendingAllocations[location][itemDef]
 			: 0;
-	}
 
 	/// <summary>
 	/// Clear all allocations (for testing or when save is loaded)

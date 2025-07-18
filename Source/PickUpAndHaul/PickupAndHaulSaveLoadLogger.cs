@@ -1,19 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Verse;
-using Verse.AI;
-
 namespace PickUpAndHaul;
 
 public class PickupAndHaulSaveLoadLogger : GameComponent
 {
 	private static readonly object _jobLock = new();
-	private static List<JobInfo> _suspendedJobs = new();
-	private static bool _isSaving = false;
-	private static bool _modRemoved = false;
+	private static readonly List<JobInfo> _suspendedJobs = [];
+	private static bool _isSaving;
+	private static bool _modRemoved;
 
 	public PickupAndHaulSaveLoadLogger() : base() { }
+
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	public PickupAndHaulSaveLoadLogger(Game game) : base() { }
 
 	public override void ExposeData()
@@ -112,7 +108,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 						if (IsPickupAndHaulJob(currentJob))
 						{
 							// Create job info with additional null checks
-							var jobQueue = pawn.jobs.jobQueue?.ToList() ?? new List<QueuedJob>();
+							var jobQueue = pawn.jobs.jobQueue?.ToList() ?? [];
 
 							var jobInfo = new JobInfo
 							{
@@ -227,11 +223,11 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 								// Copy job properties safely
 								if (jobInfo.Job.targetQueueA != null)
-									newJob.targetQueueA = new List<LocalTargetInfo>(jobInfo.Job.targetQueueA);
+									newJob.targetQueueA = [.. jobInfo.Job.targetQueueA];
 								if (jobInfo.Job.targetQueueB != null)
-									newJob.targetQueueB = new List<LocalTargetInfo>(jobInfo.Job.targetQueueB);
+									newJob.targetQueueB = [.. jobInfo.Job.targetQueueB];
 								if (jobInfo.Job.countQueue != null)
-									newJob.countQueue = new List<int>(jobInfo.Job.countQueue);
+									newJob.countQueue = [.. jobInfo.Job.countQueue];
 
 								newJob.count = jobInfo.Job.count;
 								newJob.haulMode = jobInfo.Job.haulMode;
@@ -284,11 +280,8 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	/// <summary>
 	/// Checks if a job is a pickup and haul job that should be suspended during save
 	/// </summary>
-	private static bool IsPickupAndHaulJob(Job job)
-	{
-		return (job?.def?.defName) != null && job.def.defName is "HaulToInventory" or
+	private static bool IsPickupAndHaulJob(Job job) => (job?.def?.defName) != null && job.def.defName is "HaulToInventory" or
 			   "UnloadYourHauledInventory";
-	}
 
 	/// <summary>
 	/// Provides a public method to check if a save operation is in progress
@@ -304,18 +297,12 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	/// <summary>
 	/// Provides a public method to manually suspend jobs (for external use)
 	/// </summary>
-	public static void ManualSuspendJobs()
-	{
-		SuspendPickupAndHaulJobs();
-	}
+	public static void ManualSuspendJobs() => SuspendPickupAndHaulJobs();
 
 	/// <summary>
 	/// Provides a public method to manually restore jobs (for external use)
 	/// </summary>
-	public static void ManualRestoreJobs()
-	{
-		RestorePickupAndHaulJobs();
-	}
+	public static void ManualRestoreJobs() => RestorePickupAndHaulJobs();
 
 	/// <summary>
 	/// Emergency cleanup method to reset the save state if something goes wrong
@@ -333,11 +320,14 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	/// <summary>
 	/// Gets the current status of the save system for debugging
 	/// </summary>
-	public static string GetSaveStatus()
+	public static string SaveStatus
 	{
-		lock (_jobLock)
+		get
 		{
-			return $"Save in progress: {_isSaving}, Suspended jobs: {_suspendedJobs.Count}, Mod removed: {_modRemoved}";
+			lock (_jobLock)
+			{
+				return $"Save in progress: {_isSaving}, Suspended jobs: {_suspendedJobs.Count}, Mod removed: {_modRemoved}";
+			}
 		}
 	}
 

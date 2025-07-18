@@ -118,7 +118,7 @@ csharp_prefer_static_anonymous_function = true:suggestion
 csharp_prefer_static_local_function = true:warning
 csharp_preferred_modifier_order = public,private,protected,internal,file,static,extern,new,virtual,abstract,sealed,override,readonly,unsafe,required,volatile,async
 csharp_style_prefer_readonly_struct = true:warning
-csharp_style_prefer_readonly_struct_member = true:suggestion
+csharp_style_prefer_readonly_struct_member = false:suggestion
 
 # Code-block preferences
 csharp_prefer_braces = false:suggestion
@@ -251,6 +251,28 @@ dotnet_diagnostic.IDE0058.severity = none
 # CA2211: Non-constant fields should not be visible
 dotnet_diagnostic.CA2211.severity = none
 
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = none
+
+# CA1062: Validate arguments of public methods
+dotnet_diagnostic.CA1062.severity = none
+
+# CA1031: Do not catch general exception types
+dotnet_diagnostic.CA1031.severity = none
+
+# CA1002: Do not expose generic lists
+dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.CA1200.severity = suggestion
+dotnet_diagnostic.CA1309.severity = suggestion
+dotnet_diagnostic.CA1311.severity = suggestion
+dotnet_diagnostic.CA1852.severity = none
+
+# CA2225: Operator overloads have named alternates
+dotnet_diagnostic.CA2225.severity = none
+
+# CA1810: Initialize reference type static fields inline
+dotnet_diagnostic.CA1810.severity = none
+
 [*.{cs,vb}]
 dotnet_style_coalesce_expression = true:suggestion
 dotnet_style_null_propagation = true:suggestion
@@ -288,3 +310,54 @@ dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
 dotnet_style_qualification_for_event = false:suggestion
+dotnet_diagnostic.CA1000.severity = suggestion
+dotnet_diagnostic.CA1001.severity = suggestion
+dotnet_diagnostic.CA1010.severity = suggestion
+dotnet_diagnostic.CA1036.severity = suggestion
+dotnet_diagnostic.CA1051.severity = suggestion
+dotnet_diagnostic.CA1304.severity = suggestion
+dotnet_diagnostic.CA1305.severity = suggestion
+dotnet_diagnostic.CA1310.severity = suggestion
+dotnet_diagnostic.CA1708.severity = suggestion
+dotnet_diagnostic.CA1710.severity = suggestion
+dotnet_diagnostic.CA1711.severity = suggestion
+dotnet_diagnostic.CA1712.severity = suggestion
+dotnet_diagnostic.CA1715.severity = suggestion
+dotnet_diagnostic.CA1716.severity = suggestion
+dotnet_diagnostic.CA1720.severity = suggestion
+dotnet_diagnostic.CA1725.severity = suggestion
+dotnet_diagnostic.CA1727.severity = suggestion
+dotnet_diagnostic.CA1838.severity = suggestion
+dotnet_diagnostic.CA1848.severity = suggestion
+dotnet_diagnostic.CA1852.severity = suggestion
+dotnet_diagnostic.CA1863.severity = suggestion
+dotnet_diagnostic.CA3061.severity = suggestion
+dotnet_diagnostic.CA3075.severity = suggestion
+dotnet_diagnostic.CA3076.severity = suggestion
+dotnet_diagnostic.CA3077.severity = suggestion
+dotnet_diagnostic.CA3147.severity = suggestion
+dotnet_diagnostic.CA5350.severity = suggestion
+dotnet_diagnostic.CA5351.severity = suggestion
+dotnet_diagnostic.CA5359.severity = suggestion
+dotnet_diagnostic.CA5360.severity = suggestion
+dotnet_diagnostic.CA5363.severity = suggestion
+dotnet_diagnostic.CA5364.severity = suggestion
+dotnet_diagnostic.CA5365.severity = suggestion
+dotnet_diagnostic.CA5366.severity = suggestion
+dotnet_diagnostic.CA5368.severity = suggestion
+dotnet_diagnostic.CA5369.severity = suggestion
+dotnet_diagnostic.CA5370.severity = suggestion
+dotnet_diagnostic.CA5371.severity = suggestion
+dotnet_diagnostic.CA5372.severity = suggestion
+dotnet_diagnostic.CA5373.severity = suggestion
+dotnet_diagnostic.CA5374.severity = suggestion
+dotnet_diagnostic.CA5379.severity = suggestion
+dotnet_diagnostic.CA5384.severity = suggestion
+dotnet_diagnostic.CA5385.severity = suggestion
+dotnet_diagnostic.CA5397.severity = suggestion
+dotnet_diagnostic.CA2201.severity = suggestion
+dotnet_diagnostic.CA2215.severity = suggestion
+dotnet_diagnostic.CA2251.severity = suggestion
+
+# Default severity for analyzer diagnostics with category 'Style'
+dotnet_analyzer_diagnostic.category-Style.severity = warning

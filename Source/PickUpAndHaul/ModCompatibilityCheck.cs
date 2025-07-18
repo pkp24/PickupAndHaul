@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace PickUpAndHaul;
+﻿namespace PickUpAndHaul;
 public static class ModCompatibilityCheck
 {
 	public static bool CombatExtendedIsActive { get; } = ModsConfig.ActiveModsInLoadOrder.Any(m => m.Name == "Combat Extended");

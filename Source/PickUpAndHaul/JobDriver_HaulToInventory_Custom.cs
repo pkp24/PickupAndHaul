@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using Verse;
-using Verse.AI;
-
 namespace PickUpAndHaul;
 
 /// <summary>
@@ -15,16 +11,16 @@ public class HaulToInventoryJob : Job
 
 	public HaulToInventoryJob() : base()
 	{
-		_haulItems = new List<HaulItem>();
-		_storageTargets = new List<LocalTargetInfo>();
-		_storageReservations = new Dictionary<StorageAllocationTracker.StorageLocation, int>();
+		_haulItems = [];
+		_storageTargets = [];
+		_storageReservations = [];
 	}
 
 	public HaulToInventoryJob(JobDef jobDef) : base(jobDef)
 	{
-		_haulItems = new List<HaulItem>();
-		_storageTargets = new List<LocalTargetInfo>();
-		_storageReservations = new Dictionary<StorageAllocationTracker.StorageLocation, int>();
+		_haulItems = [];
+		_storageTargets = [];
+		_storageReservations = [];
 	}
 
 	/// <summary>
@@ -36,7 +32,7 @@ public class HaulToInventoryJob : Job
 		{
 			lock (this)
 			{
-				return new List<HaulItem>(_haulItems);
+				return [.. _haulItems];
 			}
 		}
 	}
@@ -50,7 +46,7 @@ public class HaulToInventoryJob : Job
 		{
 			lock (this)
 			{
-				return new List<LocalTargetInfo>(_storageTargets);
+				return [.. _storageTargets];
 			}
 		}
 	}
@@ -97,7 +93,7 @@ public class HaulToInventoryJob : Job
 	{
 		lock (this)
 		{
-			for (int i = 0; i < _haulItems.Count; i++)
+			for (var i = 0; i < _haulItems.Count; i++)
 			{
 				if (_haulItems[i].Thing == thing)
 				{
@@ -224,7 +220,7 @@ public class HaulToInventoryJob : Job
 			var info = new System.Text.StringBuilder();
 			info.AppendLine($"HaulToInventoryJob: {_haulItems.Count} items, {_storageTargets.Count} targets");
 
-			for (int i = 0; i < _haulItems.Count; i++)
+			for (var i = 0; i < _haulItems.Count; i++)
 			{
 				var item = _haulItems[i];
 				info.AppendLine($"  Item {i}: {item.Thing} x{item.Count} -> {item.StorageLocation}");
@@ -252,9 +248,9 @@ public class HaulToInventoryJob : Job
 		if (Scribe.mode == LoadSaveMode.LoadingVars)
 		{
 			Log.Message("[PickUpAndHaul] Skipping load data for HaulToInventoryJob");
-			_haulItems = new List<HaulItem>();
-			_storageTargets = new List<LocalTargetInfo>();
-			_storageReservations = new Dictionary<StorageAllocationTracker.StorageLocation, int>();
+			_haulItems = [];
+			_storageTargets = [];
+			_storageReservations = [];
 			return;
 		}
 

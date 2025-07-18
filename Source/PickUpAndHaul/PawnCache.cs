@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Verse;
-
 namespace PickUpAndHaul;
 
 /// <summary>
@@ -11,9 +6,9 @@ namespace PickUpAndHaul;
 /// <typeparam name="T">The type of data to cache per pawn</typeparam>
 public class PawnCache<T> : ICache
 {
-	private readonly Dictionary<System.WeakReference<Pawn>, T> _cache = new();
+	private readonly Dictionary<System.WeakReference<Pawn>, T> _cache = [];
 	private readonly object _lockObject = new();
-	private int _lastCleanupTick = 0;
+	private int _lastCleanupTick;
 	private const int CLEANUP_INTERVAL_TICKS = 1000; // Clean up every ~16 seconds at 60 TPS
 
 	/// <summary>

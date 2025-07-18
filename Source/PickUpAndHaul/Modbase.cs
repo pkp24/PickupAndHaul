@@ -1,6 +1,14 @@
-﻿global using RimWorld;
+﻿global using HarmonyLib;
+global using RimWorld;
 global using System;
 global using System.Collections.Generic;
+global using System.Diagnostics;
+global using System.Diagnostics.CodeAnalysis;
+global using System.IO;
+global using System.Linq;
+global using System.Linq.Expressions;
+global using System.Reflection;
+global using System.Reflection.Emit;
 global using UnityEngine;
 global using Verse;
 global using Verse.AI;
