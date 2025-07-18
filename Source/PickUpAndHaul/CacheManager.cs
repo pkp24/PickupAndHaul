@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using Verse;
-
 namespace PickUpAndHaul;
 
 /// <summary>
@@ -9,10 +5,10 @@ namespace PickUpAndHaul;
 /// </summary>
 public static class CacheManager
 {
-	private static readonly List<ICache> _registeredCaches = new();
-	private static int _lastMapChangeTick = 0;
-	private static int _lastGameResetTick = 0;
-	private static Map _lastMap = null;
+	private static readonly List<ICache> _registeredCaches = [];
+	private static int _lastMapChangeTick;
+	private static int _lastGameResetTick;
+	private static Map _lastMap;
 
 	/// <summary>
 	/// Registers a cache for automatic cleanup

@@ -6,7 +6,7 @@ public class Settings : ModSettings
 	private static bool _allowAnimals = true;
 	private static bool _allowMechanoids = true;
 	private static float _maximumOccupiedCapacityToConsiderHauling = 0.8f;
-	private static bool _enableDebugLogging = false;
+	private static bool _enableDebugLogging;
 
 	public static bool AllowCorpses => _allowCorpses;
 	public static bool AllowAnimals => _allowAnimals;

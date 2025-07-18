@@ -1,20 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using UnityEngine;
-
 namespace PickUpAndHaul;
 
 public static class PerformanceProfiler
 {
-	private static readonly Dictionary<string, PerformanceMetric> _metrics = new();
-	private static readonly Dictionary<string, Stopwatch> _activeTimers = new();
-	private static int _lastReportTick = 0;
-	private static readonly int REPORT_INTERVAL_TICKS = 6000; // Report every 10 seconds at 60 TPS
+	private static readonly Dictionary<string, PerformanceMetric> _metrics = [];
+	private static readonly Dictionary<string, Stopwatch> _activeTimers = [];
+	private static int _lastReportTick;
+	private const int REPORT_INTERVAL_TICKS = 6000; // Report every 10 seconds at 60 TPS
 	private static readonly string LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaul_Performance.txt");
-	private static int _reportStagger = 0; // Stagger performance reports
+	private static int _reportStagger; // Stagger performance reports
 
 	public static void StartTimer(string operationName)
 	{

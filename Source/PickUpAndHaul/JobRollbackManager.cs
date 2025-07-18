@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Verse;
-using Verse.AI;
-
 namespace PickUpAndHaul;
 
 /// <summary>
@@ -11,7 +5,7 @@ namespace PickUpAndHaul;
 /// </summary>
 public static class JobRollbackManager
 {
-	private static readonly Dictionary<Job, JobRollbackState> _rollbackStates = new();
+	private static readonly Dictionary<Job, JobRollbackState> _rollbackStates = [];
 	private static readonly object _lockObject = new();
 
 	/// <summary>
@@ -64,7 +58,7 @@ public static class JobRollbackManager
 				if (job.targetQueueA != null && job.targetQueueA.Count > state.TargetQueueACount)
 				{
 					var itemsToRemove = job.targetQueueA.Count - state.TargetQueueACount;
-					for (int i = 0; i < itemsToRemove; i++)
+					for (var i = 0; i < itemsToRemove; i++)
 					{
 						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
 					}
@@ -74,7 +68,7 @@ public static class JobRollbackManager
 				if (job.countQueue != null && job.countQueue.Count > state.CountQueueCount)
 				{
 					var itemsToRemove = job.countQueue.Count - state.CountQueueCount;
-					for (int i = 0; i < itemsToRemove; i++)
+					for (var i = 0; i < itemsToRemove; i++)
 					{
 						job.countQueue.RemoveAt(job.countQueue.Count - 1);
 					}
@@ -84,7 +78,7 @@ public static class JobRollbackManager
 				if (job.targetQueueB != null && job.targetQueueB.Count > state.TargetQueueBCount)
 				{
 					var itemsToRemove = job.targetQueueB.Count - state.TargetQueueBCount;
-					for (int i = 0; i < itemsToRemove; i++)
+					for (var i = 0; i < itemsToRemove; i++)
 					{
 						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
 					}

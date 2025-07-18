@@ -1,9 +1,6 @@
-﻿using System.Linq;
-
-namespace PickUpAndHaul;
-public class HoldMultipleThings_Support
+﻿namespace PickUpAndHaul;
+public static class HoldMultipleThings_Support
 {
-	// ReSharper disable SuspiciousTypeConversion.Global
 	public static bool CapacityAt(Thing thing, IntVec3 storeCell, Map map, out int capacity)
 	{
 		capacity = 0;

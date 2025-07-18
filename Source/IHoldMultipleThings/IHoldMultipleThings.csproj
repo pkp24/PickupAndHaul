@@ -3,18 +3,20 @@
 	<PropertyGroup>
 		<RootNamespace>IHoldMultipleThings</RootNamespace>
 		<AssemblyName>IHoldMultipleThings</AssemblyName>
-		<TargetFramework>net48</TargetFramework>
-		<LangVersion>10.0</LangVersion>
-		<PlatformTarget>AnyCPU</PlatformTarget>
+		<TargetFramework>net481</TargetFramework>
+		<LangVersion>13.0</LangVersion>
 		<Optimize>true</Optimize>
 		<DebugType>none</DebugType>
 		<ErrorReport>prompt</ErrorReport>
-               <OutputPath>..\..\1.6\Assemblies\</OutputPath>
+		<OutputPath>..\..\1.6\Assemblies\</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<PublicizeAsReferenceAssemblies>false</PublicizeAsReferenceAssemblies>
-		<WarningLevel>5</WarningLevel>
+		<EnableNETAnalyzers>True</EnableNETAnalyzers>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<AnalysisLevel>6.0-all</AnalysisLevel>
+		<WarningLevel>9999</WarningLevel>
 	</PropertyGroup>
 	<ItemGroup>
-               <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.*-*" />
+		<PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.*" />
 	</ItemGroup>
 </Project>

@@ -1,15 +1,11 @@
-﻿using System;
-using System.IO;
-using Verse;
+﻿namespace PickUpAndHaul;
 
-namespace PickUpAndHaul;
-
-static class Log
+internal static class Log
 {
 	private static readonly string DEBUG_LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaul_Debug.txt");
 	private static readonly object _fileLock = new();
 
-	[System.Diagnostics.Conditional("DEBUG")]
+	[Conditional("DEBUG")]
 	public static void Message(string x)
 	{
 		if (Settings.EnableDebugLogging)
@@ -19,7 +15,7 @@ static class Log
 		}
 	}
 
-	[System.Diagnostics.Conditional("DEBUG")]
+	[Conditional("DEBUG")]
 	public static void Warning(string x)
 	{
 		if (Settings.EnableDebugLogging)
@@ -29,7 +25,7 @@ static class Log
 		}
 	}
 
-	[System.Diagnostics.Conditional("DEBUG")]
+	[Conditional("DEBUG")]
 	public static void Error(string x)
 	{
 		if (Settings.EnableDebugLogging)
@@ -39,7 +35,7 @@ static class Log
 		}
 	}
 
-	[System.Diagnostics.Conditional("DEBUG")]
+	[Conditional("DEBUG")]
 	public static void MessageToFile(string x)
 	{
 		if (Settings.EnableDebugLogging)

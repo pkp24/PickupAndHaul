@@ -1,5 +1,5 @@
 ﻿namespace PickUpAndHaul;
-public class PawnUnloadChecker
+public static class PawnUnloadChecker
 {
 	public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
 	{
@@ -16,7 +16,7 @@ public class PawnUnloadChecker
 		}
 
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
-		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
+		var itemsTakenToInventory = pawn.GetComp<CompHauledToInventory>();
 
 		if (itemsTakenToInventory == null)
 		{
@@ -26,7 +26,7 @@ public class PawnUnloadChecker
 		// Clean up nulls at a safe point before accessing the collection
 		itemsTakenToInventory.CleanupNulls();
 
-		var carriedThing = itemsTakenToInventory.GetHashSet();
+		var carriedThing = itemsTakenToInventory.HashSet;
 
 		if (pawn.Faction != Faction.OfPlayerSilentFail || !Settings.IsAllowedRace(pawn.RaceProps)
 			|| carriedThing == null || carriedThing.Count == 0
@@ -69,7 +69,6 @@ public class PawnUnloadChecker
 }
 
 [DefOf]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Has to match defName")]
 public static class PickUpAndHaulJobDefOf
 {
 	public static JobDef UnloadYourHauledInventory;
