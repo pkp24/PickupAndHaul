@@ -39,10 +39,7 @@ public static class FishTranspiler
 		public OpCode OpCode { get; set; }
 		public object Operand { get; set; }
 
-		public bool Equals(Container other)
-		{
-			throw new NotImplementedException();
-		}
+		public bool Equals(Container other) => throw new NotImplementedException();
 	}
 
 	public static Container Copy(CodeInstruction instruction) => new(instruction);
