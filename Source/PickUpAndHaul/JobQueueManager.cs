@@ -14,13 +14,13 @@ public static class JobQueueManager
 	{
 		if (job == null || things == null || counts == null || targets == null)
 		{
-			Log.Error("AddItemsToJob: Null parameters provided");
+			Log.Error("Null parameters provided");
 			return false;
 		}
 
 		if (things.Count != counts.Count || things.Count != targets.Count)
 		{
-			Log.Error($"AddItemsToJob: Count mismatch - things: {things.Count}, counts: {counts.Count}, targets: {targets.Count}");
+			Log.Error($"Count mismatch - things: {things.Count}, counts: {counts.Count}, targets: {targets.Count}");
 			return false;
 		}
 
@@ -53,13 +53,13 @@ public static class JobQueueManager
 
 					if (thing == null)
 					{
-						Log.Warning($"AddItemsToJob: Skipping null thing at index {i}");
+						Log.Warning($"Skipping null thing at index {i}");
 						continue;
 					}
 
 					if (count <= 0)
 					{
-						Log.Warning($"AddItemsToJob: Skipping non-positive count {count} at index {i}");
+						Log.Warning($"Skipping non-positive count {count} at index {i}");
 						continue;
 					}
 
@@ -69,7 +69,7 @@ public static class JobQueueManager
 						// If target.Thing is null, it might be a cell target - check if the cell is valid
 						if (!target.Cell.IsValid)
 						{
-							Log.Warning($"AddItemsToJob: Skipping target with null Thing and invalid Cell at index {i}");
+							Log.Warning($"Skipping target with null Thing and invalid Cell at index {i}");
 							continue;
 						}
 						// Cell targets are valid even with null Thing
@@ -79,7 +79,7 @@ public static class JobQueueManager
 						// If target.Thing is not null, validate the thing
 						if (target.Thing.Destroyed || !target.Thing.Spawned)
 						{
-							Log.Warning($"AddItemsToJob: Skipping destroyed/unspawned target {target.Thing} at index {i}");
+							Log.Warning($"Skipping destroyed/unspawned target {target.Thing} at index {i}");
 							continue;
 						}
 					}
@@ -100,7 +100,7 @@ public static class JobQueueManager
 					// Validate synchronization after each item
 					if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
 					{
-						Log.Error($"AddItemsToJob: Queue synchronization failed after adding item for {pawn}");
+						Log.Error($"Queue synchronization failed after adding item for {pawn}");
 						Log.Message($"(On error) targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 						Log.Message($"Contents targetQueueA: {string.Join(", ", job.targetQueueA)}");
 						Log.Message($"Contents targetQueueB: {string.Join(", ", job.targetQueueB)}");
@@ -113,7 +113,7 @@ public static class JobQueueManager
 				// Final validation
 				if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
 				{
-					Log.Error($"AddItemsToJob: Final queue synchronization failed for {pawn}");
+					Log.Error($"Final queue synchronization failed for {pawn}");
 					Log.Message($"(On final error) targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 					Log.Message($"Contents targetQueueA: {string.Join(", ", job.targetQueueA)}");
 					Log.Message($"Contents targetQueueB: {string.Join(", ", job.targetQueueB)}");
@@ -131,7 +131,7 @@ public static class JobQueueManager
 			}
 			catch (Exception ex)
 			{
-				Log.Error($"AddItemsToJob: Exception occurred: {ex.Message}");
+				Log.Error($"Exception occurred: {ex.Message}");
 				// Rollback to initial state
 				RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
 				return false;
@@ -146,7 +146,7 @@ public static class JobQueueManager
 	{
 		if (job == null || count <= 0)
 		{
-			Log.Error("RemoveItemsFromJob: Invalid parameters");
+			Log.Error("Invalid parameters");
 			return false;
 		}
 
@@ -156,7 +156,7 @@ public static class JobQueueManager
 			{
 				if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
 				{
-					Log.Error("RemoveItemsFromJob: Job queues are null");
+					Log.Error("Job queues are null");
 					return false;
 				}
 
@@ -176,7 +176,7 @@ public static class JobQueueManager
 				// Validate synchronization after removing
 				if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
 				{
-					Log.Error($"RemoveItemsFromJob: Queue synchronization failed after removing items for {pawn}");
+					Log.Error($"Queue synchronization failed after removing items for {pawn}");
 					return false;
 				}
 
@@ -189,7 +189,7 @@ public static class JobQueueManager
 			}
 			catch (Exception ex)
 			{
-				Log.Error($"RemoveItemsFromJob: Exception occurred: {ex.Message}");
+				Log.Error($"Exception occurred: {ex.Message}");
 				return false;
 			}
 		}
@@ -202,7 +202,7 @@ public static class JobQueueManager
 	{
 		if (job == null || newCount <= 0)
 		{
-			Log.Error("UpdateLastItemCount: Invalid parameters");
+			Log.Error("Invalid parameters");
 			return false;
 		}
 
@@ -212,13 +212,13 @@ public static class JobQueueManager
 			{
 				if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
 				{
-					Log.Error("UpdateLastItemCount: Job queues are null");
+					Log.Error("Job queues are null");
 					return false;
 				}
 
 				if (job.countQueue.Count == 0)
 				{
-					Log.Error("UpdateLastItemCount: countQueue is empty");
+					Log.Error("countQueue is empty");
 					return false;
 				}
 
@@ -231,7 +231,7 @@ public static class JobQueueManager
 				// Validate that the queues are still synchronized
 				if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
 				{
-					Log.Error($"UpdateLastItemCount: Queue synchronization failed after updating count for {pawn}");
+					Log.Error($"Queue synchronization failed after updating count for {pawn}");
 					// Rollback the change
 					job.countQueue[^1] = originalCount;
 					return false;
@@ -246,7 +246,7 @@ public static class JobQueueManager
 			}
 			catch (Exception ex)
 			{
-				Log.Error($"UpdateLastItemCount: Exception occurred: {ex.Message}");
+				Log.Error($"Exception occurred: {ex.Message}");
 				return false;
 			}
 		}
@@ -294,13 +294,13 @@ public static class JobQueueManager
 			{
 				if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
 				{
-					Log.Error($"ValidateJobQueues: Job queues are null for {pawn}");
+					Log.Error($"Job queues are null for {pawn}");
 					return false;
 				}
 
 				if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
 				{
-					Log.Error($"ValidateJobQueues: Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) != targetQueueB.Count ({job.targetQueueB.Count})");
+					Log.Error($"Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) != targetQueueB.Count ({job.targetQueueB.Count})");
 					return false;
 				}
 
@@ -310,13 +310,13 @@ public static class JobQueueManager
 					var target = job.targetQueueA[i];
 					if (target.Thing == null)
 					{
-						Log.Error($"ValidateJobQueues: Found target with null Thing at index {i} for {pawn}");
+						Log.Error($"Found target with null Thing at index {i} for {pawn}");
 						return false;
 					}
 
 					if (target.Thing.Destroyed || !target.Thing.Spawned)
 					{
-						Log.Warning($"ValidateJobQueues: Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
+						Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
 					}
 				}
 
@@ -329,7 +329,7 @@ public static class JobQueueManager
 						// If target.Thing is null, it might be a cell target - check if the cell is valid
 						if (!target.Cell.IsValid)
 						{
-							Log.Error($"ValidateJobQueues: Found target with null Thing and invalid Cell in targetQueueB at index {i} for {pawn}");
+							Log.Error($"Found target with null Thing and invalid Cell in targetQueueB at index {i} for {pawn}");
 							return false;
 						}
 						// Cell targets are valid even with null Thing
@@ -339,7 +339,7 @@ public static class JobQueueManager
 						// If target.Thing is not null, validate the thing
 						if (target.Thing.Destroyed || !target.Thing.Spawned)
 						{
-							Log.Warning($"ValidateJobQueues: Found destroyed/unspawned target {target.Thing} in targetQueueB at index {i} for {pawn}");
+							Log.Warning($"Found destroyed/unspawned target {target.Thing} in targetQueueB at index {i} for {pawn}");
 						}
 					}
 				}
@@ -349,7 +349,7 @@ public static class JobQueueManager
 				{
 					if (job.countQueue[i] <= 0)
 					{
-						Log.Error($"ValidateJobQueues: Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
+						Log.Error($"Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
 						return false;
 					}
 				}
@@ -358,7 +358,7 @@ public static class JobQueueManager
 			}
 			catch (Exception ex)
 			{
-				Log.Error($"ValidateJobQueues: Exception occurred: {ex.Message}");
+				Log.Error($"Exception occurred: {ex.Message}");
 				return false;
 			}
 		}

@@ -31,7 +31,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		// Validate job before making reservations
 		if (!ValidateJobBeforeExecution())
 		{
-			Log.Error($"Job validation failed for {pawn}, cannot make reservations");
+			Log.Error($"Job failed for {pawn}, cannot make reservations");
 			return false;
 		}
 
@@ -100,7 +100,7 @@ public class JobDriver_HaulToInventory : JobDriver
 			Log.Error($"This job should not have been created with empty targetQueueA");
 			Log.Error($"Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 
-			// CRITICAL FIX: End the job gracefully instead of crashing
+			// End the job gracefully instead of crashing
 			Log.Error($"Ending job gracefully to prevent ArgumentOutOfRangeException");
 			return false;
 		}
@@ -127,10 +127,10 @@ public class JobDriver_HaulToInventory : JobDriver
 	public override IEnumerable<Toil> MakeNewToils()
 	{
 
-		// CRITICAL FIX: Validate job integrity before proceeding
+		// Validate job integrity before proceeding
 		if (!ValidateJobBeforeExecution())
 		{
-			Log.Error($"Job validation failed for {pawn} in MakeNewToils");
+			Log.Error($"Job failed for {pawn} in MakeNewToils");
 			EndJobWith(JobCondition.Incompletable);
 			yield break;
 		}
@@ -340,13 +340,13 @@ public class JobDriver_HaulToInventory : JobDriver
 	{
 		if (job == null)
 		{
-			Log.Error($"VALIDATION Job is null for {pawn}");
+			Log.Error($"Job is null for {pawn}");
 			return false;
 		}
 
 		if (pawn == null)
 		{
-			Log.Error($"VALIDATION Pawn is null");
+			Log.Error($"Pawn is null");
 			return false;
 		}
 
@@ -359,19 +359,19 @@ public class JobDriver_HaulToInventory : JobDriver
 		// For regular jobs, validate queue synchronization
 		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
 		{
-			Log.Error($"VALIDATION Job has empty targetQueueA for {pawn}");
+			Log.Error($"Job has empty targetQueueA for {pawn}");
 			return false;
 		}
 
 		if (job.countQueue == null || job.countQueue.Count == 0)
 		{
-			Log.Error($"VALIDATION Job has empty countQueue for {pawn}");
+			Log.Error($"Job has empty countQueue for {pawn}");
 			return false;
 		}
 
 		if (job.targetQueueA.Count != job.countQueue.Count)
 		{
-			Log.Error($"VALIDATION Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
+			Log.Error($"Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
 			return false;
 		}
 
@@ -381,13 +381,13 @@ public class JobDriver_HaulToInventory : JobDriver
 			var target = job.targetQueueA[i];
 			if (target == null || target.Thing == null)
 			{
-				Log.Error($"VALIDATION Found null target at index {i} for {pawn}");
+				Log.Error($"Found null target at index {i} for {pawn}");
 				return false;
 			}
 
 			if (target.Thing.Destroyed || !target.Thing.Spawned)
 			{
-				Log.Warning($"VALIDATION Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
+				Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
 				return false;
 			}
 		}
@@ -397,7 +397,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		{
 			if (job.countQueue[i] <= 0)
 			{
-				Log.Error($"VALIDATION Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
+				Log.Error($"Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
 				return false;
 			}
 		}

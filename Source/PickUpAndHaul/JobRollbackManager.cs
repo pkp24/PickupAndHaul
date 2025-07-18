@@ -31,7 +31,7 @@ public static class JobRollbackManager
 
 			if (Settings.EnableDebugLogging)
 			{
-				Log.Message($"[JobRollbackManager] Created rollback point for {pawn} - queues: A={state.TargetQueueACount}, B={state.TargetQueueBCount}, C={state.CountQueueCount}");
+				Log.Message($"Created rollback point for {pawn} - queues: A={state.TargetQueueACount}, B={state.TargetQueueBCount}, C={state.CountQueueCount}");
 			}
 		}
 	}
@@ -48,7 +48,7 @@ public static class JobRollbackManager
 		{
 			if (!_rollbackStates.TryGetValue(job, out var state))
 			{
-				Log.Warning($"[JobRollbackManager] No rollback state found for job of {pawn}");
+				Log.Warning($"No rollback state found for job of {pawn}");
 				return false;
 			}
 
@@ -87,22 +87,22 @@ public static class JobRollbackManager
 				// Validate synchronization after rollback
 				if (job.targetQueueA?.Count != job.countQueue?.Count)
 				{
-					Log.Error($"[JobRollbackManager] Rollback failed - queue synchronization error for {pawn}");
-					Log.Error($"[JobRollbackManager] After rollback - targetQueueA: {job.targetQueueA?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+					Log.Error($"Rollback failed - queue synchronization error for {pawn}");
+					Log.Error($"After rollback - targetQueueA: {job.targetQueueA?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 					return false;
 				}
 
 				if (Settings.EnableDebugLogging)
 				{
-					Log.Message($"[JobRollbackManager] Successfully rolled back job for {pawn}");
-					Log.Message($"[JobRollbackManager] Rollback result - queues: A={job.targetQueueA?.Count ?? 0}, B={job.targetQueueB?.Count ?? 0}, C={job.countQueue?.Count ?? 0}");
+					Log.Message($"Successfully rolled back job for {pawn}");
+					Log.Message($"Rollback result - queues: A={job.targetQueueA?.Count ?? 0}, B={job.targetQueueB?.Count ?? 0}, C={job.countQueue?.Count ?? 0}");
 				}
 
 				return true;
 			}
 			catch (Exception ex)
 			{
-				Log.Error($"[JobRollbackManager] Exception during rollback for {pawn}: {ex.Message}");
+				Log.Error($"Exception during rollback for {pawn}: {ex.Message}");
 				return false;
 			}
 			finally
@@ -138,7 +138,7 @@ public static class JobRollbackManager
 
 			if (keysToRemove.Count > 0 && Settings.EnableDebugLogging)
 			{
-				Log.Message($"[JobRollbackManager] Cleaned up {keysToRemove.Count} old rollback states");
+				Log.Message($"Cleaned up {keysToRemove.Count} old rollback states");
 			}
 		}
 	}
