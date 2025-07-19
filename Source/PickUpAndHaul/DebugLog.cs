@@ -15,7 +15,7 @@ internal static class Log
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
 		if (Settings.EnableDebugLogging)
-			Task.Run(() => WriteToFile($"[DEBUG] {x}", memberName, sourceFilePath, sourceLineNumber));
+			Task.Run(async () => await WriteToFile($"[DEBUG] {x}", memberName, sourceFilePath, sourceLineNumber).ConfigureAwait(false));
 	}
 
 	public static void Warning(string x,
@@ -24,7 +24,7 @@ internal static class Log
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
 		Verse.Log.Warning($"[WARNING] {x}");
-		Task.Run(() => WriteToFile($"[WARNING] {x}", memberName, sourceFilePath, sourceLineNumber));
+		Task.Run(async () => await WriteToFile($"[WARNING] {x}", memberName, sourceFilePath, sourceLineNumber).ConfigureAwait(false));
 	}
 
 	public static void Error(string x,
@@ -33,7 +33,7 @@ internal static class Log
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
 		Verse.Log.Error($"[ERROR] {x}");
-		Task.Run(() => WriteToFile($"[ERROR] {x}", memberName, sourceFilePath, sourceLineNumber));
+		Task.Run(async () => await WriteToFile($"[ERROR] {x}", memberName, sourceFilePath, sourceLineNumber).ConfigureAwait(false));
 	}
 
 	public static void ClearDebugLogFile()
@@ -59,15 +59,14 @@ internal static class Log
 		}
 	}
 
-	private static void WriteToFile(string message, string memberName, string sourceFilePath, int sourceLineNumber)
+	private static async Task WriteToFile(string message, string memberName, string sourceFilePath, int sourceLineNumber)
 	{
 		var timestampedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] [PUAHForked] [{Path.GetFileNameWithoutExtension(sourceFilePath)}] [{memberName}:{sourceLineNumber}] {message}";
 		try
 		{
 			if (_sw == null)
 				InitStreamWriter();
-            lock (_fileLock)
-				_sw.Write(timestampedMessage + Environment.NewLine);
+			await _sw.WriteAsync(timestampedMessage + Environment.NewLine).ConfigureAwait(false);
 		}
 		catch (Exception ex)
 		{
