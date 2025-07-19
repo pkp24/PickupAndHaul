@@ -39,20 +39,7 @@ public class JobDriver_HaulToInventory : JobDriver
 			return false;
 		}
 
-		// EXTENSIVE DEBUGGING - Track job state
-		Log.Message($"{pawn} starting HaulToInventory job reservations");
-		Log.Message($"Job targetA: {job.targetA.ToStringSafe()}");
-		Log.Message($"Job targetB: {job.targetB.ToStringSafe()}");
-		Log.Message($"Job targetQueueA count: {job.targetQueueA?.Count ?? 0}");
-		Log.Message($"Job targetQueueB count: {job.targetQueueB?.Count ?? 0}");
-		Log.Message($"Job countQueue count: {job.countQueue?.Count ?? 0}");
-
-		if (job.targetQueueA != null)
-			Log.Message($"targetQueueA contents: {string.Join(", ", job.targetQueueA.Select(t => t.ToStringSafe()))}");
-		if (job.targetQueueB != null)
-			Log.Message($"targetQueueB contents: {string.Join(", ", job.targetQueueB.Select(t => t.ToStringSafe()))}");
-		if (job.countQueue != null)
-			Log.Message($"countQueue contents: {string.Join(", ", job.countQueue)}");
+		Log.Message($"{pawn} job reservations targetA: {job.targetA.ToStringSafe()} targetB: {job.targetB.ToStringSafe()}");
 
 		// Validate queue synchronization
 		if (job.targetQueueA != null && job.countQueue != null && job.targetQueueA.Count != job.countQueue.Count)
@@ -66,28 +53,19 @@ public class JobDriver_HaulToInventory : JobDriver
 
 		// Reserve as many as possible from queues
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
-		{
-			Log.Message($"Reserving {job.targetQueueA.Count} items from targetQueueA");
 			pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
-		}
 		else
 			Log.Warning($"targetQueueA is null or empty for {pawn}");
 
 		if (job.targetQueueB != null && job.targetQueueB.Count > 0)
-		{
-			Log.Message($"Reserving {job.targetQueueB.Count} items from targetQueueB");
 			pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
-		}
 		else
 			Log.Warning($"targetQueueB is null or empty for {pawn}");
 
 		// FIXED: Add bounds checking before accessing targetQueueA[0]
-		var targetAReserved = false;
+		bool targetAReserved;
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
-		{
-			Log.Message($"Reserving targetQueueA[0]: {job.targetQueueA[0]}");
 			targetAReserved = pawn.Reserve(job.targetQueueA[0], job);
-		}
 		else
 		{
 			Log.Error($"Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
@@ -99,12 +77,9 @@ public class JobDriver_HaulToInventory : JobDriver
 			return false;
 		}
 
-		var targetBReserved = false;
+		bool targetBReserved;
 		if (job.targetB != null)
-		{
-			Log.Message($"Reserving targetB: {job.targetB}");
 			targetBReserved = pawn.Reserve(job.targetB, job);
-		}
 		else
 		{
 			Log.Error($"targetB is null for {pawn}");
@@ -159,22 +134,17 @@ public class JobDriver_HaulToInventory : JobDriver
 		};
 		gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
 		yield return gotoThing;
-		yield return CheckIfPawnShouldLoadInventory(pawn, wait);
+		yield return CheckIfPawnShouldLoadInventory(pawn);
 		yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty());
+		yield return UnloadInventory(pawn);
 
 		//maintain cell reservations on the trip back
-		yield return ShouldReturn(pawn, wait);
-		yield return CheckIfPawnShouldUnloadInventory(pawn);
+		yield return TargetB.HasThing ? Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.ClosestTouch)
+				: Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
 		yield return wait;
 	}
 
-	private Toil ShouldReturn(Pawn pawn, Toil wait) =>
-		!pawn.IsOverAllowedGearCapacity()
-				? wait
-				: TargetB.HasThing ? Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.ClosestTouch)
-				: Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
-
-	private Toil CheckIfPawnShouldLoadInventory(Pawn pawn, Toil wait) => new()
+	private Toil CheckIfPawnShouldLoadInventory(Pawn pawn) => new()
 	{
 		initAction = () =>
 		{
@@ -196,13 +166,12 @@ public class JobDriver_HaulToInventory : JobDriver
 			var thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
 			Toils_Haul.ErrorCheckForCarry(actor, thing);
 
-			//get max we can pick up
-			var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
-			Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
-
 			if (takenToInventory.HashSet.Count == 0 && actor.inventory.GetDirectlyHeldThings().Count != 0)
 				foreach (var item in actor.inventory.GetDirectlyHeldThings())
 					takenToInventory.RegisterHauledItem(item);
+
+			//get max we can pick up
+			var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
 
 			if (countToPickUp > 0)
 			{
@@ -211,28 +180,20 @@ public class JobDriver_HaulToInventory : JobDriver
 				actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
 				takenToInventory.RegisterHauledItem(splitThing);
 			}
-
-			//thing still remains, so queue up hauling if we can + end the current job (smooth/instant transition)
-			//This will technically release the reservations in the queue, but what can you do
-			if (thing.Spawned)
-			{
-				var haul = HaulAIUtility.HaulToStorageJob(actor, thing, false);
-				if (haul?.TryMakePreToilReservations(actor, false) ?? false)
-					actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
-				actor.jobs.curDriver.JumpToToil(wait);
-			}
 		}
 	};
 
-	private static Toil CheckIfPawnShouldUnloadInventory(Pawn pawn) => new()
+	private Toil UnloadInventory(Pawn pawn) => new()
 	{
 		initAction = () =>
 		{
 			// Check if save operation is in progress
 			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-				return; // Skip unload checking during save operations
+			{
+				EndJobWith(JobCondition.InterruptForced);
+				return;
+			}
 
-			// Ignore pawns that are currently in a mental state
 			if (pawn == null || pawn.InMentalState)
 				return;
 
@@ -242,7 +203,6 @@ public class JobDriver_HaulToInventory : JobDriver
 			if (itemsTakenToInventory == null)
 				return;
 
-			// Clean up nulls at a safe point before accessing the collection
 			itemsTakenToInventory.CleanupNulls();
 
 			var carriedThing = itemsTakenToInventory.HashSet;
@@ -252,24 +212,11 @@ public class JobDriver_HaulToInventory : JobDriver
 				|| pawn.inventory.innerContainer is not { } inventoryContainer || inventoryContainer.Count == 0)
 				return;
 
-			if ((pawn.IsOverAllowedGearCapacity() && job.TryMakePreToilReservations(pawn, false))
-				|| (WorkCache.Cache.Count == 0 && job.TryMakePreToilReservations(pawn, false)))
+			if ((pawn.IsOverAllowedGearCapacity() || WorkCache.Cache.Count == 0 || carriedThing.Count >= 5) && job.TryMakePreToilReservations(pawn, false))
 			{
 				pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
 				return;
 			}
-
-			if (inventoryContainer.Count >= 1)
-				for (var i = 0; i < inventoryContainer.Count; i++)
-				{
-					var compRottable = inventoryContainer[i].TryGetComp<CompRottable>();
-
-					if (compRottable?.TicksUntilRotAtCurrentTemp < 30000)
-					{
-						pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
-						return;
-					}
-				}
 		}
 	};
 

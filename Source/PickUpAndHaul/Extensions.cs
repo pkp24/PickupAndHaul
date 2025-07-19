@@ -1,12 +1,14 @@
 ﻿namespace PickUpAndHaul;
 internal static class Extensions
 {
+	private const float MAX_SAFE_CAPACITY = 0.9f; // How much pawns can safely carry
+
 	public static bool IsOverAllowedGearCapacity(this Pawn pawn)
 	{
 		var totalMass = MassUtility.GearAndInventoryMass(pawn);
 		var capacity = MassUtility.Capacity(pawn);
 		var ratio = totalMass / capacity;
-		var isOverCapacity = ratio >= Constants.MAX_SAFE_CAPACITY;
+		var isOverCapacity = ratio >= MAX_SAFE_CAPACITY;
 
 		if (Settings.EnableDebugLogging && isOverCapacity)
 			Log.Message($"IsOverAllowedGearCapacity for {pawn} - mass: {totalMass}, capacity: {capacity}, ratio: {ratio:F2}");
@@ -94,11 +96,5 @@ internal static class Extensions
 				else if (target.Thing.Destroyed || !target.Thing.Spawned)
 					Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in {context} for {pawn}");
 			}
-
-		// Log queue contents for debugging
-		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
-			Log.Message($"[{context}]: targetQueueA contents: {string.Join(", ", job.targetQueueA.Select(t => t.ToStringSafe()))}");
-		if (job.countQueue != null && job.countQueue.Count > 0)
-			Log.Message($"[{context}]: countQueue contents: {string.Join(", ", job.countQueue)}");
 	}
 }

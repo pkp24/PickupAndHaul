@@ -27,10 +27,7 @@ public static class JobQueueManager
 		lock (_lockObject)
 		{
 			// Log job queues before any modification
-			Log.Message($"(Before AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
-			Log.Message($"Contents targetQueueA: {string.Join(", ", job.targetQueueA ?? [])}");
-			Log.Message($"Contents targetQueueB: {string.Join(", ", job.targetQueueB ?? [])}");
-			Log.Message($"Contents countQueue: {string.Join(", ", job.countQueue ?? [])}");
+			Log.Message($"Pawn: {pawn} (Before AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 			// Initialize queues if they don't exist
 			job.targetQueueA ??= [];
 			job.countQueue ??= [];
@@ -91,11 +88,8 @@ public static class JobQueueManager
 				foreach (var (thing, count, target) in validItems)
 				{
 					job.targetQueueA.Add(new LocalTargetInfo(thing));
-					Log.Message($"Added {thing} to targetQueueA (new count: {job.targetQueueA.Count})");
 					job.countQueue.Add(count);
-					Log.Message($"Added {count} to countQueue (new count: {job.countQueue.Count})");
 					job.targetQueueB.Add(target);
-					Log.Message($"Added {target} to targetQueueB (new count: {job.targetQueueB.Count})");
 
 					// Validate synchronization after each item
 					if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
@@ -123,9 +117,7 @@ public static class JobQueueManager
 				}
 
 				if (Settings.EnableDebugLogging)
-				{
-					Log.Message($"Successfully added {validItems.Count} items to job for {pawn}");
-				}
+					Log.Message($"Pawn: {pawn} (After AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 
 				return true;
 			}

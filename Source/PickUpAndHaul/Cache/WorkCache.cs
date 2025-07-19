@@ -27,7 +27,7 @@ public class WorkCache : ICache
 			Cache = list;
 
 		if (Settings.EnableDebugLogging)
-			Log.Message($"CalculatePotentialWork for {pawn} at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
+			Log.Message($"CalculatePotentialWork at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
 	}
 
 	public void ForceCleanup()
