@@ -45,7 +45,11 @@ static class HarmonyPatches
 		harmony.Patch(AccessTools.Method(typeof(JobGiver_Haul), nameof(JobGiver_Haul.TryGiveJob)),
 			transpiler: new(typeof(HarmonyPatches), nameof(JobGiver_Haul_TryGiveJob_Transpiler)));
 
-		Verse.Log.Message("PickUpAndHaul v1.1.2¼ welcomes you to RimWorld with pointless logspam.");
+		// Add patch to intercept RimWorld error logging
+		harmony.Patch(original: AccessTools.Method(typeof(Verse.Log), nameof(Verse.Log.Error), [typeof(string)]),
+			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Log_Error_Prefix)));
+
+		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
 
 	private static bool Drop_Prefix(Pawn pawn, Thing thing)
@@ -174,4 +178,22 @@ static class HarmonyPatches
 		=> pawn.GetComp<CompHauledToInventory>()?.GetHashSet().Contains(thing) ?? false
 		? Color.Lerp(Color.grey, Color.red, 0.5f)
 		: Color.white;
+
+	/// <summary>
+	/// Intercept RimWorld error logging to capture all errors in our debug log
+	/// </summary>
+	private static void Log_Error_Prefix(string text)
+	{
+		try
+		{
+			// Get the current stack trace
+			var stackTrace = Environment.StackTrace;
+			Log.InterceptRimWorldError(text, stackTrace);
+		}
+		catch (Exception ex)
+		{
+			// Don't let our error interception cause more errors
+			Verse.Log.Warning($"Failed to intercept RimWorld error: {ex.Message}");
+		}
+	}
 }
