@@ -16,36 +16,6 @@ internal static class Extensions
 		return isOverCapacity;
 	}
 
-	public static bool CapacityAt(this Thing thing, IntVec3 storeCell, Map map, out int capacity)
-	{
-		capacity = 0;
-
-		if ((map.haulDestinationManager.SlotGroupParentAt(storeCell) as ThingWithComps)?
-		   .AllComps.FirstOrDefault(x => x is IHoldMultipleThings)
-		   is IHoldMultipleThings compOfHolding)
-			return compOfHolding.CapacityAt(thing, storeCell, map, out capacity);
-
-		foreach (var t in storeCell.GetThingList(map))
-			if (t is IHoldMultipleThings holderOfMultipleThings)
-				return holderOfMultipleThings.CapacityAt(thing, storeCell, map, out capacity);
-
-		return false;
-	}
-
-	public static bool StackableAt(this Thing thing, IntVec3 storeCell, Map map)
-	{
-		if ((map.haulDestinationManager.SlotGroupParentAt(storeCell) as ThingWithComps)?
-		   .AllComps.FirstOrDefault(x => x is IHoldMultipleThings)
-		   is IHoldMultipleThings compOfHolding)
-			return compOfHolding.StackableAt(thing, storeCell, map);
-
-		foreach (var t in storeCell.GetThingList(map))
-			if (t is IHoldMultipleThings holderOfMultipleThings)
-				return holderOfMultipleThings.StackableAt(thing, storeCell, map);
-
-		return false;
-	}
-
 	/// <summary>
 	/// Validates job queue integrity to help debug ArgumentOutOfRangeException
 	/// </summary>
@@ -97,4 +67,11 @@ internal static class Extensions
 					Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in {context} for {pawn}");
 			}
 	}
+
+	public static bool OkThingToHaul(this Thing t, Pawn pawn) => t != null
+		&& !MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, t, 1)
+		&& t.Spawned
+		&& pawn.CanReserve(t)
+		&& !t.IsForbidden(pawn)
+		&& !t.IsInValidBestStorage();
 }

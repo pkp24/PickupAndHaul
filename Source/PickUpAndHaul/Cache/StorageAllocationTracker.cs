@@ -18,12 +18,12 @@ public class StorageAllocationTracker : ICache
 	/// Key: Storage location identifier (cell position or container thing)
 	/// Value: Dictionary of item def to allocated count
 	/// </summary>
-	private readonly Dictionary<StorageLocation, Dictionary<ThingDef, int>> _pendingAllocations = [];
+	private readonly ConcurrentDictionary<StorageLocation, Dictionary<ThingDef, int>> _pendingAllocations = [];
 
 	/// <summary>
 	/// Tracks which pawns have pending allocations to clean up when they die or jobs fail
 	/// </summary>
-	private readonly Dictionary<Pawn, HashSet<StorageLocation>> _pawnAllocations = [];
+	private readonly ConcurrentDictionary<Pawn, HashSet<StorageLocation>> _pawnAllocations = [];
 
 	/// <summary>
 	/// Lock object for thread safety
@@ -35,27 +35,6 @@ public class StorageAllocationTracker : ICache
 		CacheManager.RegisterCache(Instance);
 
 	/// <summary>
-	/// Check if there's enough available capacity at a storage location for a given item
-	/// </summary>
-	private bool HasAvailableCapacity(StorageLocation location, ThingDef itemDef, int requestedAmount, Map map)
-	{
-		lock (_lockObject)
-		{
-			// Get actual storage capacity
-			var actualCapacity = GetActualCapacity(location, itemDef, map);
-
-			// Subtract pending allocations
-			var pendingAmount = GetPendingAllocation(location, itemDef);
-
-			var availableCapacity = actualCapacity - pendingAmount;
-
-			Log.Message($"Location {location}: actual={actualCapacity}, pending={pendingAmount}, available={availableCapacity}, requested={requestedAmount}");
-
-			return availableCapacity >= requestedAmount;
-		}
-	}
-
-	/// <summary>
 	/// Reserve storage capacity for a pending hauling job (backward compatibility)
 	/// </summary>
 	public bool ReserveCapacity(StorageLocation location, ThingDef itemDef, int amount, Pawn pawn)
@@ -63,25 +42,28 @@ public class StorageAllocationTracker : ICache
 		lock (_lockObject)
 		{
 			// Check if we can reserve this amount
-			if (!HasAvailableCapacity(location, itemDef, amount, pawn.Map))
+			if (GetActualCapacity(location, itemDef, pawn.Map) - GetPendingAllocation(location, itemDef) < amount)
 			{
 				Log.Message($"Cannot reserve {amount} of {itemDef} at {location} - insufficient capacity");
 				return false;
 			}
 
 			// Add to pending allocations
-			if (!_pendingAllocations.ContainsKey(location))
-				_pendingAllocations[location] = [];
+			if (!_pendingAllocations.TryGetValue(location, out var items))
+				_pendingAllocations.TryAdd(location, new Dictionary<ThingDef, int> { { itemDef, amount } });
+			else if (items.ContainsKey(itemDef))
+			{
+				items[itemDef] += amount;
+				_pendingAllocations.AddOrUpdate(location, items, (key, oldValue) => items);
+			}
 
-			if (!_pendingAllocations[location].ContainsKey(itemDef))
-				_pendingAllocations[location][itemDef] = 0;
-
-			_pendingAllocations[location][itemDef] += amount;
-
-			// Track this allocation for the pawn
-			if (!_pawnAllocations.ContainsKey(pawn))
-				_pawnAllocations[pawn] = [];
-			_pawnAllocations[pawn].Add(location);
+			if (!_pawnAllocations.TryGetValue(pawn, out var locations))
+				_pawnAllocations.TryAdd(pawn, [location]);
+			else
+			{
+				locations.Add(location);
+				_pawnAllocations.AddOrUpdate(pawn, locations, (key, oldValue) => locations);
+			}
 
 			Log.Message($"Reserved {amount} of {itemDef} at {location} for {pawn}");
 			return true;
@@ -91,11 +73,7 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Check if a pawn currently has any pending allocations
 	/// </summary>
-	public bool HasAllocations(Pawn pawn)
-	{
-		lock (_lockObject)
-			return _pawnAllocations.ContainsKey(pawn) && _pawnAllocations[pawn].Count > 0;
-	}
+	public bool HasAllocations(Pawn pawn) => _pawnAllocations.TryGetValue(pawn, out var storageLocations) && storageLocations.Count > 0;
 
 	/// <summary>
 	/// Release storage capacity when a hauling job is completed or cancelled
@@ -104,24 +82,28 @@ public class StorageAllocationTracker : ICache
 	{
 		lock (_lockObject)
 		{
-			if (_pendingAllocations.ContainsKey(location) && _pendingAllocations[location].ContainsKey(itemDef))
+			if (_pendingAllocations.TryGetValue(location, out var items) && items.TryGetValue(itemDef, out var currentAmount))
 			{
-				_pendingAllocations[location][itemDef] = Math.Max(0, _pendingAllocations[location][itemDef] - amount);
+				items[itemDef] += Math.Max(0, currentAmount - amount);
 
 				// Remove location from pawn's allocations if no more pending allocations
-				if (_pendingAllocations[location][itemDef] == 0)
-					_pendingAllocations[location].Remove(itemDef);
+				if (items[itemDef] == 0)
+					items.Remove(itemDef);
 
-				if (_pendingAllocations[location].Count == 0)
-					_pendingAllocations.Remove(location);
+				if (items.Count == 0)
+					_pendingAllocations.Remove(location, out var _);
+				else
+					_pendingAllocations.AddOrUpdate(location, items, (key, oldValue) => items);
 			}
 
 			// Remove from pawn's allocation tracking
-			if (_pawnAllocations.ContainsKey(pawn))
+			if (_pawnAllocations.TryGetValue(pawn, out var locations))
 			{
-				_pawnAllocations[pawn].Remove(location);
-				if (_pawnAllocations[pawn].Count == 0)
-					_pawnAllocations.Remove(pawn);
+				locations.Remove(location);
+				if (locations.Count == 0)
+					_pawnAllocations.Remove(pawn, out var _);
+				else
+					_pawnAllocations.AddOrUpdate(pawn, locations, (key, oldValue) => locations);
 			}
 
 			Log.Message($"Released {amount} of {itemDef} at {location} for {pawn}");
@@ -133,22 +115,12 @@ public class StorageAllocationTracker : ICache
 	/// </summary>
 	public void CleanupPawnAllocations(Pawn pawn)
 	{
-		lock (_lockObject)
+		if (_pawnAllocations.TryGetValue(pawn, out var locations))
 		{
-			if (!_pawnAllocations.ContainsKey(pawn))
-				return;
-
-			var locations = new List<StorageLocation>(_pawnAllocations[pawn]);
 			foreach (var location in locations)
-				if (_pendingAllocations.ContainsKey(location))
-				{
-					var itemDefs = new List<ThingDef>(_pendingAllocations[location].Keys);
-					foreach (var itemDef in itemDefs)
-					{
-						var amount = _pendingAllocations[location][itemDef];
-						ReleaseCapacity(location, itemDef, amount, pawn);
-					}
-				}
+				if (_pendingAllocations.TryGetValue(location, out var items))
+					foreach (var itemDef in items)
+						ReleaseCapacity(location, itemDef.Key, itemDef.Value, pawn);
 
 			Log.Message($"Cleaned up all allocations for {pawn}");
 		}
@@ -320,8 +292,9 @@ public class StorageAllocationTracker : ICache
 	/// <summary>
 	/// Get the amount of pending allocations for a specific item at a location
 	/// </summary>
-	private int GetPendingAllocation(StorageLocation location, ThingDef itemDef) => _pendingAllocations.ContainsKey(location) && _pendingAllocations[location].ContainsKey(itemDef)
-			? _pendingAllocations[location][itemDef]
+	private int GetPendingAllocation(StorageLocation location, ThingDef itemDef) =>
+		_pendingAllocations.TryGetValue(location, out var items) && items.TryGetValue(itemDef, out var currentAmount)
+			? currentAmount
 			: 0;
 
 	/// <summary>
@@ -329,32 +302,19 @@ public class StorageAllocationTracker : ICache
 	/// </summary>
 	public void ForceCleanup()
 	{
-		lock (_lockObject)
+		foreach (var kvp in _pawnAllocations)
 		{
-			// Clean up allocations for dead pawns
-			var deadPawns = new List<Pawn>();
-
-			foreach (var kvp in _pawnAllocations)
+			var pawn = kvp.Key;
+			if (pawn == null || pawn.Destroyed || !pawn.Spawned)
 			{
-				var pawn = kvp.Key;
-				if (pawn == null || pawn.Destroyed || !pawn.Spawned)
-					deadPawns.Add(pawn);
+				CleanupPawnAllocations(pawn);
+				Log.Message($"Removed {pawn} from allocations");
 			}
-
-			foreach (var deadPawn in deadPawns)
-				CleanupPawnAllocations(deadPawn);
-
-			if (deadPawns.Count > 0 && Settings.EnableDebugLogging)
-				Log.Message($"Cleaned up allocations for {deadPawns.Count} dead pawns");
 		}
 	}
 
 	/// <summary>
 	/// Gets debug information about the storage allocation tracker
 	/// </summary>
-	public string GetDebugInfo()
-	{
-		lock (_lockObject)
-			return $"StorageAllocationTracker: {_pendingAllocations.Count} pending allocations, {_pawnAllocations.Count} pawn allocations";
-	}
+	public string GetDebugInfo() => $"StorageAllocationTracker: {_pendingAllocations.Count} pending allocations, {_pawnAllocations.Count} pawn allocations";
 }

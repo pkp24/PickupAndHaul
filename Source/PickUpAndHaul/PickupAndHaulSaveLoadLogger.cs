@@ -90,9 +90,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 					var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
 					if (pawns == null || pawns.Count == 0)
-					{
 						continue;
-					}
 
 					foreach (var pawn in pawns)
 					{
@@ -110,13 +108,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 							// Create job info with additional null checks
 							var jobQueue = pawn.jobs.jobQueue?.ToList() ?? [];
 
-							var jobInfo = new JobInfo
-							{
-								Pawn = pawn,
-								Job = currentJob,
-								JobQueue = jobQueue,
-								JobDef = currentJob.def
-							};
+							var jobInfo = new JobInfo(pawn, currentJob, jobQueue, currentJob.def);
 
 							_suspendedJobs.Add(jobInfo);
 
@@ -195,15 +187,9 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 								jobInfo.Pawn.jobs.jobQueue.Clear(jobInfo.Pawn, true);
 
 								if (jobInfo.JobQueue != null)
-								{
 									foreach (var queuedJob in jobInfo.JobQueue)
-									{
 										if (queuedJob?.job != null)
-										{
 											jobInfo.Pawn.jobs.jobQueue.EnqueueLast(queuedJob.job, queuedJob.tag);
-										}
-									}
-								}
 							}
 							catch (Exception ex)
 							{
@@ -286,23 +272,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	/// <summary>
 	/// Provides a public method to check if a save operation is in progress
 	/// </summary>
-	public static bool IsSaveInProgress()
-	{
-		lock (_jobLock)
-		{
-			return _isSaving;
-		}
-	}
-
-	/// <summary>
-	/// Provides a public method to manually suspend jobs (for external use)
-	/// </summary>
-	public static void ManualSuspendJobs() => SuspendPickupAndHaulJobs();
-
-	/// <summary>
-	/// Provides a public method to manually restore jobs (for external use)
-	/// </summary>
-	public static void ManualRestoreJobs() => RestorePickupAndHaulJobs();
+	public static bool IsSaveInProgress() => _isSaving;
 
 	/// <summary>
 	/// Emergency cleanup method to reset the save state if something goes wrong
@@ -314,20 +284,6 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 			Log.Warning("Performing emergency cleanup of save state");
 			_suspendedJobs.Clear();
 			_isSaving = false;
-		}
-	}
-
-	/// <summary>
-	/// Gets the current status of the save system for debugging
-	/// </summary>
-	public static string SaveStatus
-	{
-		get
-		{
-			lock (_jobLock)
-			{
-				return $"Save in progress: {_isSaving}, Suspended jobs: {_suspendedJobs.Count}, Mod removed: {_modRemoved}";
-			}
 		}
 	}
 
@@ -432,10 +388,10 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 /// <summary>
 /// Helper class to store job information during suspension
 /// </summary>
-public class JobInfo
+public class JobInfo(Pawn pawn, Job job, List<QueuedJob> jobQueue, JobDef jobDef)
 {
-	public Pawn Pawn { get; set; }
-	public Job Job { get; set; }
-	public List<QueuedJob> JobQueue { get; set; }
-	public JobDef JobDef { get; set; }
+	public Pawn Pawn { get; set; } = pawn;
+	public Job Job { get; set; } = job;
+	public List<QueuedJob> JobQueue { get; } = jobQueue;
+	public JobDef JobDef { get; set; } = jobDef;
 }

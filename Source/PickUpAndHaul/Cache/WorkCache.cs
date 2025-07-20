@@ -2,6 +2,7 @@ namespace PickUpAndHaul.Cache;
 
 public class WorkCache : ICache
 {
+	private const int TICKS_DELAY = 60;
 	private int _nextWorkCacheTick;
 	private readonly object _lockObject = new();
 
@@ -22,7 +23,7 @@ public class WorkCache : ICache
 		// Ensure items are sorted by distance from pawn to prioritize closest items
 		Comparer.RootCell = pawn.Position;
 		list.Sort(Comparer);
-		_nextWorkCacheTick = currentTick + list.Count;
+		_nextWorkCacheTick = currentTick + list.Count + TICKS_DELAY;
 		lock (_lockObject)
 			Cache = list;
 

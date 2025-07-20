@@ -177,21 +177,13 @@ internal static class HarmonyPatches
 		return false;
 	}
 
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	public static bool SkipCorpses_Prefix(WorkGiver_Haul __instance, ref bool __result, Pawn pawn)
 	{
 		if (__instance is not WorkGiver_HaulCorpses)
-		{
 			return true;
-		}
-
-		if (Settings.AllowCorpses //Don't use the vanilla HaulCorpses WorkGiver if PUAH is allowed to haul those
-			|| pawn.Map.listerThings.ThingsInGroup(ThingRequestGroup.Corpse).Count < 1) //...or if there are no corpses to begin with. Indeed Tynan did not foresee this situation
-		{
-			__result = true;
-			return false;
-		}
-
-		return true;
+		__result = true;
+		return false;
 	}
 
 	/// <summary>

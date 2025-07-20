@@ -9,35 +9,27 @@ public class StorageCapacityCache : ICache
 
 	public static StorageCapacityCache Instance { get; } = new();
 
-	public static Dictionary<(Thing thing, IntVec3 cell, int tick), int> Cache { get; } = [];
+	public static ConcurrentDictionary<(Thing thing, IntVec3 cell, int tick), int> Cache { get; } = [];
 
 	public static int CapacityAt(Thing thing, IntVec3 storeCell, Map map)
 	{
 		// Use cached capacity to avoid repeated expensive calculations
 		var currentTick = Find.TickManager.TicksGame;
 		var cacheKey = (thing, storeCell, currentTick);
-
 		// Clean up old cache entries periodically
-		if (currentTick - _lastStorageCapacityCacheCleanupTick > 50) // Clean up every 50 ticks
+		if (currentTick - _lastStorageCapacityCacheCleanupTick > 360) // Clean up every 60 ticks
 		{
-			var keysToRemove = Cache.Keys.Where(k => currentTick - k.tick > 3).ToList();
-			foreach (var key in keysToRemove)
-				Cache.Remove(key);
+			foreach (var key in Cache.Keys.Where(k => currentTick - k.tick >= 0))
+				Cache.Remove(key, out var _);
 			_lastStorageCapacityCacheCleanupTick = currentTick;
 		}
 
 		if (Cache.TryGetValue(cacheKey, out var cachedCapacity))
 			return cachedCapacity;
 
-		if (thing.CapacityAt(storeCell, map, out var capacity))
-		{
-			Log.Message($"Found external capacity of {capacity}");
-			Cache[cacheKey] = capacity;
-			return capacity;
-		}
-
 		// Check if there's a container at this cell that can hold multiple items
 		var thingsAtCell = map.thingGrid.ThingsListAt(storeCell);
+
 		for (var i = 0; i < thingsAtCell.Count; i++)
 		{
 			var thingAtCell = thingsAtCell[i];
@@ -46,20 +38,20 @@ public class StorageCapacityCache : ICache
 			{
 				// This is a container (like a crate) - use its proper capacity calculation
 				var containerCapacity = thingOwner.GetCountCanAccept(thing);
-				Cache[cacheKey] = containerCapacity;
+				Cache.AddOrUpdate(cacheKey, containerCapacity, (key, oldValue) => containerCapacity);
 				return containerCapacity;
 			}
 		}
 
 		// Fallback to original logic for simple storage cells
-		capacity = thing.def.stackLimit;
+		var capacity = thing.def.stackLimit;
 
 		var preExistingThing = map.thingGrid.ThingAt(storeCell, thing.def);
 		if (preExistingThing != null)
 			capacity = thing.def.stackLimit - preExistingThing.stackCount;
 
 		Log.Message($"Using fallback capacity calculation for {thing} at {storeCell}: {capacity}");
-		Cache[cacheKey] = capacity;
+		Cache.AddOrUpdate(cacheKey, capacity, (key, oldValue) => capacity);
 		return capacity;
 	}
 

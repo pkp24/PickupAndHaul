@@ -64,9 +64,7 @@ internal static class Log
 		var timestampedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] [PUAHForked] [{Path.GetFileNameWithoutExtension(sourceFilePath)}] [{memberName}:{sourceLineNumber}] {message}";
 		try
 		{
-			if (_sw == null)
-				InitStreamWriter();
-            lock (_fileLock)
+			lock (_fileLock)
 				_sw.Write(timestampedMessage + Environment.NewLine);
 		}
 		catch (Exception ex)

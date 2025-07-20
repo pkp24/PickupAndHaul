@@ -128,26 +128,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				_countToDrop = thing.stackCount;
 
 			var destCell = TargetB.HasThing ? job.targetB.Thing.Position : job.targetB.Cell;
-			if (destCell.IsValid &&
-				thing.CapacityAt(destCell, pawn.Map, out var cap))
-			{
-				if (cap <= 0)
-				{
-					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near,
-						_countToDrop, out var dropped);
-					dropped?.SetForbidden(false, false);
-
-					// Release only if we actually reserved
-					if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
-						pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
-
-					EndJobWith(JobCondition.Succeeded);
-					carriedThings.Remove(thing);
-					return;
-				}
-
-				_countToDrop = Math.Min(_countToDrop, cap);
-			}
 
 			if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) ||
 				!thing.def.EverStorable(false))
@@ -219,12 +199,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 				var capacity = unloadable.Thing.stackCount;
 				var skipRes = false;
-
-				if (targetCell.IsValid && unloadable.Thing.CapacityAt(targetCell, pawn.Map, out var cap))
-				{
-					capacity = cap;
-					skipRes = true; // handled by the crate itself
-				}
 
 				// Reserve if necessary
 				if (!skipRes &&

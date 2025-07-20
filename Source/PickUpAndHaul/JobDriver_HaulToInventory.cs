@@ -3,8 +3,6 @@
 namespace PickUpAndHaul;
 public class JobDriver_HaulToInventory : JobDriver
 {
-	private readonly int WAIT_DURATION = 3;
-
 	public override void ExposeData()
 	{
 		// Don't save any data for this job driver to prevent save corruption
@@ -32,24 +30,14 @@ public class JobDriver_HaulToInventory : JobDriver
 			return false;
 		}
 
-		// Validate job before making reservations
-		if (!ValidateJobBeforeExecution())
-		{
-			Log.Error($"Job failed for {pawn}, cannot make reservations");
-			return false;
-		}
-
 		Log.Message($"{pawn} job reservations targetA: {job.targetA.ToStringSafe()} targetB: {job.targetB.ToStringSafe()}");
 
 		// Validate queue synchronization
-		if (job.targetQueueA != null && job.countQueue != null && job.targetQueueA.Count != job.countQueue.Count)
+		if (!JobQueueManager.ValidateJobQueues(job, pawn))
 		{
-			Log.Error($"Queue synchronization error! targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) for {pawn}");
-			Log.Error($"This indicates a bug in AllocateThingAtCell or job creation logic");
+			Log.Error($"Job failed validation for {pawn} - returning false");
+			return false;
 		}
-
-		// Validate job integrity before proceeding
-		job.ValidateJobQueues(pawn, "PreToilReservations");
 
 		// Reserve as many as possible from queues
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
@@ -62,18 +50,14 @@ public class JobDriver_HaulToInventory : JobDriver
 		else
 			Log.Warning($"targetQueueB is null or empty for {pawn}");
 
-		// FIXED: Add bounds checking before accessing targetQueueA[0]
 		bool targetAReserved;
 		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
 			targetAReserved = pawn.Reserve(job.targetQueueA[0], job);
 		else
 		{
 			Log.Error($"Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
-			Log.Error($"This job should not have been created with empty targetQueueA");
 			Log.Error($"Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 
-			// End the job gracefully instead of crashing
-			Log.Error($"Ending job gracefully to prevent ArgumentOutOfRangeException");
 			return false;
 		}
 
@@ -95,14 +79,6 @@ public class JobDriver_HaulToInventory : JobDriver
 	//get next, goto, take, check for more. Branches off to "all over the place"
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		// Validate job integrity before proceeding
-		if (!ValidateJobBeforeExecution())
-		{
-			Log.Error($"Job failed for {pawn} in MakeNewToils");
-			EndJobWith(JobCondition.Incompletable);
-			yield break;
-		}
-
 		// Check if save operation is in progress at the start
 		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
 		{
@@ -110,8 +86,6 @@ public class JobDriver_HaulToInventory : JobDriver
 			EndJobWith(JobCondition.InterruptForced);
 			yield break;
 		}
-
-		var wait = Toils_General.Wait(WAIT_DURATION);
 
 		var nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
 		yield return nextTarget;
@@ -141,7 +115,6 @@ public class JobDriver_HaulToInventory : JobDriver
 		//maintain cell reservations on the trip back
 		yield return TargetB.HasThing ? Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.ClosestTouch)
 				: Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
-		yield return wait;
 	}
 
 	private Toil CheckIfPawnShouldLoadInventory(Pawn pawn) => new()
@@ -257,69 +230,5 @@ public class JobDriver_HaulToInventory : JobDriver
 		};
 
 		return toil;
-	}
-
-	/// <summary>
-	/// Validates the job before execution to prevent desync issues
-	/// </summary>
-	private bool ValidateJobBeforeExecution()
-	{
-		if (job == null)
-		{
-			Log.Error($"Job is null for {pawn}");
-			return false;
-		}
-
-		if (pawn == null)
-		{
-			Log.Error($"Pawn is null");
-			return false;
-		}
-
-		// For regular jobs, validate queue synchronization
-		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
-		{
-			Log.Error($"Job has empty targetQueueA for {pawn}");
-			return false;
-		}
-
-		if (job.countQueue == null || job.countQueue.Count == 0)
-		{
-			Log.Error($"Job has empty countQueue for {pawn}");
-			return false;
-		}
-
-		if (job.targetQueueA.Count != job.countQueue.Count)
-		{
-			Log.Error($"Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count})");
-			return false;
-		}
-
-		// Validate that all targets are still valid
-		for (var i = 0; i < job.targetQueueA.Count; i++)
-		{
-			var target = job.targetQueueA[i];
-			if (target == null || target.Thing == null)
-			{
-				Log.Error($"Found null target at index {i} for {pawn}");
-				return false;
-			}
-
-			if (target.Thing.Destroyed || !target.Thing.Spawned)
-			{
-				Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
-				return false;
-			}
-		}
-
-		// Validate that all counts are positive
-		for (var i = 0; i < job.countQueue.Count; i++)
-			if (job.countQueue[i] <= 0)
-			{
-				Log.Error($"Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
-				return false;
-			}
-
-		return true;
 	}
 }
