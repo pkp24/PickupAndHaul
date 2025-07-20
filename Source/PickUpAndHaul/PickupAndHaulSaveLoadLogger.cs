@@ -114,30 +114,10 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 							// End the current job safely
 							var curDriver = pawn.jobs.curDriver;
-							if (curDriver != null)
-							{
-								try
-								{
-									curDriver.EndJobWith(JobCondition.InterruptForced);
-								}
-								catch (Exception ex)
-								{
-									Log.Warning($"Error ending job for {pawn.NameShortColored}: {ex.Message}");
-								}
-							}
+							curDriver?.EndJobWith(JobCondition.InterruptForced);
 
 							// Clear the job queue safely
-							if (pawn.jobs.jobQueue != null)
-							{
-								try
-								{
-									pawn.jobs.jobQueue.Clear(pawn, true);
-								}
-								catch (Exception ex)
-								{
-									Log.Warning($"Error clearing job queue for {pawn.NameShortColored}: {ex.Message}");
-								}
-							}
+							pawn.jobs.jobQueue?.Clear(pawn, true);
 
 							Log.Message($"Suspended job for {pawn.NameShortColored}: {currentJob.def?.defName ?? "Unknown"}");
 						}
@@ -182,19 +162,12 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 						// Restore the job queue safely
 						if (jobInfo.Pawn.jobs.jobQueue != null)
 						{
-							try
-							{
-								jobInfo.Pawn.jobs.jobQueue.Clear(jobInfo.Pawn, true);
+							jobInfo.Pawn.jobs.jobQueue.Clear(jobInfo.Pawn, true);
 
-								if (jobInfo.JobQueue != null)
-									foreach (var queuedJob in jobInfo.JobQueue)
-										if (queuedJob?.job != null)
-											jobInfo.Pawn.jobs.jobQueue.EnqueueLast(queuedJob.job, queuedJob.tag);
-							}
-							catch (Exception ex)
-							{
-								Log.Warning($"Error restoring job queue for {jobInfo.Pawn.NameShortColored}: {ex.Message}");
-							}
+							if (jobInfo.JobQueue != null)
+								foreach (var queuedJob in jobInfo.JobQueue)
+									if (queuedJob?.job != null)
+										jobInfo.Pawn.jobs.jobQueue.EnqueueLast(queuedJob.job, queuedJob.tag);
 						}
 
 						// Try to restart the main job if the pawn is available
@@ -332,54 +305,37 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 			MarkModAsRemoved();
 
 			// Clear any remaining mod-specific jobs from all pawns
-			try
+			var maps = Find.Maps;
+			if (maps == null || maps.Count == 0)
 			{
-				var maps = Find.Maps;
-				if (maps == null || maps.Count == 0)
+				Log.Warning("No maps found during safety check");
+				return;
+			}
+
+			foreach (var map in maps)
+			{
+				if (map?.mapPawns == null)
 				{
-					Log.Warning("No maps found during safety check");
-					return;
+					Log.Warning("Map has null mapPawns during safety check");
+					continue;
 				}
 
-				foreach (var map in maps)
+				var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
+				if (pawns == null || pawns.Count == 0)
+					continue;
+
+				foreach (var pawn in pawns)
 				{
-					if (map?.mapPawns == null)
+					if (pawn?.jobs?.curJob?.def != null)
 					{
-						Log.Warning("Map has null mapPawns during safety check");
-						continue;
-					}
-
-					var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
-					if (pawns == null || pawns.Count == 0)
-					{
-						continue;
-					}
-
-					foreach (var pawn in pawns)
-					{
-						if (pawn?.jobs?.curJob?.def != null)
+						var jobDef = pawn.jobs.curJob.def;
+						if (jobDef.defName is "HaulToInventory" or "UnloadYourHauledInventory")
 						{
-							var jobDef = pawn.jobs.curJob.def;
-							if (jobDef.defName is "HaulToInventory" or "UnloadYourHauledInventory")
-							{
-								Log.Warning($"Clearing mod-specific job from {pawn.NameShortColored}");
-
-								try
-								{
-									pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, false);
-								}
-								catch (Exception ex)
-								{
-									Log.Warning($"Error clearing job from {pawn.NameShortColored}: {ex.Message}");
-								}
-							}
+							Log.Warning($"Clearing mod-specific job from {pawn.NameShortColored}");
+							pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, false);
 						}
 					}
 				}
-			}
-			catch (Exception ex)
-			{
-				Log.Error($"Error during safety cleanup: {ex.Message}");
 			}
 		}
 	}

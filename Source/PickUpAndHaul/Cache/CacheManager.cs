@@ -32,26 +32,12 @@ public static class CacheManager
 		var cleanedCount = 0;
 
 		foreach (var cache in _registeredCaches)
-			try
-			{
-				cache.ForceCleanup();
-				cleanedCount++;
-			}
-			catch (Exception ex)
-			{
-				Log.Warning($"Cleaning cache {cache.GetType().Name}: {ex.Message}");
-			}
+			cache.ForceCleanup();
+		cleanedCount++;
 
 		// Clean up rollback states
-		try
-		{
-			JobQueueManager.ClearJobQueues(maps);
-			cleanedCount++;
-		}
-		catch (Exception ex)
-		{
-			Log.Warning($"Cleaning rollback states: {ex.Message}");
-		}
+		JobQueueManager.ClearJobQueues(maps);
+		cleanedCount++;
 
 		if (Settings.EnableDebugLogging && cleanedCount > 0)
 			Log.Message($"Cleaned {cleanedCount} caches at tick {currentTick}");
@@ -111,14 +97,7 @@ public static class CacheManager
 		Log.Message("Registered caches:");
 
 		foreach (var cache in _registeredCaches)
-			try
-			{
-				Log.Message($"{cache.GetType().Name}: {cache.GetDebugInfo()}");
-			}
-			catch (Exception ex)
-			{
-				Log.Error($"{cache.GetType().Name}: Exception {ex.Message}");
-			}
+			Log.Message($"{cache.GetType().Name}: {cache.GetDebugInfo()}");
 
 		Log.Message($"Last map change: {_lastMapChangeTick}");
 		Log.Message($"Last game reset: {_lastGameResetTick}");

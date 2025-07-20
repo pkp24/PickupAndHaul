@@ -40,38 +40,23 @@ internal static class Log
 	{
 		var timestampedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] [PUAHForked]";
 
-		try
+		lock (_fileLock)
 		{
-			lock (_fileLock)
+			if (File.Exists(DEBUG_LOG_FILE_PATH))
 			{
-				if (File.Exists(DEBUG_LOG_FILE_PATH))
-				{
-					_sw.Close();
-					File.Delete(DEBUG_LOG_FILE_PATH);
-					InitStreamWriter();
-					Verse.Log.Message($"{timestampedMessage} Debug log file cleared.");
-				}
+				_sw.Close();
+				File.Delete(DEBUG_LOG_FILE_PATH);
+				InitStreamWriter();
+				Verse.Log.Message($"{timestampedMessage} Debug log file cleared.");
 			}
-		}
-		catch (Exception ex)
-		{
-			Verse.Log.Warning($"{timestampedMessage} Failed to clear debug log file: {ex.Message}");
 		}
 	}
 
 	private static void WriteToFile(string message, string memberName, string sourceFilePath, int sourceLineNumber)
 	{
 		var timestampedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] [PUAHForked] [{Path.GetFileNameWithoutExtension(sourceFilePath)}] [{memberName}:{sourceLineNumber}] {message}";
-		try
-		{
-			lock (_fileLock)
-				_sw.Write(timestampedMessage + Environment.NewLine);
-		}
-		catch (Exception ex)
-		{
-			// Don't use our own logging to avoid infinite recursion
-			Verse.Log.Warning($"{timestampedMessage} Failed to write to debug log file: {ex.Message}");
-		}
+		lock (_fileLock)
+			_sw.Write(timestampedMessage + Environment.NewLine);
 	}
 
 	private static void InitStreamWriter() =>

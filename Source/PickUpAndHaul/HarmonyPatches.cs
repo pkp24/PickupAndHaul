@@ -9,9 +9,7 @@ internal static class HarmonyPatches
 		var harmony = new Harmony("teemo.rimworld.pickupandhaulforked.main");
 
 		if (Settings.EnableDebugLogging)
-		{
 			Harmony.DEBUG = true;
-		}
 
 		if (!ModCompatibilityCheck.CombatExtendedIsActive)
 		{
@@ -50,14 +48,6 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.ExposeData)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Prefix)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Postfix)));
-
-		// Add patch to handle pawn death and job interruption for storage allocation cleanup
-		harmony.Patch(original: AccessTools.Method(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.EndCurrentJob)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_JobTracker_EndCurrentJob_Postfix)));
-
-		// Add patch to handle pawn death for storage allocation cleanup
-		harmony.Patch(original: AccessTools.Method(typeof(Pawn), nameof(Pawn.Kill)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_Kill_Postfix)));
 
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
@@ -317,49 +307,6 @@ internal static class HarmonyPatches
 		catch (Exception ex)
 		{
 			Log.Error($"Game_ExposeData_Postfix: {ex.Message}");
-		}
-	}
-
-	/// <summary>
-	/// Clean up storage allocations when a job ends
-	/// </summary>
-	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
-	private static void Pawn_JobTracker_EndCurrentJob_Postfix(Pawn_JobTracker __instance, JobCondition condition, bool startNewJob = true, bool canReturnToPool = true)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			return; // Skip cleanup during save
-		}
-
-		// Clean up storage allocations for the pawn if relevant
-		if (__instance.pawn != null && !__instance.pawn.RaceProps.Animal)
-		{
-			if (StorageAllocationTracker.Instance.HasAllocations(__instance.pawn))
-			{
-				StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance.pawn);
-				Log.Message($"Cleaned up storage allocations for {__instance.pawn} after job ended with condition {condition}");
-			}
-		}
-	}
-
-	/// <summary>
-	/// Clean up storage allocations when a pawn dies
-	/// </summary>
-	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
-	private static void Pawn_Kill_Postfix(Pawn __instance, DamageInfo? dinfo, Hediff exactCulprit = null)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			return; // Skip cleanup during save
-		}
-
-		// Clean up storage allocations for the dead pawn if relevant
-		if (!__instance.RaceProps.Animal && StorageAllocationTracker.Instance.HasAllocations(__instance))
-		{
-			StorageAllocationTracker.Instance.CleanupPawnAllocations(__instance);
-			Log.Message($"Cleaned up storage allocations for dead pawn {__instance}");
 		}
 	}
 }
