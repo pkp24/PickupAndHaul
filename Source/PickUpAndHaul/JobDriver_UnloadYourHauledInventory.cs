@@ -27,16 +27,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		Scribe_Values.Look(ref _countToDrop, "countToDrop", -1);
 	}
 
-	public override bool TryMakePreToilReservations(bool errorOnFailed)
-	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			Log.Message($"Skipping UnloadYourHauledInventory job reservations during save operation for {pawn}");
-			return false;
-		}
-		return true;
-	}
+	public override bool TryMakePreToilReservations(bool errorOnFailed) => true;
 
 	/// <summary>
 	/// Find spot, reserve spot, pull thing out of inventory, go to spot, drop stuff, repeat.
@@ -44,14 +35,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		// Check if save operation is in progress at the start
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			Log.Message($"Ending UnloadYourHauledInventory job during save operation for {pawn}");
-			EndJobWith(JobCondition.InterruptForced);
-			yield break;
-		}
-
 		// Clean up nulls at a safe point before we start iterating
 		var comp = pawn.TryGetComp<CompHauledToInventory>();
 		comp?.CleanupNulls();
@@ -95,10 +78,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	{
 		initAction = () =>
 		{
-			// Check for save operation before releasing reservation
-			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-				return;
-
 			if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob)
 				&& !ModCompatibilityCheck.HCSKIsActive)
 				pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
@@ -109,12 +88,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	{
 		initAction = () =>
 		{
-			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-			{
-				EndJobWith(JobCondition.InterruptForced);
-				return;
-			}
-
 			var thing = job.GetTarget(TargetIndex.A).Thing;
 			if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
 			{
@@ -169,12 +142,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	{
 		initAction = () =>
 		{
-			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-			{
-				EndJobWith(JobCondition.InterruptForced);
-				return;
-			}
-
 			var unloadable = FirstUnloadableThing(pawn, carriedThings);
 			if (unloadable.Count == 0)
 			{

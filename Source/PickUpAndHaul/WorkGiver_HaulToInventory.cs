@@ -12,7 +12,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| pawn.GetComp<CompHauledToInventory>() == null
 		|| pawn.IsQuestLodger()
 		|| pawn.IsOverAllowedGearCapacity()
-		|| PickupAndHaulSaveLoadLogger.IsSaveInProgress()
 		|| !PickupAndHaulSaveLoadLogger.IsModActive();
 
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)

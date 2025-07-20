@@ -53,7 +53,6 @@ public static class JobQueueManager
 			// Add all valid items atomically
 			var target = new LocalTargetInfo(thing);
 			job.targetQueueA.Add(target);
-			job.targetA = target;
 			job.countQueue.Add(count);
 			job.targetQueueB.Add(storeTarget);
 

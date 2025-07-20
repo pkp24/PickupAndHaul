@@ -27,13 +27,6 @@ public class JobDriver_HaulToInventory : JobDriver
 	{
 		lock (_lockObject)
 		{
-			// Check if save operation is in progress
-			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-			{
-				Log.Message($"Skipping HaulToInventory job reservations during save operation for {pawn}");
-				return false;
-			}
-
 			// Reserve as many as possible from queues
 			if (job.targetQueueA != null && job.targetQueueA.Count > 0)
 				pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
@@ -58,33 +51,10 @@ public class JobDriver_HaulToInventory : JobDriver
 	//get next, goto, take, check for more. Branches off to "all over the place"
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		// Check if save operation is in progress at the start
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-		{
-			Log.Message($"Ending HaulToInventory job during save operation for {pawn}");
-			EndJobWith(JobCondition.InterruptForced);
-			yield break;
-		}
-
 		var nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
 		yield return nextTarget;
-
 		yield return CheckForOverencumberedForCombatExtended();
-
-		var gotoThing = new Toil
-		{
-			initAction = () =>
-			{
-				// Check for save operation before pathing
-				if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-				{
-					EndJobWith(JobCondition.InterruptForced);
-					return;
-				}
-				pawn.pather.StartPath(TargetThingA, PathEndMode.ClosestTouch);
-			},
-			defaultCompleteMode = ToilCompleteMode.PatherArrival
-		};
+		var gotoThing = Toils_Goto.GotoCell(TargetIndex.A, PathEndMode.ClosestTouch);
 		gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
 		yield return gotoThing;
 		yield return CheckIfPawnShouldLoadInventory(pawn);
@@ -98,12 +68,6 @@ public class JobDriver_HaulToInventory : JobDriver
 	{
 		initAction = () =>
 		{
-			// Check for save operation before taking action
-			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-			{
-				EndJobWith(JobCondition.InterruptForced);
-				return;
-			}
 			var takenToInventory = pawn.GetComp<CompHauledToInventory>();
 
 			if (takenToInventory == null)
@@ -132,13 +96,6 @@ public class JobDriver_HaulToInventory : JobDriver
 	{
 		initAction = () =>
 		{
-			// Check if save operation is in progress
-			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-			{
-				EndJobWith(JobCondition.InterruptForced);
-				return;
-			}
-
 			if (pawn == null || pawn.InMentalState)
 				return;
 
@@ -178,13 +135,6 @@ public class JobDriver_HaulToInventory : JobDriver
 
 		toil.initAction = () =>
 		{
-			// Check for save operation before checking encumbrance
-			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
-			{
-				EndJobWith(JobCondition.InterruptForced);
-				return;
-			}
-
 			var actor = toil.actor;
 			var curJob = actor.jobs.curJob;
 			var nextThing = TargetThingA;

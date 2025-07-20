@@ -2,8 +2,6 @@ namespace PickUpAndHaul;
 
 public class PickupAndHaulSaveLoadLogger : GameComponent
 {
-	private static readonly object _jobLock = new();
-	private static bool _isSaving;
 	private static bool _modRemoved;
 
 	public PickupAndHaulSaveLoadLogger() : base() { }
@@ -37,10 +35,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 			// Don't save any mod-specific data if the mod is being removed
 			if (_modRemoved)
-			{
-				Log.Warning("Mod removed, skipping operations");
 				return;
-			}
 		}
 	}
 
@@ -51,24 +46,6 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 		// Perform safety check to ensure mod is active
 		PerformSafetyCheck();
-	}
-
-	/// <summary>
-	/// Provides a public method to check if a save operation is in progress
-	/// </summary>
-	public static bool IsSaveInProgress() => _isSaving;
-
-	/// <summary>
-	/// Marks the mod as removed to prevent save data corruption
-	/// </summary>
-	public static void MarkModAsRemoved()
-	{
-		lock (_jobLock)
-		{
-			Log.Warning("Mod marked as removed, preventing save data corruption");
-			_modRemoved = true;
-			_isSaving = false;
-		}
 	}
 
 	/// <summary>
@@ -98,41 +75,27 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	{
 		if (!IsModActive())
 		{
-			Log.Warning("Mod appears to be inactive, performing safety cleanup");
-			MarkModAsRemoved();
+			Log.Warning("Mod appears to be inactive, performing safety cleanup. Mod marked as removed.");
+			_modRemoved = true;
 
 			// Clear any remaining mod-specific jobs from all pawns
 			var maps = Find.Maps;
 			if (maps == null || maps.Count == 0)
-			{
-				Log.Warning("No maps found during safety check");
 				return;
-			}
 
 			foreach (var map in maps)
 			{
 				if (map?.mapPawns == null)
-				{
-					Log.Warning("Map has null mapPawns during safety check");
 					continue;
-				}
 
 				var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
 				if (pawns == null || pawns.Count == 0)
 					continue;
 
 				foreach (var pawn in pawns)
-				{
 					if (pawn?.jobs?.curJob?.def != null)
-					{
-						var jobDef = pawn.jobs.curJob.def;
-						if (jobDef.defName is "HaulToInventory" or "UnloadYourHauledInventory")
-						{
-							Log.Warning($"Clearing mod-specific job from {pawn.NameShortColored}");
+						if (pawn.jobs.curJob.def.defName is "HaulToInventory" or "UnloadYourHauledInventory")
 							pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, false);
-						}
-					}
-				}
 			}
 		}
 	}
