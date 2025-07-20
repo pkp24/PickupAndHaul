@@ -5,7 +5,7 @@ namespace PickUpAndHaul.Cache;
 /// </summary>
 public static class CacheManager
 {
-	private static readonly ConcurrentBag<ICache> _registeredCaches = [];
+	private static readonly List<ICache> _registeredCaches = [];
 	private static int _lastMapChangeTick;
 	private static int _lastGameResetTick;
 	private static Map _lastMap;
@@ -26,7 +26,7 @@ public static class CacheManager
 	/// <summary>
 	/// Performs cleanup of all registered caches
 	/// </summary>
-	private static void CleanupAllCaches(List<Map> maps)
+	public static void CleanupAllCaches()
 	{
 		var currentTick = Find.TickManager?.TicksGame ?? 0;
 		var cleanedCount = 0;
@@ -45,7 +45,7 @@ public static class CacheManager
 		// Clean up rollback states
 		try
 		{
-			JobQueueManager.ClearJobQueues(maps);
+			JobRollbackManager.CleanupRollbackStates();
 			cleanedCount++;
 		}
 		catch (Exception ex)
@@ -72,8 +72,7 @@ public static class CacheManager
 			{
 				if (Settings.EnableDebugLogging)
 					Log.Message($"Map changed from {_lastMap} to {currentMap}, triggering cache cleanup");
-				Task.Run(() => CleanupAllCaches([_lastMap]));
-
+				CleanupAllCaches();
 			}
 
 			_lastMap = currentMap;
@@ -96,7 +95,7 @@ public static class CacheManager
 				Log.Message($"Game reset detected (tick {currentTick} < {_lastGameResetTick}), triggering cache cleanup");
 				GetDebugInfo();
 			}
-			Task.Run(() => CleanupAllCaches(Find.Maps));
+			CleanupAllCaches();
 			_lastMap = null;
 		}
 
@@ -106,7 +105,7 @@ public static class CacheManager
 	/// <summary>
 	/// Gets debug information about all registered caches
 	/// </summary>
-	private static void GetDebugInfo()
+	public static void GetDebugInfo()
 	{
 		Log.Message("Registered caches:");
 

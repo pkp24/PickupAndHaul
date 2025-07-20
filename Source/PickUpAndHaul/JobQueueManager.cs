@@ -5,6 +5,7 @@ namespace PickUpAndHaul;
 /// </summary>
 public static class JobQueueManager
 {
+	private static readonly object _lockObject = new();
 
 	/// <summary>
 	/// Atomically adds items to a job's queues
@@ -23,134 +24,251 @@ public static class JobQueueManager
 			return false;
 		}
 
-		// Log job queues before any modification
-		Log.Message($"Pawn: {pawn} (Before AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
-		// Initialize queues if they don't exist
-		job.targetQueueA ??= [];
-		job.countQueue ??= [];
-		job.targetQueueB ??= [];
-
-		// Store initial queue counts for rollback
-		var initialTargetQueueACount = job.targetQueueA.Count;
-		var initialCountQueueCount = job.countQueue.Count;
-		var initialTargetQueueBCount = job.targetQueueB.Count;
-
-		try
+		lock (_lockObject)
 		{
-			// Validate all items before adding any
-			var validItems = new List<(Thing thing, int count, LocalTargetInfo target)>();
-			for (var i = 0; i < things.Count; i++)
+			// Log job queues before any modification
+			Log.Message($"Pawn: {pawn} (Before AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+			// Initialize queues if they don't exist
+			job.targetQueueA ??= [];
+			job.countQueue ??= [];
+			job.targetQueueB ??= [];
+
+			// Store initial queue counts for rollback
+			var initialTargetQueueACount = job.targetQueueA.Count;
+			var initialCountQueueCount = job.countQueue.Count;
+			var initialTargetQueueBCount = job.targetQueueB.Count;
+
+			try
 			{
-				var thing = things[i];
-				var count = counts[i];
-				var target = targets[i];
-
-				if (thing == null)
+				// Validate all items before adding any
+				var validItems = new List<(Thing thing, int count, LocalTargetInfo target)>();
+				for (var i = 0; i < things.Count; i++)
 				{
-					Log.Warning($"Skipping null thing at index {i}");
-					continue;
-				}
+					var thing = things[i];
+					var count = counts[i];
+					var target = targets[i];
 
-				if (count <= 0)
-				{
-					Log.Warning($"Skipping non-positive count {count} at index {i}");
-					continue;
-				}
-
-				// Validate LocalTargetInfo - check if the target is valid
-				if (target.Thing == null)
-				{
-					// If target.Thing is null, it might be a cell target - check if the cell is valid
-					if (!target.Cell.IsValid)
+					if (thing == null)
 					{
-						Log.Warning($"Skipping target with null Thing and invalid Cell at index {i}");
+						Log.Warning($"Skipping null thing at index {i}");
 						continue;
 					}
-					// Cell targets are valid even with null Thing
-				}
-				else
-				{
-					// If target.Thing is not null, validate the thing
-					if (target.Thing.Destroyed || !target.Thing.Spawned)
+
+					if (count <= 0)
 					{
-						Log.Warning($"Skipping destroyed/unspawned target {target.Thing} at index {i}");
+						Log.Warning($"Skipping non-positive count {count} at index {i}");
 						continue;
+					}
+
+					// Validate LocalTargetInfo - check if the target is valid
+					if (target.Thing == null)
+					{
+						// If target.Thing is null, it might be a cell target - check if the cell is valid
+						if (!target.Cell.IsValid)
+						{
+							Log.Warning($"Skipping target with null Thing and invalid Cell at index {i}");
+							continue;
+						}
+						// Cell targets are valid even with null Thing
+					}
+					else
+					{
+						// If target.Thing is not null, validate the thing
+						if (target.Thing.Destroyed || !target.Thing.Spawned)
+						{
+							Log.Warning($"Skipping destroyed/unspawned target {target.Thing} at index {i}");
+							continue;
+						}
+					}
+
+					validItems.Add((thing, count, target));
+				}
+
+				// Add all valid items atomically
+				foreach (var (thing, count, target) in validItems)
+				{
+					job.targetQueueA.Add(new LocalTargetInfo(thing));
+					job.countQueue.Add(count);
+					job.targetQueueB.Add(target);
+
+					// Validate synchronization after each item
+					if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
+					{
+						Log.Error($"Queue synchronization failed after adding item for {pawn}");
+						Log.Message($"(On error) targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
+						Log.Message($"Contents targetQueueA: {string.Join(", ", job.targetQueueA)}");
+						Log.Message($"Contents targetQueueB: {string.Join(", ", job.targetQueueB)}");
+						Log.Message($"Contents countQueue: {string.Join(", ", job.countQueue)}");
+						RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
+						return false;
 					}
 				}
 
-				validItems.Add((thing, count, target));
-			}
-
-			// Add all valid items atomically
-			foreach (var (thing, count, target) in validItems)
-			{
-				job.targetQueueA.Add(new LocalTargetInfo(thing));
-				job.countQueue.Add(count);
-				job.targetQueueB.Add(target);
-
-				// Validate synchronization after each item
+				// Final validation
 				if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
 				{
-					Log.Error($"Queue synchronization failed after adding item for {pawn}");
-					Log.Message($"(On error) targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
+					Log.Error($"Final queue synchronization failed for {pawn}");
+					Log.Message($"(On final error) targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
 					Log.Message($"Contents targetQueueA: {string.Join(", ", job.targetQueueA)}");
 					Log.Message($"Contents targetQueueB: {string.Join(", ", job.targetQueueB)}");
 					Log.Message($"Contents countQueue: {string.Join(", ", job.countQueue)}");
 					RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
 					return false;
 				}
-			}
 
-			// Final validation
-			if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
+				if (Settings.EnableDebugLogging)
+					Log.Message($"Pawn: {pawn} (After AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+
+				return true;
+			}
+			catch (Exception ex)
 			{
-				Log.Error($"Final queue synchronization failed for {pawn}");
-				Log.Message($"(On final error) targetQueueA: {job.targetQueueA.Count}, targetQueueB: {job.targetQueueB.Count}, countQueue: {job.countQueue.Count}");
-				Log.Message($"Contents targetQueueA: {string.Join(", ", job.targetQueueA)}");
-				Log.Message($"Contents targetQueueB: {string.Join(", ", job.targetQueueB)}");
-				Log.Message($"Contents countQueue: {string.Join(", ", job.countQueue)}");
+				Log.Error($"Exception occurred: {ex.Message}");
+				// Rollback to initial state
 				RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
 				return false;
 			}
-
-			if (Settings.EnableDebugLogging)
-				Log.Message($"Pawn: {pawn} (After AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
-
-			return true;
 		}
-		catch (Exception ex)
+	}
+
+	/// <summary>
+	/// Atomically removes items from a job's queues
+	/// </summary>
+	public static bool RemoveItemsFromJob(Job job, int count, Pawn pawn)
+	{
+		if (job == null || count <= 0)
 		{
-			Log.Error($"Exception occurred: {ex.Message}");
-			// Rollback to initial state
-			RollbackJobQueues(job, initialTargetQueueACount, initialCountQueueCount, initialTargetQueueBCount);
+			Log.Error("Invalid parameters");
 			return false;
+		}
+
+		lock (_lockObject)
+		{
+			try
+			{
+				if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
+				{
+					Log.Error("Job queues are null");
+					return false;
+				}
+
+				var actualCount = Math.Min(count, job.targetQueueA.Count);
+
+				// Remove items from the end (most recently added)
+				for (var i = 0; i < actualCount; i++)
+				{
+					if (job.targetQueueA.Count > 0)
+						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+					if (job.countQueue.Count > 0)
+						job.countQueue.RemoveAt(job.countQueue.Count - 1);
+					if (job.targetQueueB.Count > 0)
+						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+				}
+
+				// Validate synchronization after removing
+				if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
+				{
+					Log.Error($"Queue synchronization failed after removing items for {pawn}");
+					return false;
+				}
+
+				if (Settings.EnableDebugLogging)
+				{
+					Log.Message($"Successfully removed {actualCount} items from job for {pawn}");
+				}
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				Log.Error($"Exception occurred: {ex.Message}");
+				return false;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Atomically updates the count of the last item in a job's queues
+	/// </summary>
+	public static bool UpdateLastItemCount(Job job, int newCount, Pawn pawn)
+	{
+		if (job == null || newCount <= 0)
+		{
+			Log.Error("Invalid parameters");
+			return false;
+		}
+
+		lock (_lockObject)
+		{
+			try
+			{
+				if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
+				{
+					Log.Error("Job queues are null");
+					return false;
+				}
+
+				if (job.countQueue.Count == 0)
+				{
+					Log.Error("countQueue is empty");
+					return false;
+				}
+
+				// Store the original count for rollback
+				var originalCount = job.countQueue[^1];
+
+				// Update the count atomically
+				job.countQueue[^1] = newCount;
+
+				// Validate that the queues are still synchronized
+				if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
+				{
+					Log.Error($"Queue synchronization failed after updating count for {pawn}");
+					// Rollback the change
+					job.countQueue[^1] = originalCount;
+					return false;
+				}
+
+				if (Settings.EnableDebugLogging)
+				{
+					Log.Message($"Successfully updated last item count from {originalCount} to {newCount} for {pawn}");
+				}
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				Log.Error($"Exception occurred: {ex.Message}");
+				return false;
+			}
 		}
 	}
 
 	/// <summary>
 	/// Atomically clears all items from a job's queues
 	/// </summary>
-	public static void ClearJobQueues(List<Map> maps)
+	public static void ClearJobQueues(Job job, Pawn pawn)
 	{
-		try
-		{
-			foreach (var map in maps)
-				foreach (var pawn in map.mapPawns.FreeColonistsAndPrisonersSpawned)
-					foreach (var job in pawn.jobs.AllJobs())
-					{
-						job?.targetQueueA?.Clear();
-						job?.countQueue?.Clear();
-						job?.targetQueueB?.Clear();
-						if (Settings.EnableDebugLogging)
-							GetJobQueueDebugInfo(job, pawn);
-					}
+		if (job == null)
+			return;
 
-			if (Settings.EnableDebugLogging)
-				Log.Message($"Cleared all job queues");
-		}
-		catch (Exception ex)
+		lock (_lockObject)
 		{
-			Log.Error($"ClearJobQueues: Exception occurred: {ex.Message}");
+			try
+			{
+				job.targetQueueA?.Clear();
+				job.countQueue?.Clear();
+				job.targetQueueB?.Clear();
+
+				if (Settings.EnableDebugLogging)
+				{
+					Log.Message($"Cleared all job queues for {pawn}");
+				}
+			}
+			catch (Exception ex)
+			{
+				Log.Error($"ClearJobQueues: Exception occurred: {ex.Message}");
+			}
 		}
 	}
 
@@ -162,72 +280,79 @@ public static class JobQueueManager
 		if (job == null)
 			return false;
 
-		try
+		lock (_lockObject)
 		{
-			if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
+			try
 			{
-				Log.Error($"Job queues are null for {pawn}");
-				return false;
-			}
-
-			if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
-			{
-				Log.Error($"Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) != targetQueueB.Count ({job.targetQueueB.Count})");
-				return false;
-			}
-
-			// Check for invalid targets in targetQueueA
-			for (var i = 0; i < job.targetQueueA.Count; i++)
-			{
-				var target = job.targetQueueA[i];
-				if (target.Thing == null)
+				if (job.targetQueueA == null || job.countQueue == null || job.targetQueueB == null)
 				{
-					Log.Error($"Found target with null Thing at index {i} for {pawn}");
+					Log.Error($"Job queues are null for {pawn}");
 					return false;
 				}
 
-				if (target.Thing.Destroyed || !target.Thing.Spawned)
-					Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
-			}
-
-			// Check for invalid targets in targetQueueB
-			for (var i = 0; i < job.targetQueueB.Count; i++)
-			{
-				var target = job.targetQueueB[i];
-				if (target.Thing == null)
+				if (job.targetQueueA.Count != job.countQueue.Count || job.targetQueueA.Count != job.targetQueueB.Count)
 				{
-					// If target.Thing is null, it might be a cell target - check if the cell is valid
-					if (!target.Cell.IsValid)
+					Log.Error($"Queue synchronization failure for {pawn} - targetQueueA.Count ({job.targetQueueA.Count}) != countQueue.Count ({job.countQueue.Count}) != targetQueueB.Count ({job.targetQueueB.Count})");
+					return false;
+				}
+
+				// Check for invalid targets in targetQueueA
+				for (var i = 0; i < job.targetQueueA.Count; i++)
+				{
+					var target = job.targetQueueA[i];
+					if (target.Thing == null)
 					{
-						Log.Error($"Found target with null Thing and invalid Cell in targetQueueB at index {i} for {pawn}");
+						Log.Error($"Found target with null Thing at index {i} for {pawn}");
 						return false;
 					}
-					// Cell targets are valid even with null Thing
-				}
-				else
-				{
-					// If target.Thing is not null, validate the thing
+
 					if (target.Thing.Destroyed || !target.Thing.Spawned)
-						Log.Warning($"Found destroyed/unspawned target {target.Thing} in targetQueueB at index {i} for {pawn}");
+					{
+						Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} for {pawn}");
+					}
 				}
-			}
 
-			// Check for non-positive counts
-			for (var i = 0; i < job.countQueue.Count; i++)
-			{
-				if (job.countQueue[i] <= 0)
+				// Check for invalid targets in targetQueueB
+				for (var i = 0; i < job.targetQueueB.Count; i++)
 				{
-					Log.Error($"Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
-					return false;
+					var target = job.targetQueueB[i];
+					if (target.Thing == null)
+					{
+						// If target.Thing is null, it might be a cell target - check if the cell is valid
+						if (!target.Cell.IsValid)
+						{
+							Log.Error($"Found target with null Thing and invalid Cell in targetQueueB at index {i} for {pawn}");
+							return false;
+						}
+						// Cell targets are valid even with null Thing
+					}
+					else
+					{
+						// If target.Thing is not null, validate the thing
+						if (target.Thing.Destroyed || !target.Thing.Spawned)
+						{
+							Log.Warning($"Found destroyed/unspawned target {target.Thing} in targetQueueB at index {i} for {pawn}");
+						}
+					}
 				}
-			}
 
-			return true;
-		}
-		catch (Exception ex)
-		{
-			Log.Error($"Exception occurred: {ex.Message}");
-			return false;
+				// Check for non-positive counts
+				for (var i = 0; i < job.countQueue.Count; i++)
+				{
+					if (job.countQueue[i] <= 0)
+					{
+						Log.Error($"Found non-positive count {job.countQueue[i]} at index {i} for {pawn}");
+						return false;
+					}
+				}
+
+				return true;
+			}
+			catch (Exception ex)
+			{
+				Log.Error($"Exception occurred: {ex.Message}");
+				return false;
+			}
 		}
 	}
 
@@ -267,7 +392,7 @@ public static class JobQueueManager
 	/// <summary>
 	/// Gets debug information about job queues
 	/// </summary>
-	private static void GetJobQueueDebugInfo(Job job, Pawn pawn)
+	public static void GetJobQueueDebugInfo(Job job, Pawn pawn)
 	{
 		if (job == null)
 			return;

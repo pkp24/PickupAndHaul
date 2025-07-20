@@ -32,6 +32,20 @@ internal static class Extensions
 		return false;
 	}
 
+	public static bool StackableAt(this Thing thing, IntVec3 storeCell, Map map)
+	{
+		if ((map.haulDestinationManager.SlotGroupParentAt(storeCell) as ThingWithComps)?
+		   .AllComps.FirstOrDefault(x => x is IHoldMultipleThings)
+		   is IHoldMultipleThings compOfHolding)
+			return compOfHolding.StackableAt(thing, storeCell, map);
+
+		foreach (var t in storeCell.GetThingList(map))
+			if (t is IHoldMultipleThings holderOfMultipleThings)
+				return holderOfMultipleThings.StackableAt(thing, storeCell, map);
+
+		return false;
+	}
+
 	/// <summary>
 	/// Validates job queue integrity to help debug ArgumentOutOfRangeException
 	/// </summary>
@@ -83,25 +97,4 @@ internal static class Extensions
 					Log.Warning($"Found destroyed/unspawned target {target.Thing} at index {i} in targetQueueA in {context} for {pawn}");
 			}
 	}
-
-	public static bool IsUrgent(this Thing t, Pawn pawn)
-	{
-		var haulUrgentlyDesignation = pawn.Map.designationManager.DesignationOn(t)?.def == DefDatabase<DesignationDef>.GetNamedSilentFail("HaulUrgentlyDesignation");
-		var urgentCheck = !(ModCompatibilityCheck.AllowToolIsActive && haulUrgentlyDesignation) || haulUrgentlyDesignation;
-
-		return urgentCheck && OkThingToHaul(t, pawn);
-	}
-
-	public static bool OkThingToHaul(this Thing t, Pawn pawn, bool forced = false) =>
-		t != null
-		&& PickupAndHaulSaveLoadLogger.IsSaveInProgress()
-		&& PickupAndHaulSaveLoadLogger.IsModActive()
-		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, forced)
-		&& !MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, t, 1)
-		&& !pawn.InMentalState
-		&& t.Spawned
-		&& pawn.CanReserve(t)
-		&& !t.IsForbidden(pawn)
-		&& (Settings.AllowCorpses || t is not Corpse)
-		&& !t.IsInValidBestStorage();
 }

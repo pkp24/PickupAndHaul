@@ -7,8 +7,8 @@ internal class PawnSkipListCache : ICache
 	static PawnSkipListCache() =>
 		CacheManager.RegisterCache(Instance);
 
-	public static ConcurrentDictionary<Pawn, HashSet<IntVec3>> PawnSkipCells { get; } = [];
-	public static ConcurrentDictionary<Pawn, HashSet<Thing>> PawnSkipThings { get; } = [];
+	public static Dictionary<Pawn, HashSet<IntVec3>> PawnSkipCells { get; } = [];
+	public static Dictionary<Pawn, HashSet<Thing>> PawnSkipThings { get; } = [];
 
 	public static PawnSkipListCache Instance { get; } = new();
 
@@ -25,8 +25,8 @@ internal class PawnSkipListCache : ICache
 		{
 			if (pawn == null || pawn.Dead || pawn.Destroyed)
 			{
-				PawnSkipCells.Remove(pawn, out var _);
-				PawnSkipThings.Remove(pawn, out var _);
+				PawnSkipCells.Remove(pawn);
+				PawnSkipThings.Remove(pawn);
 				if (Settings.EnableDebugLogging)
 					Log.Message($"Cleaned up skip lists for {pawn} pawn");
 			}

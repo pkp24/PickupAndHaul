@@ -6,7 +6,7 @@ public static class PerformanceProfiler
 	private static readonly Dictionary<string, Stopwatch> _activeTimers = [];
 	private static int _lastReportTick;
 	private const int REPORT_INTERVAL_TICKS = 6000; // Report every 10 seconds at 60 TPS
-	private static readonly string LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaulForkedPerformance.log");
+	private static readonly string LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaul_Performance.txt");
 	private static int _reportStagger; // Stagger performance reports
 
 	public static void StartTimer(string operationName)

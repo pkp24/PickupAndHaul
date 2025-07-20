@@ -90,7 +90,9 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 					var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
 					if (pawns == null || pawns.Count == 0)
+					{
 						continue;
+					}
 
 					foreach (var pawn in pawns)
 					{
@@ -108,7 +110,13 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 							// Create job info with additional null checks
 							var jobQueue = pawn.jobs.jobQueue?.ToList() ?? [];
 
-							var jobInfo = new JobInfo(pawn, currentJob, jobQueue, currentJob.def);
+							var jobInfo = new JobInfo
+							{
+								Pawn = pawn,
+								Job = currentJob,
+								JobQueue = jobQueue,
+								JobDef = currentJob.def
+							};
 
 							_suspendedJobs.Add(jobInfo);
 
@@ -424,10 +432,10 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 /// <summary>
 /// Helper class to store job information during suspension
 /// </summary>
-public class JobInfo(Pawn pawn, Job job, List<QueuedJob> jobQueue, JobDef jobDef)
+public class JobInfo
 {
-	public Pawn Pawn { get; set; } = pawn;
-	public Job Job { get; set; } = job;
-	public List<QueuedJob> JobQueue { get; } = jobQueue;
-	public JobDef JobDef { get; set; } = jobDef;
+	public Pawn Pawn { get; set; }
+	public Job Job { get; set; }
+	public List<QueuedJob> JobQueue { get; set; }
+	public JobDef JobDef { get; set; }
 }

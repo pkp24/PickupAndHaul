@@ -11,7 +11,6 @@ public class WorkCache : ICache
 	public static WorkCache Instance { get; } = new();
 
 	public static List<Thing> Cache { get; private set; } = [];
-	public static List<Thing> UrgentCache { get; private set; } = [];
 
 	public void CalculatePotentialWork(Pawn pawn)
 	{
@@ -24,24 +23,16 @@ public class WorkCache : ICache
 		Comparer.RootCell = pawn.Position;
 		list.Sort(Comparer);
 		_nextWorkCacheTick = currentTick + list.Count;
-		var urgent = list.Where(t => t.IsUrgent(pawn));
-		var notUrgent = list.Where(t => !t.IsUrgent(pawn));
 		lock (_lockObject)
-		{
-			Cache = [.. urgent];
-			UrgentCache = [.. notUrgent];
-		}
-		list = null;
-		urgent = null;
-		notUrgent = null;
+			Cache = list;
+
 		if (Settings.EnableDebugLogging)
-			Log.Message($"Work at {pawn.Position} found {Cache.Count} not urgent items, and {UrgentCache.Count} urgent items");
+			Log.Message($"CalculatePotentialWork at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
 	}
 
 	public void ForceCleanup()
 	{
 		Cache.Clear();
-		UrgentCache.Clear();
 		_nextWorkCacheTick = 0;
 	}
 
