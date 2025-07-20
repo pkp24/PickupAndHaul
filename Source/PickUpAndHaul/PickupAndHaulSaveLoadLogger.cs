@@ -3,7 +3,6 @@ namespace PickUpAndHaul;
 public class PickupAndHaulSaveLoadLogger : GameComponent
 {
 	private static readonly object _jobLock = new();
-	private static readonly List<JobInfo> _suspendedJobs = [];
 	private static bool _isSaving;
 	private static bool _modRemoved;
 
@@ -55,210 +54,9 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	}
 
 	/// <summary>
-	/// Temporarily suspends all pickup and haul jobs to prevent save conflicts
-	/// </summary>
-	public static void SuspendPickupAndHaulJobs()
-	{
-		lock (_jobLock)
-		{
-			if (_isSaving)
-			{
-				Log.Warning("Save operation already in progress, skipping job suspension");
-				return;
-			}
-
-			_isSaving = true;
-			_suspendedJobs.Clear();
-
-			try
-			{
-				// Get all maps and their pawns - with null checks
-				var maps = Find.Maps;
-				if (maps == null || maps.Count == 0)
-				{
-					Log.Warning("No maps found during job suspension");
-					return;
-				}
-
-				foreach (var map in maps)
-				{
-					if (map?.mapPawns == null)
-					{
-						Log.Warning("Map has null mapPawns during job suspension");
-						continue;
-					}
-
-					var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
-					if (pawns == null || pawns.Count == 0)
-						continue;
-
-					foreach (var pawn in pawns)
-					{
-						if (pawn?.jobs == null)
-							continue;
-
-						// Store the current job reference to avoid race conditions
-						var currentJob = pawn.jobs.curJob;
-						if (currentJob == null)
-							continue;
-
-						// Check if this is a pickup and haul job
-						if (IsPickupAndHaulJob(currentJob))
-						{
-							// Create job info with additional null checks
-							var jobQueue = pawn.jobs.jobQueue?.ToList() ?? [];
-
-							var jobInfo = new JobInfo(pawn, currentJob, jobQueue, currentJob.def);
-
-							_suspendedJobs.Add(jobInfo);
-
-							// End the current job safely
-							var curDriver = pawn.jobs.curDriver;
-							curDriver?.EndJobWith(JobCondition.InterruptForced);
-
-							// Clear the job queue safely
-							pawn.jobs.jobQueue?.Clear(pawn, true);
-
-							Log.Message($"Suspended job for {pawn.NameShortColored}: {currentJob.def?.defName ?? "Unknown"}");
-						}
-					}
-				}
-
-				Log.Message($"Suspended {_suspendedJobs.Count} pickup and haul jobs for save operation");
-			}
-			catch (Exception ex)
-			{
-				Log.Error($"Error during job suspension: {ex.Message}");
-				// Don't reset _isSaving here - it should be handled by the restoration method
-				// Emergency cleanup if needed
-				EmergencyCleanup();
-				throw; // Re-throw to let the caller handle the error
-			}
-		}
-	}
-
-	/// <summary>
-	/// Restores previously suspended pickup and haul jobs after save completion
-	/// </summary>
-	public static void RestorePickupAndHaulJobs()
-	{
-		lock (_jobLock)
-		{
-			if (!_isSaving)
-			{
-				Log.Warning("No save operation in progress, skipping job restoration");
-				return;
-			}
-
-			try
-			{
-				var restoredCount = 0;
-				var failedCount = 0;
-
-				foreach (var jobInfo in _suspendedJobs)
-				{
-					if (jobInfo?.Pawn?.Spawned == true && jobInfo.Pawn.Map != null && jobInfo.Pawn.jobs != null)
-					{
-						// Restore the job queue safely
-						if (jobInfo.Pawn.jobs.jobQueue != null)
-						{
-							jobInfo.Pawn.jobs.jobQueue.Clear(jobInfo.Pawn, true);
-
-							if (jobInfo.JobQueue != null)
-								foreach (var queuedJob in jobInfo.JobQueue)
-									if (queuedJob?.job != null)
-										jobInfo.Pawn.jobs.jobQueue.EnqueueLast(queuedJob.job, queuedJob.tag);
-						}
-
-						// Try to restart the main job if the pawn is available
-						if (jobInfo.Pawn.jobs.curJob == null &&
-							jobInfo.Job?.targetA != null &&
-							jobInfo.JobDef != null &&
-							jobInfo.Pawn.CanReserveAndReach(jobInfo.Job.targetA, PathEndMode.ClosestTouch, Danger.Deadly))
-						{
-							try
-							{
-								var newJob = JobMaker.MakeJob(jobInfo.JobDef, jobInfo.Job.targetA, jobInfo.Job.targetB);
-
-								// Copy job properties safely
-								if (jobInfo.Job.targetQueueA != null)
-									newJob.targetQueueA = [.. jobInfo.Job.targetQueueA];
-								if (jobInfo.Job.targetQueueB != null)
-									newJob.targetQueueB = [.. jobInfo.Job.targetQueueB];
-								if (jobInfo.Job.countQueue != null)
-									newJob.countQueue = [.. jobInfo.Job.countQueue];
-
-								newJob.count = jobInfo.Job.count;
-								newJob.haulMode = jobInfo.Job.haulMode;
-
-								if (newJob.TryMakePreToilReservations(jobInfo.Pawn, false))
-								{
-									jobInfo.Pawn.jobs.StartJob(newJob, JobCondition.InterruptForced);
-									Log.Message($"Restored job for {jobInfo.Pawn.NameShortColored}: {jobInfo.JobDef.defName ?? "Unknown"}");
-									restoredCount++;
-								}
-								else
-								{
-									Log.Warning($"Failed to restore job for {jobInfo.Pawn.NameShortColored}: reservation failed");
-									failedCount++;
-								}
-							}
-							catch (Exception ex)
-							{
-								Log.Warning($"Error creating new job for {jobInfo.Pawn.NameShortColored}: {ex.Message}");
-								failedCount++;
-							}
-						}
-						else
-						{
-							Log.Message($"Could not restore job for {jobInfo.Pawn.NameShortColored}: pawn unavailable or already has job");
-							failedCount++;
-						}
-					}
-					else
-					{
-						Log.Warning($"Could not restore job: pawn no longer spawned or valid");
-						failedCount++;
-					}
-				}
-
-				Log.Message($"Job restoration complete: {restoredCount} restored, {failedCount} failed");
-			}
-			catch (Exception ex)
-			{
-				Log.Error($"Error during job restoration: {ex.Message}");
-			}
-			finally
-			{
-				_suspendedJobs.Clear();
-				_isSaving = false;
-			}
-		}
-	}
-
-	/// <summary>
-	/// Checks if a job is a pickup and haul job that should be suspended during save
-	/// </summary>
-	private static bool IsPickupAndHaulJob(Job job) => (job?.def?.defName) != null && job.def.defName is "HaulToInventory" or
-			   "UnloadYourHauledInventory";
-
-	/// <summary>
 	/// Provides a public method to check if a save operation is in progress
 	/// </summary>
 	public static bool IsSaveInProgress() => _isSaving;
-
-	/// <summary>
-	/// Emergency cleanup method to reset the save state if something goes wrong
-	/// </summary>
-	public static void EmergencyCleanup()
-	{
-		lock (_jobLock)
-		{
-			Log.Warning("Performing emergency cleanup of save state");
-			_suspendedJobs.Clear();
-			_isSaving = false;
-		}
-	}
 
 	/// <summary>
 	/// Marks the mod as removed to prevent save data corruption
@@ -269,7 +67,6 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 		{
 			Log.Warning("Mod marked as removed, preventing save data corruption");
 			_modRemoved = true;
-			_suspendedJobs.Clear();
 			_isSaving = false;
 		}
 	}
@@ -339,15 +136,4 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 			}
 		}
 	}
-}
-
-/// <summary>
-/// Helper class to store job information during suspension
-/// </summary>
-public class JobInfo(Pawn pawn, Job job, List<QueuedJob> jobQueue, JobDef jobDef)
-{
-	public Pawn Pawn { get; set; } = pawn;
-	public Job Job { get; set; } = job;
-	public List<QueuedJob> JobQueue { get; } = jobQueue;
-	public JobDef JobDef { get; set; } = jobDef;
 }

@@ -56,7 +56,6 @@ public static class JobQueueManager
 			job.targetA = target;
 			job.countQueue.Add(count);
 			job.targetQueueB.Add(storeTarget);
-			job.targetB = storeTarget;
 
 			if (!ValidateJobQueues(job, pawn))
 			{
@@ -97,7 +96,7 @@ public static class JobQueueManager
 	/// <summary>
 	/// Validates job queue synchronization
 	/// </summary>
-	public static bool ValidateJobQueues(Job job, Pawn pawn)
+	private static bool ValidateJobQueues(Job job, Pawn pawn)
 	{
 		if (job == null)
 			return false;

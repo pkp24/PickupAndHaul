@@ -27,28 +27,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Let the allocation phase handle sophisticated storage finding and capacity management
 		if (thing.OkThingToHaul(pawn))
 		{
-			if (!StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out var _, out var haulDestination, false))
+			if (!StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out var _, out var _, false))
 				return false;
 			// Check if pawn can physically carry the item and if storage has meaningful capacity
 			var currentMass = MassUtility.GearAndInventoryMass(pawn);
 			var capacity = MassUtility.Capacity(pawn);
 			var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
 
-			if (capacity <= 0 || actualCarriableAmount <= 0)
-				return false;
-
-			// Check if storage has any meaningful capacity for this item
-			// This prevents the HasJobOnThing/JobOnThing synchronization issue
-			if (haulDestination is Thing destinationThing)
-			{
-				var storageCapacity = 0;
-				var thingOwner = destinationThing.TryGetInnerInteractableThingOwner();
-				if (thingOwner != null)
-					storageCapacity = thingOwner.GetCountCanAccept(thing);
-
-				return storageCapacity > 0;
-			}
-			return true;
+			return capacity > 0 && actualCarriableAmount > 0;
 		}
 
 		return false;
@@ -80,27 +66,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				// First, check if the pawn can carry this item at all
 				actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
 				if (actualCarriableAmount <= 0 || job.targetQueueA.Count >= 20)
-				{
-					Log.Message($"{pawn} reached limit for particular job.");
 					break;
-				}
 				if (TryFindBestBetterStorageFor(pawn, thing, job, ref currentMass, actualCarriableAmount))
 					continue;
-			} while ((thing = GetClosestAndRemove(thing, pawn)) != null);
+			} while ((thing = GetClosestSimilarAndRemove(thing, pawn)) != null);
 
 			Log.Message($"Remaining {WorkCache.Cache.Count} items to haul");
 			return job;
 		}
 	}
 
-	private static Thing GetClosestAndRemove(Thing thing, Pawn pawn)
+	private static Thing GetClosestSimilarAndRemove(Thing thing, Pawn pawn)
 	{
 		if (WorkCache.Cache == null || !WorkCache.Cache.Any())
 		{
 			Log.Message($"searchSet is null or empty");
 			return null;
 		}
-		var maxDistanceSquared = 1f;
+		var maxDistanceSquared = 50f;
 		for (var i = 0; i < WorkCache.Cache.Count; i++)
 		{
 			var nextThing = WorkCache.Cache[i];
@@ -110,12 +93,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				WorkCache.Cache.RemoveAt(i--);
 				continue;
 			}
-			if (!nextThing.CanStackWith(thing))
+
+			if (!thing.CanStackWith(nextThing))
 				continue;
 
 			var distanceSquared = (thing.Position - nextThing.Position).LengthHorizontalSquared;
 			while (distanceSquared > maxDistanceSquared)
-				maxDistanceSquared += 1f;
+				return null;
 
 			if (!pawn.Map.reachability.CanReach(thing.Position, nextThing, PathEndMode.ClosestTouch, TraverseParms.For(pawn)))
 				continue;
@@ -143,7 +127,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 
 			// Get the target from the storeCell, not from the queue
-			//var target = nextThing != null ? new LocalTargetInfo(nextThing) : new LocalTargetInfo(targetCell);
 			if (!JobQueueManager.AddItemsToJob(pawn, job, nextThing, count, targetCell, haulDestination))
 			{
 				Log.Error($"Failed to add items to job queues for {pawn}!");

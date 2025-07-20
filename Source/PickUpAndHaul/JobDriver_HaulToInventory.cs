@@ -34,43 +34,24 @@ public class JobDriver_HaulToInventory : JobDriver
 				return false;
 			}
 
-			Log.Message($"{pawn} job reservations targetA: {job.targetA.ToStringSafe()} targetB: {job.targetB.ToStringSafe()}");
-
 			// Reserve as many as possible from queues
 			if (job.targetQueueA != null && job.targetQueueA.Count > 0)
 				pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
 			else
+			{
 				Log.Warning($"targetQueueA is null or empty for {pawn}");
+				return false;
+			}
 
 			if (job.targetQueueB != null && job.targetQueueB.Count > 0)
 				pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
 			else
+			{
 				Log.Warning($"targetQueueB is null or empty for {pawn}");
-
-			bool targetAReserved;
-			if (job.targetQueueA != null && job.targetQueueA.Count > 0)
-				targetAReserved = pawn.Reserve(job.targetQueueA[0], job);
-			else
-			{
-				Log.Error($"Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
-				Log.Error($"Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
-
 				return false;
 			}
 
-			bool targetBReserved;
-			if (job.targetB != null)
-				targetBReserved = pawn.Reserve(job.targetB, job);
-			else
-			{
-				Log.Error($"targetB is null for {pawn}");
-				return false;
-			}
-
-			var result = targetAReserved && targetBReserved;
-			Log.Message($"Reservation result: {result} (targetA: {targetAReserved}, targetB: {targetBReserved})");
-
-			return result;
+			return true;
 		}
 	}
 
@@ -109,10 +90,8 @@ public class JobDriver_HaulToInventory : JobDriver
 		yield return CheckIfPawnShouldLoadInventory(pawn);
 		yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty());
 		yield return UnloadInventory(pawn);
-
 		//maintain cell reservations on the trip back
-		yield return TargetB.HasThing ? Toils_Goto.GotoThing(TargetIndex.B, PathEndMode.ClosestTouch)
-				: Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
+		yield return Toils_Goto.GotoCell(TargetIndex.B, PathEndMode.ClosestTouch);
 	}
 
 	private Toil CheckIfPawnShouldLoadInventory(Pawn pawn) => new()
@@ -133,18 +112,17 @@ public class JobDriver_HaulToInventory : JobDriver
 			// Clean up nulls at a safe point before accessing the collection
 			takenToInventory.CleanupNulls();
 
-			var actor = pawn;
-			var thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
-			Toils_Haul.ErrorCheckForCarry(actor, thing);
+			var thing = TargetThingA;
+			Toils_Haul.ErrorCheckForCarry(pawn, thing);
 
 			//get max we can pick up
-			var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
+			var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(pawn, thing));
 
 			if (countToPickUp > 0)
 			{
 				var splitThing = thing.SplitOff(countToPickUp);
 				var shouldMerge = takenToInventory.HashSet.Any(x => x.def == thing.def);
-				actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
+				pawn.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
 				takenToInventory.RegisterHauledItem(splitThing);
 			}
 		}
@@ -209,7 +187,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 			var actor = toil.actor;
 			var curJob = actor.jobs.curJob;
-			var nextThing = curJob.targetA.Thing;
+			var nextThing = TargetThingA;
 
 			if (pawn.IsOverAllowedGearCapacity())
 			{

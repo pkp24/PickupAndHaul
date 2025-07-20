@@ -44,11 +44,6 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.ExposeSmallComponents)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeSmallComponents_Prefix)));
 
-		// Add patches to handle save/load events for job suspension
-		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.ExposeData)),
-			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Prefix)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeData_Postfix)));
-
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
 
@@ -272,47 +267,5 @@ internal static class HarmonyPatches
 		var componentType = component.GetType();
 		return componentType == typeof(PickupAndHaulSaveLoadLogger) ||
 			   componentType.Namespace?.StartsWith("PickUpAndHaul", StringComparison.InvariantCultureIgnoreCase) == true;
-	}
-
-	/// <summary>
-	/// Suspends pickup and haul jobs before saving
-	/// </summary>
-	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
-	private static void Game_ExposeData_Prefix(Game __instance)
-	{
-		try
-		{
-			// Only suspend jobs during saving, not loading
-			if (Scribe.mode == LoadSaveMode.Saving)
-			{
-				Log.Message("Save operation starting - suspending pickup and haul jobs");
-				PickupAndHaulSaveLoadLogger.SuspendPickupAndHaulJobs();
-			}
-		}
-		catch (Exception ex)
-		{
-			Log.Error($"Game_ExposeData_Prefix: {ex.Message}");
-		}
-	}
-
-	/// <summary>
-	/// Restores pickup and haul jobs after saving is complete
-	/// </summary>
-	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
-	private static void Game_ExposeData_Postfix(Game __instance)
-	{
-		try
-		{
-			// Only restore jobs after saving is complete
-			if (Scribe.mode == LoadSaveMode.Saving)
-			{
-				Log.Message("Save operation complete - restoring pickup and haul jobs");
-				PickupAndHaulSaveLoadLogger.RestorePickupAndHaulJobs();
-			}
-		}
-		catch (Exception ex)
-		{
-			Log.Error($"Game_ExposeData_Postfix: {ex.Message}");
-		}
 	}
 }
