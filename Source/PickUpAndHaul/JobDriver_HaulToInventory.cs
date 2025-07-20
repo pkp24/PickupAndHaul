@@ -3,6 +3,8 @@
 namespace PickUpAndHaul;
 public class JobDriver_HaulToInventory : JobDriver
 {
+	private readonly object _lockObject = new();
+
 	public override void ExposeData()
 	{
 		// Don't save any data for this job driver to prevent save corruption
@@ -23,57 +25,53 @@ public class JobDriver_HaulToInventory : JobDriver
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
-		// Check if save operation is in progress
-		if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+		lock (_lockObject)
 		{
-			Log.Message($"Skipping HaulToInventory job reservations during save operation for {pawn}");
-			return false;
+			// Check if save operation is in progress
+			if (PickupAndHaulSaveLoadLogger.IsSaveInProgress())
+			{
+				Log.Message($"Skipping HaulToInventory job reservations during save operation for {pawn}");
+				return false;
+			}
+
+			Log.Message($"{pawn} job reservations targetA: {job.targetA.ToStringSafe()} targetB: {job.targetB.ToStringSafe()}");
+
+			// Reserve as many as possible from queues
+			if (job.targetQueueA != null && job.targetQueueA.Count > 0)
+				pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
+			else
+				Log.Warning($"targetQueueA is null or empty for {pawn}");
+
+			if (job.targetQueueB != null && job.targetQueueB.Count > 0)
+				pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
+			else
+				Log.Warning($"targetQueueB is null or empty for {pawn}");
+
+			bool targetAReserved;
+			if (job.targetQueueA != null && job.targetQueueA.Count > 0)
+				targetAReserved = pawn.Reserve(job.targetQueueA[0], job);
+			else
+			{
+				Log.Error($"Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
+				Log.Error($"Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
+
+				return false;
+			}
+
+			bool targetBReserved;
+			if (job.targetB != null)
+				targetBReserved = pawn.Reserve(job.targetB, job);
+			else
+			{
+				Log.Error($"targetB is null for {pawn}");
+				return false;
+			}
+
+			var result = targetAReserved && targetBReserved;
+			Log.Message($"Reservation result: {result} (targetA: {targetAReserved}, targetB: {targetBReserved})");
+
+			return result;
 		}
-
-		Log.Message($"{pawn} job reservations targetA: {job.targetA.ToStringSafe()} targetB: {job.targetB.ToStringSafe()}");
-
-		// Validate queue synchronization
-		if (!JobQueueManager.ValidateJobQueues(job, pawn))
-		{
-			Log.Error($"Job failed validation for {pawn} - returning false");
-			return false;
-		}
-
-		// Reserve as many as possible from queues
-		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
-			pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
-		else
-			Log.Warning($"targetQueueA is null or empty for {pawn}");
-
-		if (job.targetQueueB != null && job.targetQueueB.Count > 0)
-			pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
-		else
-			Log.Warning($"targetQueueB is null or empty for {pawn}");
-
-		bool targetAReserved;
-		if (job.targetQueueA != null && job.targetQueueA.Count > 0)
-			targetAReserved = pawn.Reserve(job.targetQueueA[0], job);
-		else
-		{
-			Log.Error($"Cannot reserve targetQueueA[0] - queue is null or empty for {pawn}");
-			Log.Error($"Job state - targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
-
-			return false;
-		}
-
-		bool targetBReserved;
-		if (job.targetB != null)
-			targetBReserved = pawn.Reserve(job.targetB, job);
-		else
-		{
-			Log.Error($"targetB is null for {pawn}");
-			return false;
-		}
-
-		var result = targetAReserved && targetBReserved;
-		Log.Message($"Reservation result: {result} (targetA: {targetAReserved}, targetB: {targetBReserved})");
-
-		return result;
 	}
 
 	//get next, goto, take, check for more. Branches off to "all over the place"
@@ -138,10 +136,6 @@ public class JobDriver_HaulToInventory : JobDriver
 			var actor = pawn;
 			var thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
 			Toils_Haul.ErrorCheckForCarry(actor, thing);
-
-			if (takenToInventory.HashSet.Count == 0 && actor.inventory.GetDirectlyHeldThings().Count != 0)
-				foreach (var item in actor.inventory.GetDirectlyHeldThings())
-					takenToInventory.RegisterHauledItem(item);
 
 			//get max we can pick up
 			var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));

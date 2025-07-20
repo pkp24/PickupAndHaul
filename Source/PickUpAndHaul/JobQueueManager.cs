@@ -11,7 +11,6 @@ public static class JobQueueManager
 	/// </summary>
 	public static bool AddItemsToJob(Pawn pawn, Job job, Thing thing, int count, IntVec3 targetCell, IHaulDestination haulDestination)
 	{
-		Log.Message($"Pawn: {pawn} (Before AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 		job.targetQueueA ??= [];
 		job.countQueue ??= [];
 		job.targetQueueB ??= [];
@@ -58,9 +57,6 @@ public static class JobQueueManager
 			job.countQueue.Add(count);
 			job.targetQueueB.Add(storeTarget);
 			job.targetB = storeTarget;
-
-			if (Settings.EnableDebugLogging)
-				Log.Message($"Pawn: {pawn} (After AddItemsToJob) targetQueueA: {job.targetQueueA?.Count ?? 0}, targetQueueB: {job.targetQueueB?.Count ?? 0}, countQueue: {job.countQueue?.Count ?? 0}");
 
 			if (!ValidateJobQueues(job, pawn))
 			{

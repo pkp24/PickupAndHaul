@@ -135,7 +135,7 @@ internal static class HarmonyPatches
 	private static bool IsModSpecificJobDriver(JobDriver jobDriver) => jobDriver != null && (jobDriver.GetType() == typeof(JobDriver_HaulToInventory) ||
 			   jobDriver.GetType() == typeof(JobDriver_UnloadYourHauledInventory));
 
-	public static void CacheManagement_Postfix()
+	private static void CacheManagement_Postfix()
 	{
 		try
 		{
@@ -155,23 +155,29 @@ internal static class HarmonyPatches
 		}
 	}
 
-	public static bool MaxAllowedToPickUpPrefix(Pawn pawn, ref int __result)
+	private static bool MaxAllowedToPickUpPrefix(Pawn pawn, ref int __result)
 	{
 		__result = int.MaxValue;
 		return pawn.IsQuestLodger();
 	}
 
-	public static bool CanBeMadeToDropStuff(Pawn pawn, ref bool __result)
+	private static bool CanBeMadeToDropStuff(Pawn pawn, ref bool __result)
 	{
 		__result = !pawn.IsQuestLodger();
 		return false;
 	}
 
 	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
-	public static bool SkipCorpses_Prefix(WorkGiver_Haul __instance, ref bool __result, Pawn pawn)
+	private static bool SkipCorpses_Prefix(WorkGiver_Haul __instance, ref bool __result, Pawn pawn)
 	{
 		if (__instance is not WorkGiver_HaulCorpses)
 			return true;
+
+		var takenToInventory = pawn.GetComp<CompHauledToInventory>();
+		if (takenToInventory.HashSet.Count == 0 && pawn.inventory.GetDirectlyHeldThings().Count != 0)
+			foreach (var item in pawn.inventory.GetDirectlyHeldThings())
+				takenToInventory.RegisterHauledItem(item);
+
 		__result = true;
 		return false;
 	}
@@ -179,7 +185,7 @@ internal static class HarmonyPatches
 	/// <summary>
 	/// For animal hauling
 	/// </summary>
-	public static IEnumerable<CodeInstruction> JobGiver_Haul_TryGiveJob_Transpiler(IEnumerable<CodeInstruction> instructions)
+	private static IEnumerable<CodeInstruction> JobGiver_Haul_TryGiveJob_Transpiler(IEnumerable<CodeInstruction> instructions)
 	{
 		var originalMethod = AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.HaulToStorageJob), [typeof(Pawn), typeof(Thing), typeof(bool)]);
 		var replacementMethod = AccessTools.Method(typeof(HarmonyPatches), nameof(HaulToStorageJobByRace));
@@ -189,13 +195,13 @@ internal static class HarmonyPatches
 		}
 	}
 
-	public static Job HaulToStorageJobByRace(Pawn p, Thing t, bool forced) => Settings.IsAllowedRace(p.RaceProps) ? HaulToInventoryJob(p, t, forced) : HaulAIUtility.HaulToStorageJob(p, t, forced);
+	private static Job HaulToStorageJobByRace(Pawn p, Thing t, bool forced) => Settings.IsAllowedRace(p.RaceProps) ? HaulToInventoryJob(p, t, forced) : HaulAIUtility.HaulToStorageJob(p, t, forced);
 	private static Func<Pawn, Thing, bool, Job> HaulToInventoryJob => _haulToInventoryJob ??= new(((WorkGiver_Scanner)DefDatabase<WorkGiverDef>.GetNamed("HaulToInventory").Worker).JobOnThing);
 	private static Func<Pawn, Thing, bool, Job> _haulToInventoryJob;
 
 	//ITab_Pawn_Gear
 	//private void DrawThingRow(ref float y, float width, Thing thing, bool inventory = false)
-	public static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions, MethodBase method)
+	private static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions, MethodBase method)
 	{
 		var ColorWhite = AccessTools.PropertyGetter(typeof(Color), nameof(Color.white));
 

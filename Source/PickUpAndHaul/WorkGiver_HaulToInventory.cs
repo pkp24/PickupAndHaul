@@ -17,7 +17,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
 	{
-		Task.Run(() => WorkCache.Instance.CalculatePotentialWork(pawn));
+		WorkCache.Instance.CalculatePotentialWork(pawn);
 		return WorkCache.Cache;
 	}
 
@@ -27,7 +27,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Let the allocation phase handle sophisticated storage finding and capacity management
 		if (thing.OkThingToHaul(pawn))
 		{
-			if (!StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out var foundCell, out var haulDestination, false))
+			if (!StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out var _, out var haulDestination, false))
 				return false;
 			// Check if pawn can physically carry the item and if storage has meaningful capacity
 			var currentMass = MassUtility.GearAndInventoryMass(pawn);
@@ -39,15 +39,16 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			// Check if storage has any meaningful capacity for this item
 			// This prevents the HasJobOnThing/JobOnThing synchronization issue
-			var storageCapacity = StorageCapacityCache.CapacityAt(thing, foundCell, pawn.Map);
 			if (haulDestination is Thing destinationThing)
 			{
+				var storageCapacity = 0;
 				var thingOwner = destinationThing.TryGetInnerInteractableThingOwner();
 				if (thingOwner != null)
 					storageCapacity = thingOwner.GetCountCanAccept(thing);
-			}
 
-			return storageCapacity > 0;
+				return storageCapacity > 0;
+			}
+			return true;
 		}
 
 		return false;
@@ -99,7 +100,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			Log.Message($"searchSet is null or empty");
 			return null;
 		}
-		var maxDistanceSquared = 10f;
+		var maxDistanceSquared = 1f;
 		for (var i = 0; i < WorkCache.Cache.Count; i++)
 		{
 			var nextThing = WorkCache.Cache[i];
@@ -109,14 +110,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				WorkCache.Cache.RemoveAt(i--);
 				continue;
 			}
+			if (!nextThing.CanStackWith(thing))
+				continue;
 
 			var distanceSquared = (thing.Position - nextThing.Position).LengthHorizontalSquared;
 			while (distanceSquared > maxDistanceSquared)
-				maxDistanceSquared += 10f;
+				maxDistanceSquared += 1f;
 
 			if (!pawn.Map.reachability.CanReach(thing.Position, nextThing, PathEndMode.ClosestTouch, TraverseParms.For(pawn)))
 				continue;
-
 			WorkCache.Cache.RemoveAt(i);
 			return nextThing;
 		}
