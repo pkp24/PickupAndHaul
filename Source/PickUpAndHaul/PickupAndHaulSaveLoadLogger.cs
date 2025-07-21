@@ -11,28 +11,16 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 
 	public override void ExposeData()
 	{
-		// NEVER save any data for this component
-		// This ensures the component is never written to save files
-		// and prevents any issues when the mod is removed
-
-		if (Scribe.mode == LoadSaveMode.Saving)
+		if (Scribe.mode is LoadSaveMode.Saving or LoadSaveMode.LoadingVars)
 		{
-			Log.Message("Skipping save of GameComponent data");
-			return;
-		}
-
-		if (Scribe.mode == LoadSaveMode.LoadingVars)
-		{
-			Log.Message("Skipping load of GameComponent data");
+			Log.Message($"Skipping {Enum.GetName(typeof(LoadSaveMode), Scribe.mode)} for GameComponent");
 			return;
 		}
 
 		// Only perform operations during normal gameplay, not during save/load
 		if (Scribe.mode == LoadSaveMode.Inactive)
 		{
-			// Perform safety check
 			PerformSafetyCheck();
-
 			// Don't save any mod-specific data if the mod is being removed
 			if (_modRemoved)
 				return;
@@ -63,7 +51,7 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 		}
 		catch (Exception ex)
 		{
-			Log.Warning($"Error checking mod active status: {ex.Message}");
+			Log.Error(ex.ToString());
 			return false;
 		}
 	}

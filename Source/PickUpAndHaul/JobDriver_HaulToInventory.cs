@@ -1,48 +1,33 @@
 ﻿namespace PickUpAndHaul;
 public class JobDriver_HaulToInventory : JobDriver
 {
-	private readonly object _lockObject = new();
-
 	public override void ExposeData()
 	{
-		// Don't save any data for this job driver to prevent save corruption
-		// when the mod is removed
-		if (Scribe.mode == LoadSaveMode.Saving)
+		if (Scribe.mode is LoadSaveMode.Saving or LoadSaveMode.LoadingVars)
 		{
-			Log.Message("Skipping save data for HaulToInventory job driver");
-			return;
-		}
-
-		// Only load data if we're in loading mode and the mod is active
-		if (Scribe.mode == LoadSaveMode.LoadingVars)
-		{
-			Log.Message("Skipping load data for HaulToInventory job driver");
+			Log.Message($"Skipping {Enum.GetName(typeof(LoadSaveMode), Scribe.mode)} for job driver");
 			return;
 		}
 	}
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
-		lock (_lockObject)
+		if (job.targetQueueA.Count > 0)
+			pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
+		else
 		{
-			// Reserve as many as possible from queues
-			if (job.targetQueueA != null && job.targetQueueA.Count > 0)
-				pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
-			else
-			{
-				Log.Warning($"targetQueueA is null or empty for {pawn}");
-				return false;
-			}
-			return true;
+			Log.Warning($"targetQueueA is null or empty for {pawn}");
+			return false;
 		}
+
+		return true;
 	}
 
 	//get next, goto, take, check for more. Branches off to "all over the place"
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		var nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A); //also does count
+		var nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A);
 		yield return nextTarget;
-		yield return new Toil() { initAction = pawn.UnloadInventory };
 		var gotoThing = Toils_Goto.GotoCell(TargetIndex.A, PathEndMode.ClosestTouch);
 		gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
 		yield return gotoThing;
@@ -54,24 +39,15 @@ public class JobDriver_HaulToInventory : JobDriver
 	{
 		initAction = () =>
 		{
-			var takenToInventory = pawn.GetComp<CompHauledToInventory>();
-
-			if (takenToInventory == null)
-				return;
-
-			var thing = TargetThingA;
-			Toils_Haul.ErrorCheckForCarry(pawn, thing);
+			Toils_Haul.ErrorCheckForCarry(pawn, TargetThingA);
 
 			//get max we can pick up
-			var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(pawn, thing));
+			var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(pawn, TargetThingA));
 
 			if (countToPickUp > 0)
-			{
-				var splitThing = thing.SplitOff(countToPickUp);
-				var shouldMerge = takenToInventory.HashSet.Any(x => x.def == thing.def);
-				pawn.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
-				takenToInventory.RegisterHauledItem(splitThing);
-			}
+				pawn.inventory.GetDirectlyHeldThings().TryAdd(TargetThingA.SplitOff(countToPickUp));
+			else
+				pawn.UnloadInventory();
 		}
 	};
 }

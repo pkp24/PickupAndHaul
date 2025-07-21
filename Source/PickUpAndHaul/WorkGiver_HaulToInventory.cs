@@ -16,7 +16,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
 	{
 		WorkCache.Instance.CalculatePotentialWork(pawn);
-		return WorkCache.Cache;
+		return WorkCache.Cache.Select(x => x.Thing);
 	}
 
 	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
@@ -36,45 +36,47 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//pick up stuff until you can't anymore,
 	public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
-		lock (_lockObject)
+		try
 		{
-			if (!thing.OkThingToHaul(pawn))
+			lock (_lockObject)
 			{
-				Log.Error($"{pawn} cannot haul {thing}");
-				return null;
+				if (!thing.OkThingToHaul(pawn))
+				{
+					Log.Error($"{pawn} cannot haul {thing}");
+					return null;
+				}
+
+				var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory);
+				var currentMass = MassUtility.GearAndInventoryMass(pawn);
+				do
+				{
+					thing = GetClosestSimilarAndRemove(thing, pawn, job, ref currentMass);
+				} while (thing != null);
+
+				//Log.Message($"Remaining {WorkCache.Cache.Count} items to haul");
+				return job;
 			}
-
-			var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory);
-			var capacity = MassUtility.Capacity(pawn);
-			var currentMass = MassUtility.GearAndInventoryMass(pawn);
-			int actualCarriableAmount;
-			do
-			{
-				actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
-				if (actualCarriableAmount <= 0)
-					break;
-				if (TryFindBestBetterStorageFor(pawn, thing, job, ref currentMass, actualCarriableAmount))
-					continue;
-			} while ((thing = GetClosestSimilarAndRemove(thing, pawn)) != null);
-
-			Log.Message($"Remaining {WorkCache.Cache.Count} items to haul");
-			return job;
+		}
+		catch (Exception ex)
+		{
+			Log.Error(ex.ToString());
+			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced); //fallback
 		}
 	}
 
-	private static Thing GetClosestSimilarAndRemove(Thing thing, Pawn pawn)
+	private static Thing GetClosestSimilarAndRemove(Thing thing, Pawn pawn, Job job, ref float currentMass)
 	{
-		if (WorkCache.Cache == null || !WorkCache.Cache.Any())
-		{
-			Log.Message($"searchSet is null or empty");
+		if (!TryEnqueue(thing, pawn, job, ref currentMass))
 			return null;
-		}
-		var maxDistanceSquared = 50f;
+
+		if (WorkCache.Cache == null || !WorkCache.Cache.Any())
+			return null;
+		var maxDistanceSquared = 144f;
 		for (var i = 0; i < WorkCache.Cache.Count; i++)
 		{
-			var nextThing = WorkCache.Cache[i];
+			var nextThing = WorkCache.Cache[i].Thing;
 
-			if (!nextThing.Spawned)
+			if (!nextThing.Spawned || nextThing.Destroyed)
 			{
 				WorkCache.Cache.RemoveAt(i--);
 				continue;
@@ -96,31 +98,29 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return null;
 	}
 
-	private static bool TryFindBestBetterStorageFor(Pawn pawn, Thing nextThing, Job job, ref float currentMass, int actualCarriableAmount)
+	private static bool TryEnqueue(Thing thing, Pawn pawn, Job job, ref float currentMass)
 	{
-		var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
+		var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, MassUtility.Capacity(pawn));
+		if (actualCarriableAmount <= 0)
+			return false;
 
-		if (StoreUtility.TryFindBestBetterStorageFor(nextThing, pawn, pawn.Map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, true))
+		var count = Math.Min(thing.stackCount, actualCarriableAmount);
+
+		if (count <= 0)
 		{
-			// Calculate the effective amount considering storage capacity, carriable amount, and item stack size
-			var count = Math.Min(nextThing.stackCount, actualCarriableAmount);
-
-			if (count <= 0)
-			{
-				Log.Message($"Final count is {count}, cannot allocate {nextThing}");
-				return false;
-			}
-
-			if (!JobQueueManager.AddItemsToJob(job, nextThing, count, targetCell, haulDestination))
-			{
-				Log.Error($"Failed to add items to job queues for {pawn}!");
-				return false;
-			}
-			currentMass += nextThing.GetStatValue(StatDefOf.Mass) * count;
-			return true;
+			Log.Message($"Final count is {count}, cannot allocate {thing}");
+			return false;
 		}
 
-		return false;
+		job.targetQueueA ??= [];
+		job.countQueue ??= [];
+
+		job.targetQueueA.Add(new LocalTargetInfo(thing));
+		job.countQueue.Add(count);
+
+		currentMass += thing.GetStatValue(StatDefOf.Mass) * count;
+
+		return true;
 	}
 
 	/// <summary>
@@ -130,8 +130,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		if (currentMass >= capacity)
 		{
-			if (Settings.EnableDebugLogging)
-				Log.Message($"Pawn at max allowed mass ({currentMass}/{capacity}), cannot carry more");
+			Log.Message($"Pawn at max allowed mass ({currentMass}/{capacity}), cannot carry more");
 			return 0;
 		}
 

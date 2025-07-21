@@ -3,7 +3,7 @@
 namespace PickUpAndHaul;
 internal static class Extensions
 {
-	private const float MAX_SAFE_CAPACITY = 0.9f;
+	private const float MAX_SAFE_CAPACITY = 0.8f; // safe threshold to start unload inventory; otherwise, mod will fallback to core game hauling.
 
 	public static bool IsOverAllowedGearCapacity(this Pawn pawn)
 	{
@@ -11,9 +11,6 @@ internal static class Extensions
 		var capacity = MassUtility.Capacity(pawn);
 		var ratio = totalMass / capacity;
 		var isOverCapacity = ratio >= MAX_SAFE_CAPACITY;
-
-		if (Settings.EnableDebugLogging && isOverCapacity)
-			Log.Message($"IsOverAllowedGearCapacity for {pawn} - mass: {totalMass}, capacity: {capacity}, ratio: {ratio:F2}");
 
 		return isOverCapacity;
 	}
@@ -27,21 +24,18 @@ internal static class Extensions
 
 	public static void UnloadInventory(this Pawn pawn)
 	{
-		var itemsTakenToInventory = pawn.GetComp<CompHauledToInventory>();
-		if (itemsTakenToInventory == null)
+		if (pawn.Faction != Faction.OfPlayerSilentFail || !Settings.IsAllowedRace(pawn.RaceProps) || pawn.inventory.GetDirectlyHeldThings().Count == 0)
 			return;
 
-		if (pawn.Faction != Faction.OfPlayerSilentFail
-			|| !Settings.IsAllowedRace(pawn.RaceProps)
-			|| itemsTakenToInventory.HashSet.Count == 0
-			|| pawn.inventory.innerContainer is not { } inventoryContainer
-			|| inventoryContainer.Count == 0)
-			return;
-
-		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
-		if (pawn.IsOverAllowedGearCapacity())
-			pawn.jobs.jobQueue.EnqueueFirst(job, JobTag.Misc);
+		if (pawn.IsOverAllowedGearCapacity() || pawn.InMentalState || pawn.IsInAnyStorage() || pawn.IsActivityDormant())
+			pawn.jobs.jobQueue.EnqueueFirst(JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn), JobTag.Misc);
 		else if (WorkCache.Cache.Count == 0)
-			pawn.jobs.jobQueue.EnqueueLast(job, JobTag.Misc);
+			pawn.jobs.jobQueue.EnqueueLast(JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn), JobTag.Misc);
 	}
+
+	public static bool IsModSpecificJob(this JobDef jobDef) => jobDef != null &&
+		  (jobDef.defName == "HaulToInventory" ||
+		   jobDef.defName == "UnloadYourHauledInventory" ||
+		   jobDef.driverClass == typeof(JobDriver_HaulToInventory) ||
+		   jobDef.driverClass == typeof(JobDriver_UnloadYourHauledInventory));
 }

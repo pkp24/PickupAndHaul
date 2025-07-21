@@ -1,3 +1,5 @@
+using PickUpAndHaul.Structs;
+
 namespace PickUpAndHaul.Cache;
 
 public class WorkCache : ICache
@@ -11,7 +13,7 @@ public class WorkCache : ICache
 
 	public static WorkCache Instance { get; } = new();
 
-	public static List<Thing> Cache { get; private set; } = [];
+	public static List<WorkCacheStorage> Cache { get; private set; } = [];
 
 	public void CalculatePotentialWork(Pawn pawn)
 	{
@@ -19,16 +21,17 @@ public class WorkCache : ICache
 		if (currentTick < _nextWorkCacheTick)
 			return;
 
-		var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
-		// Ensure items are sorted by distance from pawn to prioritize closest items
-		Comparer.RootCell = pawn.Position;
-		list.Sort(Comparer);
-		_nextWorkCacheTick = currentTick + list.Count + TICKS_DELAY;
 		lock (_lockObject)
-			Cache = list;
+		{
+			// Ensure items are sorted by priority and then by distance from pawn
+			Cache = [.. pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
+					.Select(thing => new WorkCacheStorage(StoreUtility.CurrentStoragePriorityOf(thing), thing))
+					.OrderByDescending(x => x.Priority)
+					.ThenBy((x) => (x.Thing.Position - pawn.Position).LengthHorizontalSquared)];
+			_nextWorkCacheTick = currentTick + Cache.Count + TICKS_DELAY;
+		}
 
-		if (Settings.EnableDebugLogging)
-			Log.Message($"CalculatePotentialWork at {pawn.Position} found {list.Count} items, first item: {list.FirstOrDefault()?.Position}");
+		Log.Message($"CalculatePotentialWork at {pawn.Position} found {Cache.Count} items");
 	}
 
 	public void ForceCleanup()
@@ -38,13 +41,4 @@ public class WorkCache : ICache
 	}
 
 	public string GetDebugInfo() => $"Number of items in cache: {Cache.Count}";
-
-	private static ThingPositionComparer Comparer { get; } = new();
-
-	private class ThingPositionComparer : IComparer<Thing>
-	{
-		public IntVec3 RootCell { get; set; }
-
-		public int Compare(Thing x, Thing y) => (x.Position - RootCell).LengthHorizontalSquared.CompareTo((y.Position - RootCell).LengthHorizontalSquared);
-	}
 }

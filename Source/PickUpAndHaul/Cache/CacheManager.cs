@@ -1,8 +1,5 @@
 namespace PickUpAndHaul.Cache;
 
-/// <summary>
-/// Manages cleanup of all caches in the mod to prevent memory leaks
-/// </summary>
 public static class CacheManager
 {
 	private static readonly ConcurrentBag<ICache> _registeredCaches = [];
@@ -10,88 +7,69 @@ public static class CacheManager
 	private static int _lastGameResetTick;
 	private static Map _lastMap;
 
-	/// <summary>
-	/// Registers a cache for automatic cleanup
-	/// </summary>
 	public static void RegisterCache(ICache cache)
 	{
 		if (cache != null && !_registeredCaches.Contains(cache))
 		{
 			_registeredCaches.Add(cache);
-			if (Settings.EnableDebugLogging)
-				Log.Message($"Registered cache: {cache.GetType().Name}");
+			Log.Message($"Registered cache: {cache.GetType().Name}");
 		}
 	}
 
-	/// <summary>
-	/// Performs cleanup of all registered caches
-	/// </summary>
-	private static void CleanupAllCaches(List<Map> maps)
+	public static void CheckForGameChanges()
 	{
-		var currentTick = Find.TickManager?.TicksGame ?? 0;
-		var cleanedCount = 0;
-
-		foreach (var cache in _registeredCaches)
-			cache.ForceCleanup();
-		cleanedCount++;
-
-		// Clean up rollback states
-		JobQueueManager.ClearJobQueues(maps);
-		cleanedCount++;
-
-		if (Settings.EnableDebugLogging && cleanedCount > 0)
-			Log.Message($"Cleaned {cleanedCount} caches at tick {currentTick}");
-	}
-
-	/// <summary>
-	/// Checks for map changes and triggers cleanup if needed
-	/// </summary>
-	public static void CheckForMapChange()
-	{
-		var currentTick = Find.TickManager?.TicksGame ?? 0;
-		var currentMap = Find.CurrentMap;
-
-		// Check if map has changed
-		if (currentMap != _lastMap)
+		try
 		{
-			if (_lastMap != null)
+			var currentTick = Find.TickManager?.TicksGame ?? 0;
+			if (currentTick % 60 != 0) // Values below 60 ticks heavily impact performance
+				return;
+			var currentMap = Find.CurrentMap;
+
+			if (currentMap != _lastMap) // Check if map has changed
 			{
-				if (Settings.EnableDebugLogging)
+				if (_lastMap != null)
+				{
 					Log.Message($"Map changed from {_lastMap} to {currentMap}, triggering cache cleanup");
-				Task.Run(() => CleanupAllCaches([_lastMap]));
+					GetDebugInfo();
+					Task.Run(() => CleanupAllCaches([_lastMap]));
+				}
 
+				_lastMap = currentMap;
+				_lastMapChangeTick = currentTick;
+				return;
 			}
-
-			_lastMap = currentMap;
-			_lastMapChangeTick = currentTick;
-		}
-	}
-
-	/// <summary>
-	/// Checks for game resets and triggers cleanup if needed
-	/// </summary>
-	public static void CheckForGameReset()
-	{
-		var currentTick = Find.TickManager?.TicksGame ?? 0;
-
-		// If tick counter has reset (new game or save loaded)
-		if (currentTick < _lastGameResetTick)
-		{
-			if (Settings.EnableDebugLogging)
+			else if (currentTick < _lastGameResetTick) // then game restared
 			{
 				Log.Message($"Game reset detected (tick {currentTick} < {_lastGameResetTick}), triggering cache cleanup");
 				GetDebugInfo();
+				Task.Run(() => CleanupAllCaches(Find.Maps));
+				_lastMap = null;
+				_lastGameResetTick = currentTick;
+				return;
 			}
-			Task.Run(() => CleanupAllCaches(Find.Maps));
-			_lastMap = null;
 		}
-
-		_lastGameResetTick = currentTick;
+		catch (Exception ex)
+		{
+			Log.Error(ex.ToString());
+		}
 	}
 
-	/// <summary>
-	/// Gets debug information about all registered caches
-	/// </summary>
+	private static void CleanupAllCaches(List<Map> maps)
+	{
+		foreach (var cache in _registeredCaches)
+			cache.ForceCleanup();
+
+		foreach (var (map, pawn, job) in from map in maps
+										 from pawn in map.mapPawns.FreeColonistsAndPrisonersSpawned
+										 from job in pawn.jobs.AllJobs().Where(t => t.def.IsModSpecificJob())
+										 select (map, pawn, job))
+		{
+			job.GetCachedDriverDirect.EndJobWith(JobCondition.QueuedNoLongerValid);
+			map.reservationManager.ReleaseClaimedBy(pawn, job);
+			Log.Message($"Canceled mod-specific {job} job for {pawn}");
+		}
+	}
+
 	private static void GetDebugInfo()
 	{
 		Log.Message("Registered caches:");

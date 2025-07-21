@@ -24,9 +24,6 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(CacheManagement_Postfix)));
 
-		harmony.Patch(original: AccessTools.Method(typeof(ITab_Pawn_Gear), nameof(ITab_Pawn_Gear.DrawThingRow)),
-			transpiler: new HarmonyMethod(typeof(HarmonyPatches), nameof(GearTabHighlightTranspiler)));
-
 		harmony.Patch(original: AccessTools.Method(typeof(WorkGiver_Haul), nameof(WorkGiver_Haul.ShouldSkip)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(SkipCorpses_Prefix)));
 
@@ -53,7 +50,7 @@ internal static class HarmonyPatches
 	private static bool Job_ExposeData_Prefix(Job __instance)
 	{
 		// Check if this is a mod-specific job that shouldn't be saved
-		if (__instance?.def != null && IsModSpecificJob(__instance.def))
+		if (__instance?.def != null && __instance.def.IsModSpecificJob())
 		{
 			// Don't save mod-specific job data to prevent corruption when mod is removed
 			Log.Warning($"Preventing save of mod-specific job: {__instance.def.defName}");
@@ -71,7 +68,7 @@ internal static class HarmonyPatches
 		{
 			// Always clear mod-specific jobs during save/load to prevent corruption
 			// Check if current job is mod-specific and should be cleared
-			if (__instance.curJob?.def != null && IsModSpecificJob(__instance.curJob.def))
+			if (__instance.curJob?.def != null && __instance.curJob.def.IsModSpecificJob())
 			{
 				Log.Warning($"Clearing mod-specific job from pawn {__instance.pawn?.NameShortColored}: {__instance.curJob.def.defName}");
 				__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
@@ -83,7 +80,7 @@ internal static class HarmonyPatches
 			{
 				for (var i = jobQueue.Count - 1; i >= 0; i--)
 				{
-					if (jobQueue[i]?.job?.def != null && IsModSpecificJob(jobQueue[i].job.def))
+					if (jobQueue[i]?.job?.def != null && jobQueue[i].job.def.IsModSpecificJob())
 					{
 						Log.Warning($"Removing mod-specific job from queue: {jobQueue[i].job.def.defName}");
 						jobQueue.Extract(jobQueue[i].job);
@@ -102,7 +99,7 @@ internal static class HarmonyPatches
 			if (__instance.curJob != null)
 			{
 				var job = __instance.curJob;
-				if (job.def != null && IsModSpecificJob(job.def))
+				if (job.def != null && job.def.IsModSpecificJob())
 				{
 					Log.Warning($"Clearing mod-specific job reference: {job.def.defName}");
 					__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
@@ -111,18 +108,10 @@ internal static class HarmonyPatches
 		}
 		catch (Exception ex)
 		{
-			Log.Error($"Pawn_JobTracker_ExposeData_Prefix: {ex.Message}");
+			Log.Error(ex.ToString());
 		}
 		return true;
 	}
-
-	/// <summary>
-	/// Checks if a job definition is mod-specific
-	/// </summary>
-	private static bool IsModSpecificJob(JobDef jobDef) => jobDef != null && (jobDef.defName == "HaulToInventory" ||
-			   jobDef.defName == "UnloadYourHauledInventory" ||
-			   jobDef.driverClass == typeof(JobDriver_HaulToInventory) ||
-			   jobDef.driverClass == typeof(JobDriver_UnloadYourHauledInventory));
 
 	/// <summary>
 	/// Checks if a job driver is mod-specific
@@ -130,25 +119,7 @@ internal static class HarmonyPatches
 	private static bool IsModSpecificJobDriver(JobDriver jobDriver) => jobDriver != null && (jobDriver.GetType() == typeof(JobDriver_HaulToInventory) ||
 			   jobDriver.GetType() == typeof(JobDriver_UnloadYourHauledInventory));
 
-	private static void CacheManagement_Postfix()
-	{
-		try
-		{
-			// PERFORMANCE OPTIMIZATION: Only run cache management every 60 ticks (1 second at 60 TPS)
-			// This reduces the performance impact from 33ms to <1ms per frame
-			var currentTick = Find.TickManager?.TicksGame ?? 0;
-			if (currentTick % 60 != 0)
-				return; // Skip this tick to reduce performance impact
-
-			// Check for map changes and game resets
-			CacheManager.CheckForMapChange();
-			CacheManager.CheckForGameReset();
-		}
-		catch (Exception ex)
-		{
-			Log.Warning($"cache management: {ex.Message}");
-		}
-	}
+	private static void CacheManagement_Postfix() => CacheManager.CheckForGameChanges();
 
 	private static bool MaxAllowedToPickUpPrefix(Pawn pawn, ref int __result)
 	{
@@ -162,16 +133,12 @@ internal static class HarmonyPatches
 		return false;
 	}
 
+	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	private static bool SkipCorpses_Prefix(WorkGiver_Haul __instance, ref bool __result, Pawn pawn)
 	{
 		if (__instance is not WorkGiver_HaulCorpses)
 			return true;
 
-		var takenToInventory = pawn.GetComp<CompHauledToInventory>();
-		if (takenToInventory.HashSet.Count == 0 && pawn.inventory.GetDirectlyHeldThings().Count != 0)
-			foreach (var item in pawn.inventory.GetDirectlyHeldThings())
-				takenToInventory.RegisterHauledItem(item);
-		pawn.UnloadInventory();
 		__result = true;
 		return false;
 	}
@@ -193,62 +160,28 @@ internal static class HarmonyPatches
 	private static Func<Pawn, Thing, bool, Job> HaulToInventoryJob => _haulToInventoryJob ??= new(((WorkGiver_Scanner)DefDatabase<WorkGiverDef>.GetNamed("HaulToInventory").Worker).JobOnThing);
 	private static Func<Pawn, Thing, bool, Job> _haulToInventoryJob;
 
-	private static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions, MethodBase method)
-	{
-		var ColorWhite = AccessTools.PropertyGetter(typeof(Color), nameof(Color.white));
-
-		var done = false;
-		foreach (var i in instructions)
-		{
-			//// Color color = flag ? Color.grey : Color.white;
-			if (!done && i.Calls(ColorWhite))
-			{
-				yield return FishTranspiler.This;
-				yield return FishTranspiler.CallPropertyGetter(typeof(ITab_Pawn_Gear), nameof(ITab_Pawn_Gear.SelPawnForGear));
-				yield return FishTranspiler.Argument(method, "thing");
-				yield return FishTranspiler.Call(GetColorForHauled);
-				done = true;
-			}
-			else
-			{
-				yield return i;
-			}
-		}
-
-		if (!done)
-		{
-			Log.Warning("Pick Up And Haul failed to patch ITab_Pawn_Gear.DrawThingRow. This is only used for coloring and totally harmless, but you might wanna know anyway");
-		}
-	}
-
-	private static Color GetColorForHauled(Pawn pawn, Thing thing)
-		=> pawn.GetComp<CompHauledToInventory>()?.HashSet.Contains(thing) ?? false
-		? Color.Lerp(Color.grey, Color.red, 0.5f)
-		: Color.white;
-
 	// Add patch to handle GameComponent loading when mod is missing
 	private static bool Game_ExposeSmallComponents_Prefix(Game __instance)
 	{
 		try
 		{
 			// Filter out mod-specific components during save/load to prevent corruption
-			var components = __instance.components;
-			if (components != null)
+			if (__instance.components != null)
 			{
-				for (var i = components.Count - 1; i >= 0; i--)
+				for (var i = __instance.components.Count - 1; i >= 0; i--)
 				{
-					var component = components[i];
+					var component = __instance.components[i];
 					if (component != null && IsModSpecificComponent(component))
 					{
 						Log.Warning($"Removing mod-specific component during save/load: {component.GetType().Name}");
-						components.RemoveAt(i);
+						__instance.components.RemoveAt(i);
 					}
 				}
 			}
 		}
 		catch (Exception ex)
 		{
-			Log.Error($"Game_ExposeSmallComponents_Prefix: {ex.Message}");
+			Log.Error(ex.ToString());
 		}
 		return true;
 	}
