@@ -11,7 +11,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| !Settings.IsAllowedRace(pawn.RaceProps)
 		|| pawn.GetComp<CompHauledToInventory>() == null
 		|| pawn.IsQuestLodger()
-		|| pawn.IsOverAllowedGearCapacity()
 		|| !PickupAndHaulSaveLoadLogger.IsModActive();
 
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
@@ -22,26 +21,19 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
-		// Check for basic storage availability and encumbrance, but be less restrictive about storage capacity
-		// Let the allocation phase handle sophisticated storage finding and capacity management
 		if (thing.OkThingToHaul(pawn))
 		{
 			if (!StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out var _, out var _, false))
 				return false;
-			// Check if pawn can physically carry the item and if storage has meaningful capacity
 			var currentMass = MassUtility.GearAndInventoryMass(pawn);
 			var capacity = MassUtility.Capacity(pawn);
-			var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
-
-			return capacity > 0 && actualCarriableAmount > 0;
+			return CalculateActualCarriableAmount(thing, currentMass, capacity) > 0;
 		}
 
 		return false;
 	}
 
 	//pick up stuff until you can't anymore,
-	//while you're up and about, pick up something and haul it
-	//before you go out, empty your pockets
 	public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
 		lock (_lockObject)
@@ -53,18 +45,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 
 			var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory);
-			job.targetQueueA = [];
-			job.targetQueueB = [];
-			job.countQueue = [];
-
 			var capacity = MassUtility.Capacity(pawn);
 			var currentMass = MassUtility.GearAndInventoryMass(pawn);
 			int actualCarriableAmount;
 			do
 			{
-				// First, check if the pawn can carry this item at all
 				actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, capacity);
-				if (actualCarriableAmount <= 0 || job.targetQueueA.Count >= 20)
+				if (actualCarriableAmount <= 0)
 					break;
 				if (TryFindBestBetterStorageFor(pawn, thing, job, ref currentMass, actualCarriableAmount))
 					continue;
@@ -97,7 +84,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				continue;
 
 			var distanceSquared = (thing.Position - nextThing.Position).LengthHorizontalSquared;
-			while (distanceSquared > maxDistanceSquared)
+			if (distanceSquared > maxDistanceSquared)
 				return null;
 
 			if (!pawn.Map.reachability.CanReach(thing.Position, nextThing, PathEndMode.ClosestTouch, TraverseParms.For(pawn)))
@@ -118,15 +105,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			// Calculate the effective amount considering storage capacity, carriable amount, and item stack size
 			var count = Math.Min(nextThing.stackCount, actualCarriableAmount);
 
-			// Handle capacity overflow more gracefully
 			if (count <= 0)
 			{
 				Log.Message($"Final count is {count}, cannot allocate {nextThing}");
 				return false;
 			}
 
-			// Get the target from the storeCell, not from the queue
-			if (!JobQueueManager.AddItemsToJob(pawn, job, nextThing, count, targetCell, haulDestination))
+			if (!JobQueueManager.AddItemsToJob(job, nextThing, count, targetCell, haulDestination))
 			{
 				Log.Error($"Failed to add items to job queues for {pawn}!");
 				return false;

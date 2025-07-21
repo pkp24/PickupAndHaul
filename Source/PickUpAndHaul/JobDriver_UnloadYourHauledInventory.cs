@@ -3,7 +3,7 @@
 public class JobDriver_UnloadYourHauledInventory : JobDriver
 {
 	private int _countToDrop = -1;
-	private int _unloadDuration = 3;
+	private readonly int _unloadDuration = 20;
 
 	public override void ExposeData()
 	{
@@ -35,17 +35,11 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		// Clean up nulls at a safe point before we start iterating
-		var comp = pawn.TryGetComp<CompHauledToInventory>();
-		comp?.CleanupNulls();
-
-		if (ModCompatibilityCheck.ExtendedStorageIsActive)
-			_unloadDuration = 20;
-
 		var begin = Toils_General.Wait(_unloadDuration);
 		yield return begin;
 
-		var carriedThings = comp?.HashSet ?? [];
+		var comp = pawn.TryGetComp<CompHauledToInventory>();
+		var carriedThings = comp.HashSet;
 		yield return FindTargetOrDrop(carriedThings);
 		yield return PullItemFromInventory(carriedThings, begin);
 

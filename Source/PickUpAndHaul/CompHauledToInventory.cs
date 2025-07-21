@@ -2,15 +2,23 @@
 
 public class CompHauledToInventory : ThingComp
 {
+	private readonly object _lockObject = new();
 	private HashSet<Thing> takenToInventory = [];
 
 	// Don't modify the collection here - this causes concurrent modification exceptions
 	// Instead, handle null removal at specific safe points
-	public HashSet<Thing> HashSet => takenToInventory ??= [];
-
-	public void CleanupNulls() =>
-		// Separate method to clean nulls that can be called at safe points
-		takenToInventory?.RemoveWhere(x => x == null);
+	public HashSet<Thing> HashSet
+	{
+		get
+		{
+			lock (_lockObject)
+			{
+				takenToInventory ??= [];
+				takenToInventory.RemoveWhere(x => x == null);
+				return takenToInventory;
+			}
+		}
+	}
 
 	public void RegisterHauledItem(Thing thing) => takenToInventory.Add(thing);
 

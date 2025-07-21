@@ -162,7 +162,6 @@ internal static class HarmonyPatches
 		return false;
 	}
 
-	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
 	private static bool SkipCorpses_Prefix(WorkGiver_Haul __instance, ref bool __result, Pawn pawn)
 	{
 		if (__instance is not WorkGiver_HaulCorpses)
@@ -172,7 +171,7 @@ internal static class HarmonyPatches
 		if (takenToInventory.HashSet.Count == 0 && pawn.inventory.GetDirectlyHeldThings().Count != 0)
 			foreach (var item in pawn.inventory.GetDirectlyHeldThings())
 				takenToInventory.RegisterHauledItem(item);
-
+		pawn.UnloadInventory();
 		__result = true;
 		return false;
 	}
@@ -194,8 +193,6 @@ internal static class HarmonyPatches
 	private static Func<Pawn, Thing, bool, Job> HaulToInventoryJob => _haulToInventoryJob ??= new(((WorkGiver_Scanner)DefDatabase<WorkGiverDef>.GetNamed("HaulToInventory").Worker).JobOnThing);
 	private static Func<Pawn, Thing, bool, Job> _haulToInventoryJob;
 
-	//ITab_Pawn_Gear
-	//private void DrawThingRow(ref float y, float width, Thing thing, bool inventory = false)
 	private static IEnumerable<CodeInstruction> GearTabHighlightTranspiler(IEnumerable<CodeInstruction> instructions, MethodBase method)
 	{
 		var ColorWhite = AccessTools.PropertyGetter(typeof(Color), nameof(Color.white));
