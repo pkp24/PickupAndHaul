@@ -3,10 +3,7 @@
 namespace PickUpAndHaul;
 public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 {
-	private readonly object _lockObject = new();
-
 	public override bool ShouldSkip(Pawn pawn, bool forced = false) => base.ShouldSkip(pawn, forced)
-		|| pawn.InMentalState
 		|| pawn.Faction != Faction.OfPlayerSilentFail
 		|| !Settings.IsAllowedRace(pawn.RaceProps)
 		|| pawn.GetComp<CompHauledToInventory>() == null
@@ -16,21 +13,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
 	{
 		WorkCache.Instance.CalculatePotentialWork(pawn);
-		return WorkCache.Cache.Select(x => x.Thing);
-	}
-
-	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
-	{
-		if (thing.OkThingToHaul(pawn))
-		{
-			if (!StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out var _, out var _, false))
-				return false;
-			var currentMass = MassUtility.GearAndInventoryMass(pawn);
-			var capacity = MassUtility.Capacity(pawn);
-			return CalculateActualCarriableAmount(thing, currentMass, capacity) > 0;
-		}
-
-		return false;
+		return WorkCache.Cache;
 	}
 
 	//pick up stuff until you can't anymore,
@@ -38,24 +21,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		try
 		{
-			lock (_lockObject)
-			{
-				if (!thing.OkThingToHaul(pawn))
-				{
-					Log.Error($"{pawn} cannot haul {thing}");
-					return null;
-				}
+			if (ShouldUnloadInventory(pawn, thing))
+				pawn.jobs.jobQueue.EnqueueFirst(JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory), JobTag.Misc);
 
-				var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory);
-				var currentMass = MassUtility.GearAndInventoryMass(pawn);
-				do
-				{
-					thing = GetClosestSimilarAndRemove(thing, pawn, job, ref currentMass);
-				} while (thing != null);
+			var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory);
+			GetClosestAndEnqueue(thing, pawn, job, MassUtility.GearAndInventoryMass(pawn));
 
-				//Log.Message($"Remaining {WorkCache.Cache.Count} items to haul");
-				return job;
-			}
+			return job.targetQueueA.Count > 0 ? job : null;
 		}
 		catch (Exception ex)
 		{
@@ -64,75 +36,45 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 	}
 
-	private static Thing GetClosestSimilarAndRemove(Thing thing, Pawn pawn, Job job, ref float currentMass)
+	private static void GetClosestAndEnqueue(Thing previousThing, Pawn pawn, Job job, float currentMass)
 	{
-		if (!TryEnqueue(thing, pawn, job, ref currentMass))
-			return null;
-
-		if (WorkCache.Cache == null || !WorkCache.Cache.Any())
-			return null;
-		var maxDistanceSquared = 144f;
-		for (var i = 0; i < WorkCache.Cache.Count; i++)
+		while (!WorkCache.Cache.IsEmpty)
 		{
-			var nextThing = WorkCache.Cache[i].Thing;
+			if (!WorkCache.Cache.TryDequeue(out var candidate))
+				break;
 
-			if (!nextThing.Spawned || nextThing.Destroyed)
-			{
-				WorkCache.Cache.RemoveAt(i--);
+			if (candidate == null
+				|| !candidate.Spawned
+				|| !pawn.CanReserve(candidate)
+				|| candidate.IsForbidden(pawn)
+				|| candidate.IsInValidBestStorage()
+				|| candidate.Destroyed)
 				continue;
-			}
 
-			if (!thing.CanStackWith(nextThing))
+			var thingInSight = (previousThing.Position - candidate.Position).LengthHorizontalSquared <= 400f;
+			if (!thingInSight)
 				continue;
-
-			var distanceSquared = (thing.Position - nextThing.Position).LengthHorizontalSquared;
-			if (distanceSquared > maxDistanceSquared)
-				return null;
-
-			if (!pawn.Map.reachability.CanReach(thing.Position, nextThing, PathEndMode.ClosestTouch, TraverseParms.For(pawn)))
+			if (!pawn.Map.reachability.CanReach(previousThing.Position, candidate, PathEndMode.ClosestTouch, TraverseParms.For(pawn)))
 				continue;
-			WorkCache.Cache.RemoveAt(i);
-			return nextThing;
+			var count = Math.Min(candidate.stackCount, CalculateActualCarriableAmount(candidate, currentMass, MassUtility.Capacity(pawn)));
+			if (count <= 0)
+				break;
+
+			var thingToCarry = new LocalTargetInfo(candidate);
+			pawn.Reserve(thingToCarry, job);
+			currentMass += candidate.GetStatValue(StatDefOf.Mass) * count;
+			job.targetQueueA ??= [];
+			job.countQueue ??= [];
+			job.targetQueueA.Add(thingToCarry);
+			job.countQueue.Add(count);
+			GetClosestAndEnqueue(candidate, pawn, job, currentMass);
 		}
-
-		return null;
 	}
 
-	private static bool TryEnqueue(Thing thing, Pawn pawn, Job job, ref float currentMass)
-	{
-		var actualCarriableAmount = CalculateActualCarriableAmount(thing, currentMass, MassUtility.Capacity(pawn));
-		if (actualCarriableAmount <= 0)
-			return false;
-
-		var count = Math.Min(thing.stackCount, actualCarriableAmount);
-
-		if (count <= 0)
-		{
-			Log.Message($"Final count is {count}, cannot allocate {thing}");
-			return false;
-		}
-
-		job.targetQueueA ??= [];
-		job.countQueue ??= [];
-
-		job.targetQueueA.Add(new LocalTargetInfo(thing));
-		job.countQueue.Add(count);
-
-		currentMass += thing.GetStatValue(StatDefOf.Mass) * count;
-
-		return true;
-	}
-
-	/// <summary>
-	/// Calculates the actual amount of a thing that a pawn can carry considering encumbrance limits
-	/// </summary>
 	private static int CalculateActualCarriableAmount(Thing thing, float currentMass, float capacity)
 	{
 		if (currentMass >= capacity)
-		{
-			Log.Message($"Pawn at max allowed mass ({currentMass}/{capacity}), cannot carry more");
 			return 0;
-		}
 
 		var thingMass = thing.GetStatValue(StatDefOf.Mass);
 
@@ -143,5 +85,16 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var maxCarriable = (int)Math.Floor(remainingCapacity / thingMass);
 
 		return Math.Min(maxCarriable, thing.stackCount);
+	}
+
+	private static bool ShouldUnloadInventory(Pawn pawn, Thing thing)
+	{
+		if (pawn.jobs != null &&
+			((pawn.jobs.jobQueue != null && pawn.jobs.jobQueue.Any(x => x.job.def == PickUpAndHaulJobDefOf.UnloadYourHauledInventory)) ||
+			(pawn.jobs.curJob != null && pawn.jobs.curJob.def == PickUpAndHaulJobDefOf.UnloadYourHauledInventory)))
+			return false;
+
+		var isOverThreashold = (MassUtility.GearAndInventoryMass(pawn) / MassUtility.Capacity(pawn)) >= 0.9f;
+		return (isOverThreashold || WorkCache.Cache.IsEmpty || MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1)) && pawn.inventory.innerContainer.Count != 0;
 	}
 }

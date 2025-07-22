@@ -16,7 +16,7 @@ public static class CacheManager
 		}
 	}
 
-	public static void CheckForGameChanges()
+	public static void CheckForGameChanges(bool forcedCleanup = false)
 	{
 		try
 		{
@@ -47,10 +47,18 @@ public static class CacheManager
 				_lastGameResetTick = currentTick;
 				return;
 			}
+			else if (forcedCleanup)
+			{
+				Task.Run(() => CleanupAllCaches(Find.Maps));
+				Log.Warning($"Performed forced cleanup");
+			}
 		}
 		catch (Exception ex)
 		{
 			Log.Error(ex.ToString());
+			_lastMap = null;
+			_lastGameResetTick = 0;
+			_lastMapChangeTick = 0;
 		}
 	}
 
@@ -72,10 +80,8 @@ public static class CacheManager
 
 	private static void GetDebugInfo()
 	{
-		Log.Message("Registered caches:");
-
 		foreach (var cache in _registeredCaches)
-			Log.Message($"{cache.GetType().Name}: {cache.GetDebugInfo()}");
+			Log.Message($"Cleaned cache({cache.GetType().Name}): {cache.GetDebugInfo()}");
 
 		Log.Message($"Last map change: {_lastMapChangeTick}");
 		Log.Message($"Last game reset: {_lastGameResetTick}");

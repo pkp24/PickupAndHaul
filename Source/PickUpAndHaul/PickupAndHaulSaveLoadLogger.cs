@@ -1,3 +1,5 @@
+using PickUpAndHaul.Cache;
+
 namespace PickUpAndHaul;
 
 public class PickupAndHaulSaveLoadLogger : GameComponent
@@ -17,12 +19,10 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 			return;
 		}
 
-		// Only perform operations during normal gameplay, not during save/load
-		if (Scribe.mode == LoadSaveMode.Inactive)
+		if (Scribe.mode == LoadSaveMode.Inactive) // Only perform operations during normal gameplay, not during save/load
 		{
 			PerformSafetyCheck();
-			// Don't save any mod-specific data if the mod is being removed
-			if (_modRemoved)
+			if (_modRemoved) // Don't save any mod-specific data if the mod is being removed
 				return;
 		}
 	}
@@ -31,21 +31,16 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 	{
 		base.FinalizeInit();
 		Log.Message("GameComponent: On Load (FinalizeInit)");
-
-		// Perform safety check to ensure mod is active
-		PerformSafetyCheck();
+		PerformSafetyCheck(); // Perform safety check to ensure mod is active
 	}
 
-	/// <summary>
-	/// Checks if the mod is currently active and available
-	/// </summary>
 	public static bool IsModActive()
 	{
 		try
 		{
 			// Check if our key types are available
-			var haulToInventoryDef = DefDatabase<JobDef>.GetNamedSilentFail("HaulToInventory");
-			var unloadDef = DefDatabase<JobDef>.GetNamedSilentFail("UnloadYourHauledInventory");
+			var haulToInventoryDef = DefDatabase<JobDef>.GetNamedSilentFail(nameof(PickUpAndHaulJobDefOf.HaulToInventory));
+			var unloadDef = DefDatabase<JobDef>.GetNamedSilentFail(nameof(PickUpAndHaulJobDefOf.UnloadYourHauledInventory));
 
 			return haulToInventoryDef != null && unloadDef != null;
 		}
@@ -56,35 +51,13 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 		}
 	}
 
-	/// <summary>
-	/// Performs a safety check and cleanup if the mod is not active
-	/// </summary>
-	public static void PerformSafetyCheck()
+	private static void PerformSafetyCheck()
 	{
 		if (!IsModActive())
 		{
 			Log.Warning("Mod appears to be inactive, performing safety cleanup. Mod marked as removed.");
 			_modRemoved = true;
-
-			// Clear any remaining mod-specific jobs from all pawns
-			var maps = Find.Maps;
-			if (maps == null || maps.Count == 0)
-				return;
-
-			foreach (var map in maps)
-			{
-				if (map?.mapPawns == null)
-					continue;
-
-				var pawns = map.mapPawns.FreeColonistsAndPrisonersSpawned?.ToList();
-				if (pawns == null || pawns.Count == 0)
-					continue;
-
-				foreach (var pawn in pawns)
-					if (pawn?.jobs?.curJob?.def != null)
-						if (pawn.jobs.curJob.def.defName is "HaulToInventory" or "UnloadYourHauledInventory")
-							pawn.jobs.EndCurrentJob(JobCondition.InterruptForced, false, false);
-			}
+			CacheManager.CheckForGameChanges(true);
 		}
 	}
 }

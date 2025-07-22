@@ -1,5 +1,5 @@
 ﻿namespace PickUpAndHaul;
 
-public class CompHauledToInventory : ThingComp
+public class CompHauledToInventory : ThingComp // needed placeholder
 {
 }

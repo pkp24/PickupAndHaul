@@ -1,19 +1,16 @@
-using PickUpAndHaul.Structs;
-
 namespace PickUpAndHaul.Cache;
 
 public class WorkCache : ICache
 {
 	private const int TICKS_DELAY = 60;
 	private int _nextWorkCacheTick;
-	private readonly object _lockObject = new();
 
 	static WorkCache() =>
 		CacheManager.RegisterCache(Instance);
 
 	public static WorkCache Instance { get; } = new();
 
-	public static List<WorkCacheStorage> Cache { get; private set; } = [];
+	public static ConcurrentQueue<Thing> Cache { get; private set; } = [];
 
 	public void CalculatePotentialWork(Pawn pawn)
 	{
@@ -21,15 +18,13 @@ public class WorkCache : ICache
 		if (currentTick < _nextWorkCacheTick)
 			return;
 
-		lock (_lockObject)
-		{
-			// Ensure items are sorted by priority and then by distance from pawn
-			Cache = [.. pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
-					.Select(thing => new WorkCacheStorage(StoreUtility.CurrentStoragePriorityOf(thing), thing))
+		// Ensure things are sorted by priority and then by distance from pawn
+		Cache = new ConcurrentQueue<Thing>([.. pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
+					.Select(thing => new { Priority = StoreUtility.CurrentStoragePriorityOf(thing), Thing = thing })
 					.OrderByDescending(x => x.Priority)
-					.ThenBy((x) => (x.Thing.Position - pawn.Position).LengthHorizontalSquared)];
-			_nextWorkCacheTick = currentTick + Cache.Count + TICKS_DELAY;
-		}
+					.ThenBy((x) => (x.Thing.Position - pawn.Position).LengthHorizontalSquared)
+					.Select(x => x.Thing)]);
+		_nextWorkCacheTick = currentTick + Cache.Count + TICKS_DELAY;
 
 		Log.Message($"CalculatePotentialWork at {pawn.Position} found {Cache.Count} items");
 	}

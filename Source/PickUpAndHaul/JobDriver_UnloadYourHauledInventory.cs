@@ -11,103 +11,50 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		}
 	}
 
-	public override bool TryMakePreToilReservations(bool errorOnFailed)
-	{
-		job.targetQueueA ??= [];
-		job.targetQueueB ??= [];
-		job.countQueue ??= [];
-		pawn.inventory.GetDirectlyHeldThings().RemoveWhere(x => x == null);
-		foreach (var thing in pawn.inventory.GetDirectlyHeldThings())
-		{
-			var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
-			if (StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, currentPriority, pawn.Faction, out var cell, out var dest))
-			{
-				var storeTarget = new LocalTargetInfo(cell);
-				if (dest is Thing destinationAsThing)
-					storeTarget = new(destinationAsThing);
-				job.targetQueueA.Add(new LocalTargetInfo(thing));
-				job.targetQueueB.Add(storeTarget);
-				job.countQueue.Add(thing.stackCount);
-			}
-		}
-		if (job.targetQueueB.Count > 0)
-			pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
-		else
-			Log.Warning($"targetQueueB is empty for {pawn}, couldn't find storage for {pawn.inventory.GetDirectlyHeldThings().Count} items");
-		return true;
-	}
-
-	/// <summary>
-	/// Find spot, reserve spot, pull thing out of inventory, go to spot, drop stuff, repeat.
-	/// </summary>
-	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
-		var nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A);
-		yield return Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.B);
-		yield return nextTarget;
-		yield return PullItemFromInventory(nextTarget);
+		var begin = FindBestBetterStorageFor();
+		yield return begin; //do
 		var carryToCell = Toils_Haul.CarryHauledThingToCell(TargetIndex.B);
-		yield return Toils_Jump.JumpIf(carryToCell, TargetIsCell);
-		yield return Toils_Haul.CarryHauledThingToContainer();
+		yield return Toils_Jump.JumpIf(carryToCell, () => !TargetB.HasThing); // if
+
+		var carryToContainer = Toils_Haul.CarryHauledThingToContainer();
+		yield return carryToContainer;
 		yield return Toils_Haul.DepositHauledThingInContainer(TargetIndex.B, TargetIndex.None);
-		yield return carryToCell;
+		yield return Toils_Haul.JumpToCarryToNextContainerIfPossible(carryToContainer, TargetIndex.B);
+		yield return Toils_Jump.JumpIf(begin, () => pawn.inventory.FirstUnloadableThing != default); // while
+
+		yield return carryToCell; // else
 		yield return Toils_Haul.PlaceHauledThingInCell(TargetIndex.B, carryToCell, true);
-		yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty());
+		yield return Toils_Jump.JumpIf(begin, () => pawn.inventory.FirstUnloadableThing != default); // while
 	}
+	public override bool TryMakePreToilReservations(bool errorOnFailed) => true;
 
-	private bool TargetIsCell() => !TargetB.HasThing;
-
-	private Toil PullItemFromInventory(Toil nextTarget) => new()
+	private Toil FindBestBetterStorageFor() => new()
 	{
 		initAction = () =>
 		{
-			if (TargetThingA == null)
+			if (pawn.IsCarrying())
+				pawn.carryTracker.innerContainer.TryDropAll(pawn.InteractionCell, pawn.Map, ThingPlaceMode.Near);
+			pawn.inventory.innerContainer.RemoveWhere(x => x == null);
+
+			var thingCount = pawn.inventory.FirstUnloadableThing;
+			if (thingCount == default && pawn.inventory.innerContainer.Count != 0)
 			{
-				pawn.jobs.curDriver.JumpToToil(nextTarget);
-				Log.Error("TargetThingA is null");
+				pawn.inventory.innerContainer.TryDropAll(pawn.InteractionCell, pawn.Map, ThingPlaceMode.Near);
+				EndJobWith(JobCondition.Succeeded);
 				return;
 			}
-
-			if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !TargetThingA.def.EverStorable(false))
+			if (thingCount != default && StoreUtility.TryFindBestBetterStorageFor(thingCount.Thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thingCount.Thing), pawn.Faction, out var cell, out var dest))
 			{
-				var isDropped = pawn.inventory.innerContainer.TryDrop(TargetThingA, ThingPlaceMode.Near, TargetThingB.stackCount, out var dropped);
-				if (isDropped)
-				{
-					dropped.SetForbidden(false, false);
-					pawn.inventory.GetDirectlyHeldThings().Remove(TargetThingA);
-				}
-
-				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
-					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
-
-				return;
-			}
-
-			pawn.inventory.innerContainer.TryTransferToContainer(TargetThingA, pawn.carryTracker.innerContainer, TargetThingA.stackCount, out var carried);
-			// If transfer failed, fall back to dropping near the pawn
-			if (carried == null)
-			{
-				var isDropped = pawn.inventory.innerContainer.TryDrop(TargetThingA, ThingPlaceMode.Near, TargetThingA.stackCount, out carried);
-				if (isDropped)
-				{
-					carried.SetForbidden(false, false);
-					pawn.inventory.GetDirectlyHeldThings().Remove(TargetThingA);
-				}
-				return;
-			}
-
-			job.count = TargetThingA.stackCount;
-			job.SetTarget(TargetIndex.A, carried);
-			carried.SetForbidden(false, false);
-			if (carried.stackCount == TargetThingA.stackCount)
-				pawn.inventory.GetDirectlyHeldThings().Remove(TargetThingA);
-			else
-			{
-				pawn.inventory.GetDirectlyHeldThings().Remove(TargetThingA);
-				var thing = TargetThingA;
-				thing.stackCount -= carried.stackCount;
-				pawn.inventory.GetDirectlyHeldThings().TryAdd(thing);
+				var storeTarget = new LocalTargetInfo(cell);
+				if (dest is Thing container)
+					storeTarget = new LocalTargetInfo(container);
+				pawn.CurJob.SetTarget(TargetIndex.A, thingCount.Thing);
+				pawn.CurJob.SetTarget(TargetIndex.B, storeTarget);
+				if (pawn.CanReserve(storeTarget))
+					pawn.Reserve(storeTarget, pawn.CurJob);
+				pawn.jobs.curDriver.SetNextToil(Toils_Misc.TakeItemFromInventoryToCarrier(pawn, TargetIndex.A));
 			}
 		}
 	};
