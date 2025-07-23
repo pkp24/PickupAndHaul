@@ -3,9 +3,6 @@ namespace PickUpAndHaul.Cache;
 public static class CacheManager
 {
 	private static readonly ConcurrentBag<ICache> _registeredCaches = [];
-	private static int _lastMapChangeTick;
-	private static int _lastGameResetTick;
-	private static Map _lastMap;
 
 	public static void RegisterCache(ICache cache)
 	{
@@ -16,75 +13,31 @@ public static class CacheManager
 		}
 	}
 
-	public static void CheckForGameChanges(bool forcedCleanup = false)
+	public static void CheckForGameChanges(List<Map> maps)
 	{
-		try
-		{
-			var currentTick = Find.TickManager?.TicksGame ?? 0;
-			if (currentTick % 60 != 0) // Values below 60 ticks heavily impact performance
-				return;
-			var currentMap = Find.CurrentMap;
-
-			if (currentMap != _lastMap) // Check if map has changed
-			{
-				if (_lastMap != null)
-				{
-					Log.Message($"Map changed from {_lastMap} to {currentMap}, triggering cache cleanup");
-					GetDebugInfo();
-					Task.Run(() => CleanupAllCaches([_lastMap]));
-				}
-
-				_lastMap = currentMap;
-				_lastMapChangeTick = currentTick;
-				return;
-			}
-			else if (currentTick < _lastGameResetTick) // then game restared
-			{
-				Log.Message($"Game reset detected (tick {currentTick} < {_lastGameResetTick}), triggering cache cleanup");
-				GetDebugInfo();
-				Task.Run(() => CleanupAllCaches(Find.Maps));
-				_lastMap = null;
-				_lastGameResetTick = currentTick;
-				return;
-			}
-			else if (forcedCleanup)
-			{
-				Task.Run(() => CleanupAllCaches(Find.Maps));
-				Log.Warning($"Performed forced cleanup");
-			}
-		}
-		catch (Exception ex)
-		{
-			Log.Error(ex.ToString());
-			_lastMap = null;
-			_lastGameResetTick = 0;
-			_lastMapChangeTick = 0;
-		}
+		Task.Run(() => CleanupAllCaches(maps));
+		Log.Warning($"Performed cleanup");
 	}
 
 	private static void CleanupAllCaches(List<Map> maps)
 	{
 		foreach (var cache in _registeredCaches)
-			cache.ForceCleanup();
-
-		foreach (var (map, pawn, job) in from map in maps
-										 from pawn in map.mapPawns.FreeColonistsAndPrisonersSpawned
-										 from job in pawn.jobs.AllJobs().Where(t => t.def.IsModSpecificJob())
-										 select (map, pawn, job))
 		{
-			job.GetCachedDriverDirect.EndJobWith(JobCondition.QueuedNoLongerValid);
-			map.reservationManager.ReleaseClaimedBy(pawn, job);
-			Log.Message($"Canceled mod-specific {job} job for {pawn}");
-		}
-	}
-
-	private static void GetDebugInfo()
-	{
-		foreach (var cache in _registeredCaches)
+			cache.ForceCleanup();
 			Log.Message($"Cleaned cache({cache.GetType().Name}): {cache.GetDebugInfo()}");
+		}
 
-		Log.Message($"Last map change: {_lastMapChangeTick}");
-		Log.Message($"Last game reset: {_lastGameResetTick}");
-		Log.Message($"Current map: {_lastMap}");
+		foreach (var pawn in maps.SelectMany(map => map.mapPawns.AllPawns))
+		{
+			foreach (var job in pawn.jobs.AllJobs().Where(t => t.def.GetType().IsModSpecificType()))
+			{
+				pawn.ClearReservationsForJob(job);
+				pawn.jobs.EndCurrentOrQueuedJob(job, JobCondition.InterruptForced);
+				Log.Message($"Canceled mod-specific {job} job for {pawn}");
+			}
+
+			foreach (var comp in pawn.AllComps.Where(t => t.GetType().IsModSpecificType()))
+				pawn.AllComps.Remove(comp);
+		}
 	}
 }

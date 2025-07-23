@@ -7,7 +7,6 @@ global using System.Diagnostics;
 global using System.Diagnostics.CodeAnalysis;
 global using System.IO;
 global using System.Linq;
-global using System.Text;
 global using System.Threading.Tasks;
 global using System.Reflection.Emit;
 global using System.Runtime.CompilerServices;
@@ -23,10 +22,11 @@ public class Modbase : Mod
 	{
 		Instance = this;
 		Settings = GetSettings<Settings>();
+		content.RemoveCorruptedDefs();
 	}
 
 	public override void DoSettingsWindowContents(Rect inRect) => Settings.DoSettingsWindowContents(inRect);
-	public override string SettingsCategory() => "Pick Up And Haul";
+	public override string SettingsCategory() => "Pick Up And Haul Forked";
 	public static Modbase Instance { get; private set; }
 	public static Settings Settings { get; private set; }
 }

@@ -2,63 +2,18 @@
 
 internal static class Log
 {
-	private static readonly string DEBUG_LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaulForked.log");
-	private static readonly object _fileLock = new();
-	private static StreamWriter _sw;
-
-	static Log() => InitStreamWriter();
-
 	[Conditional("DEBUG")]
-	public static void Message(string x,
-		[CallerMemberName] string memberName = "",
-		[CallerFilePath] string sourceFilePath = "",
-		[CallerLineNumber] int sourceLineNumber = 0)
+	public static void Message(string x, [CallerMemberName] string member = "", [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
 	{
 		if (Settings.EnableDebugLogging)
-			Task.Run(() => WriteToFile($"[DEBUG] {x}", memberName, sourceFilePath, sourceLineNumber));
+			Verse.Log.Message(MessageFormat($"[DEBUG] {x}", member, file, line));
 	}
 
-	public static void Warning(string x,
-		[CallerMemberName] string memberName = "",
-		[CallerFilePath] string sourceFilePath = "",
-		[CallerLineNumber] int sourceLineNumber = 0)
-	{
-		Verse.Log.Warning($"[WARNING] {x}");
-		Task.Run(() => WriteToFile($"[WARNING] {x}", memberName, sourceFilePath, sourceLineNumber));
-	}
+	public static void Warning(string x, [CallerMemberName] string member = "", [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) =>
+		Verse.Log.Warning(MessageFormat($"[WARNING] {x}", member, file, line));
+	public static void Error(string x, [CallerMemberName] string member = "", [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) =>
+		Verse.Log.Error(MessageFormat($"[ERROR] {x}", member, file, line));
 
-	public static void Error(string x,
-		[CallerMemberName] string memberName = "",
-		[CallerFilePath] string sourceFilePath = "",
-		[CallerLineNumber] int sourceLineNumber = 0)
-	{
-		Verse.Log.Error($"[ERROR] {x}");
-		Task.Run(() => WriteToFile($"[ERROR] {x}", memberName, sourceFilePath, sourceLineNumber));
-	}
-
-	public static void ClearDebugLogFile()
-	{
-		var timestampedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] [PUAHForked]";
-
-		lock (_fileLock)
-		{
-			if (File.Exists(DEBUG_LOG_FILE_PATH))
-			{
-				_sw.Close();
-				File.Delete(DEBUG_LOG_FILE_PATH);
-				InitStreamWriter();
-				Verse.Log.Message($"{timestampedMessage} Debug log file cleared.");
-			}
-		}
-	}
-
-	private static void WriteToFile(string message, string memberName, string sourceFilePath, int sourceLineNumber)
-	{
-		var timestampedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] [PUAHForked] [{Path.GetFileNameWithoutExtension(sourceFilePath)}] [{memberName}:{sourceLineNumber}] {message}";
-		lock (_fileLock)
-			_sw.Write(timestampedMessage + Environment.NewLine);
-	}
-
-	private static void InitStreamWriter() =>
-		_sw = new StreamWriter(DEBUG_LOG_FILE_PATH, append: true, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true));
+	private static string MessageFormat(string message, string memberName, string sourceFilePath, int sourceLineNumber) =>
+		$"[{DateTime.Now:HH:mm:ss.fff}] [PUAHForked] [{Path.GetFileNameWithoutExtension(sourceFilePath)}] [{memberName}:{sourceLineNumber}] {message}";
 }

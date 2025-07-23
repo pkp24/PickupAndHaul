@@ -35,7 +35,6 @@ PickupAndHaul/
 - **JobDriver_HaulToInventory.cs**: Handles the hauling job logic
 - **JobDriver_UnloadYourHauledInventory.cs**: Handles unloading items from inventory
 - **WorkGiver_HaulToInventory.cs**: Defines when and how pawns should haul items
-- **CompHauledToInventory.cs**: Component to track hauled items in inventory
 - **HarmonyPatches.cs**: Harmony patches for game integration
 
 ### Key Features

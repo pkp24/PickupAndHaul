@@ -1,11 +1,10 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <Patch>
-
-	<Operation Class="PatchOperationAdd">
-		<xpath>Defs/ThingDef[thingClass="Pawn"]/comps</xpath>
+	<Operation Class="PatchOperationReplace">
+		<success>Normal</success>
+		<xpath>/Defs/WorkGiverDef[defName="HaulMerge"]/priorityInType</xpath>
 		<value>
-            <li><compClass>PickUpAndHaul.CompHauledToInventory</compClass></li>
+			<priorityInType>160</priorityInType>
 		</value>
 	</Operation>
-
 </Patch>

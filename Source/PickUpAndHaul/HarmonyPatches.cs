@@ -20,12 +20,17 @@ internal static class HarmonyPatches
 				prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(CanBeMadeToDropStuff)));
 		}
 
-		// Add cache management to the main tick
-		harmony.Patch(original: AccessTools.Method(typeof(TickManager), nameof(TickManager.TickManagerUpdate)),
-			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(CacheManagement_Postfix)));
+		harmony.Patch(original: AccessTools.Method(typeof(JobDriver_HaulToCell), nameof(JobDriver_HaulToCell.MakeNewToils)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(JobDriver_HaulToCell_PostFix)));
+
+		harmony.Patch(original: AccessTools.Method(typeof(JobGiver_DropUnusedInventory), nameof(JobGiver_DropUnusedInventory.TryGiveJob)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(DropUnusedInventory_PostFix)));
+
+		harmony.Patch(original: AccessTools.Method(typeof(JobGiver_Idle), nameof(JobGiver_Idle.TryGiveJob)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(IdleJoy_Postfix)));
 
 		harmony.Patch(original: AccessTools.Method(typeof(WorkGiver_Haul), nameof(WorkGiver_Haul.ShouldSkip)),
-			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(SkipCorpses_Prefix)));
+			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(ShouldSkip_Prefix)));
 
 		harmony.Patch(AccessTools.Method(typeof(JobGiver_Haul), nameof(JobGiver_Haul.TryGiveJob)),
 			transpiler: new(typeof(HarmonyPatches), nameof(JobGiver_Haul_TryGiveJob_Transpiler)));
@@ -34,9 +39,6 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Job), nameof(Job.ExposeData)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Job_ExposeData_Prefix)));
 
-		harmony.Patch(original: AccessTools.Method(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.ExposeData)),
-			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_JobTracker_ExposeData_Prefix)));
-
 		// Add patch to handle GameComponent loading when mod is missing
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.ExposeSmallComponents)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeSmallComponents_Prefix)));
@@ -44,13 +46,22 @@ internal static class HarmonyPatches
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
 
+	private static void JobDriver_HaulToCell_PostFix(JobDriver_HaulToCell __instance)
+	{
+		if (__instance.job.haulMode == HaulMode.ToCellStorage)
+			__instance.pawn.CheckIfShouldUnloadInventory(true);
+	}
+
+	public static void IdleJoy_Postfix(Pawn pawn) => pawn.CheckIfShouldUnloadInventory(true);
+	public static void DropUnusedInventory_PostFix(Pawn pawn) => pawn.CheckIfShouldUnloadInventory();
+
 	/// <summary>
 	/// Prevents saving of mod-specific job data that could cause issues when mod is removed
 	/// </summary>
 	private static bool Job_ExposeData_Prefix(Job __instance)
 	{
 		// Check if this is a mod-specific job that shouldn't be saved
-		if (__instance?.def != null && __instance.def.IsModSpecificJob())
+		if (__instance?.def != null && __instance.def.GetType().IsModSpecificType())
 		{
 			// Don't save mod-specific job data to prevent corruption when mod is removed
 			Log.Warning($"Preventing save of mod-specific job: {__instance.def.defName}");
@@ -58,68 +69,6 @@ internal static class HarmonyPatches
 		}
 		return true;
 	}
-
-	/// <summary>
-	/// Handles job tracker data to prevent issues with missing mod jobs
-	/// </summary>
-	private static bool Pawn_JobTracker_ExposeData_Prefix(Pawn_JobTracker __instance)
-	{
-		try
-		{
-			// Always clear mod-specific jobs during save/load to prevent corruption
-			// Check if current job is mod-specific and should be cleared
-			if (__instance.curJob?.def != null && __instance.curJob.def.IsModSpecificJob())
-			{
-				Log.Warning($"Clearing mod-specific job from pawn {__instance.pawn?.NameShortColored}: {__instance.curJob.def.defName}");
-				__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
-			}
-
-			// Check job queue for mod-specific jobs
-			var jobQueue = __instance.jobQueue;
-			if (jobQueue != null)
-			{
-				for (var i = jobQueue.Count - 1; i >= 0; i--)
-				{
-					if (jobQueue[i]?.job?.def != null && jobQueue[i].job.def.IsModSpecificJob())
-					{
-						Log.Warning($"Removing mod-specific job from queue: {jobQueue[i].job.def.defName}");
-						jobQueue.Extract(jobQueue[i].job);
-					}
-				}
-			}
-
-			// Also clear any mod-specific job drivers
-			if (__instance.curDriver != null && IsModSpecificJobDriver(__instance.curDriver))
-			{
-				Log.Warning($"Clearing mod-specific job driver from pawn {__instance.pawn?.NameShortColored}");
-				__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
-			}
-
-			// Clear any mod-specific job references in the job itself
-			if (__instance.curJob != null)
-			{
-				var job = __instance.curJob;
-				if (job.def != null && job.def.IsModSpecificJob())
-				{
-					Log.Warning($"Clearing mod-specific job reference: {job.def.defName}");
-					__instance.EndCurrentJob(JobCondition.InterruptForced, false, false);
-				}
-			}
-		}
-		catch (Exception ex)
-		{
-			Log.Error(ex.ToString());
-		}
-		return true;
-	}
-
-	/// <summary>
-	/// Checks if a job driver is mod-specific
-	/// </summary>
-	private static bool IsModSpecificJobDriver(JobDriver jobDriver) => jobDriver != null && (jobDriver.GetType() == typeof(JobDriver_HaulToInventory) ||
-			   jobDriver.GetType() == typeof(JobDriver_UnloadYourHauledInventory));
-
-	private static void CacheManagement_Postfix() => CacheManager.CheckForGameChanges();
 
 	private static bool MaxAllowedToPickUpPrefix(Pawn pawn, ref int __result)
 	{
@@ -134,7 +83,7 @@ internal static class HarmonyPatches
 	}
 
 	[SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Reflection")]
-	private static bool SkipCorpses_Prefix(WorkGiver_Haul __instance, ref bool __result, Pawn pawn)
+	private static bool ShouldSkip_Prefix(WorkGiver_Haul __instance, ref bool __result, Pawn pawn)
 	{
 		if (__instance is not WorkGiver_HaulCorpses)
 			return true;
@@ -143,9 +92,6 @@ internal static class HarmonyPatches
 		return false;
 	}
 
-	/// <summary>
-	/// For animal hauling
-	/// </summary>
 	private static IEnumerable<CodeInstruction> JobGiver_Haul_TryGiveJob_Transpiler(IEnumerable<CodeInstruction> instructions)
 	{
 		var originalMethod = AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.HaulToStorageJob), [typeof(Pawn), typeof(Thing), typeof(bool)]);
@@ -154,46 +100,27 @@ internal static class HarmonyPatches
 			yield return instruction.Calls(originalMethod) ? new CodeInstruction(OpCodes.Call, replacementMethod) : instruction;
 	}
 
-	private static Job HaulToStorageJobByRace(Pawn p, Thing t, bool forced) => Settings.IsAllowedRace(p.RaceProps) ? HaulToInventoryJob(p, t, forced) : HaulAIUtility.HaulToStorageJob(p, t, forced);
-	private static Func<Pawn, Thing, bool, Job> HaulToInventoryJob => _haulToInventoryJob ??= new(((WorkGiver_Scanner)DefDatabase<WorkGiverDef>.GetNamed(nameof(PickUpAndHaulJobDefOf.HaulToInventory)).Worker).JobOnThing);
-	private static Func<Pawn, Thing, bool, Job> _haulToInventoryJob;
+	private static Job HaulToStorageJobByRace(Pawn p, Thing t, bool forced) =>
+		Settings.IsAllowedRace(p.RaceProps)
+		? p.HaulToInventory(t)
+		: HaulAIUtility.HaulToStorageJob(p, t, forced);
 
-	// Add patch to handle GameComponent loading when mod is missing
 	private static bool Game_ExposeSmallComponents_Prefix(Game __instance)
 	{
-		try
+		// Filter out mod-specific components during save/load to prevent corruption
+		if (__instance.components != null)
 		{
-			// Filter out mod-specific components during save/load to prevent corruption
-			if (__instance.components != null)
+			for (var i = __instance.components.Count - 1; i >= 0; i--)
 			{
-				for (var i = __instance.components.Count - 1; i >= 0; i--)
+				if (__instance.components[i] != null && __instance.components[i].GetType().IsModSpecificType())
 				{
-					var component = __instance.components[i];
-					if (component != null && IsModSpecificComponent(component))
-					{
-						Log.Warning($"Removing mod-specific component during save/load: {component.GetType().Name}");
-						__instance.components.RemoveAt(i);
-					}
+					Log.Warning($"Removing mod-specific component during save/load: {__instance.components[i].GetType().Name}");
+					__instance.components.RemoveAt(i);
 				}
 			}
 		}
-		catch (Exception ex)
-		{
-			Log.Error(ex.ToString());
-		}
+		CacheManager.CheckForGameChanges(__instance.Maps);
+
 		return true;
-	}
-
-	/// <summary>
-	/// Checks if a component is mod-specific
-	/// </summary>
-	private static bool IsModSpecificComponent(GameComponent component)
-	{
-		if (component == null)
-			return false;
-
-		var componentType = component.GetType();
-		return componentType == typeof(PickupAndHaulSaveLoadLogger) ||
-			   componentType.Namespace?.StartsWith("PickUpAndHaul", StringComparison.InvariantCultureIgnoreCase) == true;
 	}
 }

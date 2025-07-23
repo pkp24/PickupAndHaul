@@ -1,5 +1,3 @@
-using PickUpAndHaul.Cache;
-
 namespace PickUpAndHaul;
 
 public class PickupAndHaulSaveLoadLogger : GameComponent
@@ -57,7 +55,6 @@ public class PickupAndHaulSaveLoadLogger : GameComponent
 		{
 			Log.Warning("Mod appears to be inactive, performing safety cleanup. Mod marked as removed.");
 			_modRemoved = true;
-			CacheManager.CheckForGameChanges(true);
 		}
 	}
 }

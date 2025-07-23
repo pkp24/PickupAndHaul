@@ -17,15 +17,6 @@ public class Settings : ModSettings
 		ls.CheckboxLabeled("PUAH.allowAnimals".Translate(), ref _allowAnimals, "PUAH.allowAnimalsTooltip".Translate());
 		ls.CheckboxLabeled("PUAH.allowMechanoids".Translate(), ref _allowMechanoids, "PUAH.allowMechanoidsTooltip".Translate());
 		ls.CheckboxLabeled("PUAH.enableDebugLogging".Translate(), ref _enableDebugLogging, "PUAH.enableDebugLoggingTooltip".Translate());
-
-		// Add debug log management
-		if (_enableDebugLogging)
-		{
-			ls.Gap();
-			if (ls.ButtonText("Clear Debug Log File"))
-				Log.ClearDebugLogFile();
-		}
-
 		ls.End();
 	}
 
