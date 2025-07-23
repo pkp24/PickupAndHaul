@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 
 # PickUpAndHaul Build Script
-# This script builds both projects in the correct order
+# This script builds the PickUpAndHaul project
 
 param(
     [string]$Configuration = "Debug",
@@ -153,7 +153,6 @@ function Clean-Projects {
     Write-ColorOutput "Cleaning projects..." $Yellow
     
     $projects = @(
-        "Source/IHoldMultipleThings/IHoldMultipleThings.csproj",
         "Source/PickUpAndHaul/PickUpAndHaul16.csproj"
     )
     
@@ -179,7 +178,6 @@ function Format-Projects {
     Write-ColorOutput "Formatting projects..." $Yellow
     
     $projects = @(
-        "Source/IHoldMultipleThings/IHoldMultipleThings.csproj",
         "Source/PickUpAndHaul/PickUpAndHaul16.csproj"
     )
     
@@ -232,19 +230,8 @@ if ($Format) {
     Write-ColorOutput ""
 }
 
-# Build projects in order (IHoldMultipleThings first, then PickUpAndHaul)
+# Build PickUpAndHaul project
 Write-ColorOutput "Starting build process..." $Cyan
-Write-ColorOutput ""
-
-# Build IHoldMultipleThings first
-$iholdSuccess = Build-Project "Source/IHoldMultipleThings/IHoldMultipleThings.csproj" "IHoldMultipleThings"
-
-if (-not $iholdSuccess) {
-    Write-ColorOutput ""
-    Write-ColorOutput "✗ Build failed! IHoldMultipleThings must be built before PickUpAndHaul." $Red
-    exit 1
-}
-
 Write-ColorOutput ""
 
 # Build PickUpAndHaul
@@ -258,10 +245,9 @@ if (-not $pickupSuccess) {
 
 Write-ColorOutput ""
 Write-ColorOutput "=== Build Summary ===" $Cyan
-Write-ColorOutput "✓ IHoldMultipleThings: Built successfully" $Green
 Write-ColorOutput "✓ PickUpAndHaul: Built successfully" $Green
 Write-ColorOutput ""
 Write-ColorOutput "Output location: 1.6/Assemblies/" $Yellow
 Write-ColorOutput "Configuration: $Configuration" $Yellow
 Write-ColorOutput ""
-Write-ColorOutput "🎉 All projects built successfully!" $Green 
+Write-ColorOutput "🎉 Project built successfully!" $Green 
