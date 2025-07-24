@@ -16,16 +16,22 @@ public class WorkCache : ICache
 	public static ConcurrentQueue<Thing> CalculatePotentialWork(Pawn pawn)
 	{
 		var currentTick = Find.TickManager.TicksGame;
-		if (currentTick < NextWorkCacheTick)
-			return Cache;
 
-		// Ensure things are sorted by distance from pawn
-		Cache = new ConcurrentQueue<Thing>([.. pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
-					.Where(x => HaulAIUtility.PawnCanAutomaticallyHaul(pawn, x, false))
-					.OrderBy((x) => (x.Position - pawn.Position).LengthHorizontalSquared)]);
+		if (currentTick < NextWorkCacheTick)
+		{
+			return Cache;
+		}
+
+		var allHaulables = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling();
+
+		// Ensure things are sorted by distance from pawn - using exact same logic as original
+		Cache = new ConcurrentQueue<Thing>([.. allHaulables
+			.Where(x => x.Map != null && HaulAIUtility.PawnCanAutomaticallyHaul(pawn, x, false))
+			.OrderBy((x) => (x.Position - pawn.Position).LengthHorizontalSquared)]);
+
 		NextWorkCacheTick = currentTick + Cache.Count + TICKS_DELAY;
 
-		Log.Message($"CalculatePotentialWork at {pawn.Position} found {Cache.Count} items");
+		Log.Message($"Recalculated cache with {Cache.Count} items for {pawn.Name?.ToStringShort ?? "Unknown"}");
 		return Cache;
 	}
 

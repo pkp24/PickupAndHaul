@@ -75,62 +75,224 @@ internal static class Extensions
 		}
 	}
 
-	public static bool IsModStateValidAndActive(this Pawn pawn) =>
-		PickupAndHaulSaveLoadLogger.IsModActive()
-		&& Settings.IsAllowedRace(pawn.RaceProps)
-		&& pawn.Faction == Faction.OfPlayerSilentFail
-		&& !pawn.IsQuestLodger();
+	public static bool IsModStateValidAndActive(this Pawn pawn)
+	{
+		var modActive = PickupAndHaulSaveLoadLogger.IsModActive();
+		var allowedRace = Settings.IsAllowedRace(pawn.RaceProps);
+		var playerFaction = pawn.Faction == Faction.OfPlayerSilentFail;
+		var notQuestLodger = !pawn.IsQuestLodger();
+
+		var result = modActive && allowedRace && playerFaction && notQuestLodger;
+
+		return result;
+	}
 
 	public static Job HaulToInventory(this Pawn pawn, Thing thing)
 	{
+		if (thing == null)
+		{
+			Log.Warning($"thing is null for pawn {pawn.Name?.ToStringShort ?? "Unknown"}");
+			return null;
+		}
+
 		var job = new Job(PickUpAndHaulJobDefOf.HaulToInventory);
-		GetClosestAndEnqueue(thing, pawn, job, MassUtility.GearAndInventoryMass(pawn));
-		return job.targetQueueA.Count > 0 ? job : null;
+		var currentMass = MassUtility.GearAndInventoryMass(pawn);
+
+		// Initialize job target queues
+		job.targetQueueA ??= [];
+		job.countQueue ??= [];
+
+		// First, check if we can carry the initial thing
+		var initialCount = Math.Min(thing.stackCount, thing.CalculateActualCarriableAmount(currentMass, MassUtility.Capacity(pawn)));
+		if (initialCount > 0 && thing.Spawned && !thing.Destroyed && thing.Map != null && HaulAIUtility.PawnCanAutomaticallyHaul(pawn, thing, false))
+		{
+			currentMass += thing.GetStatValue(StatDefOf.Mass) * initialCount;
+			job.targetQueueA.Add(thing);
+			job.countQueue.Add(initialCount);
+		}
+
+		// Then look for additional things to haul
+		GetClosestAndEnqueue(thing, pawn, job, currentMass);
+
+		if (job.targetQueueA.Count > 0)
+		{
+			Log.Message($"Created job with {job.targetQueueA.Count} targets for {pawn.Name?.ToStringShort ?? "Unknown"}");
+			return job;
+		}
+		else
+		{
+			Log.Warning($"Returning null - no targets added to job for pawn {pawn.Name?.ToStringShort ?? "Unknown"} on thing {thing.LabelShort}");
+			return null;
+		}
 	}
 
 	public static void GetClosestAndEnqueue(this Thing previousThing, Pawn pawn, Job job, float currentMass)
 	{
+		// Add null checks for job and pawn
+		if (job == null)
+		{
+			Log.Warning($"job is null for pawn {pawn.Name?.ToStringShort ?? "Unknown"}");
+			return;
+		}
+
+		if (pawn == null)
+		{
+			Log.Warning($"pawn is null");
+			return;
+		}
+
 		job.targetQueueA ??= [];
 		job.countQueue ??= [];
 
+		// Check if previousThing is null and handle it gracefully
+		if (previousThing == null)
+		{
+			Log.Warning($"previousThing is null for pawn {pawn.Name?.ToStringShort ?? "Unknown"}, skipping distance checks");
+			// Add null check for WorkCache.Cache
+			if (WorkCache.Cache == null)
+			{
+				Log.Warning($"WorkCache.Cache is null for pawn {pawn.Name?.ToStringShort ?? "Unknown"} (previousThing null path)");
+				return;
+			}
+
+			// If previousThing is null, we can't do distance checks, so just add candidates without distance validation
+			while (!WorkCache.Cache.IsEmpty)
+			{
+				if (job.targetQueueA.Count >= 20)
+				{
+					break;
+				}
+
+				if (!WorkCache.Cache.TryDequeue(out var candidate))
+				{
+					break;
+				}
+
+				// Add null check for candidate
+				if (candidate == null)
+				{
+					Log.Warning($"Dequeued candidate is null for pawn {pawn.Name?.ToStringShort ?? "Unknown"} (previousThing null path), skipping");
+					continue;
+				}
+
+				var count = Math.Min(candidate.stackCount, candidate.CalculateActualCarriableAmount(currentMass, MassUtility.Capacity(pawn)));
+
+				if (count <= 0)
+				{
+					break;
+				}
+
+				// Add null check for candidate's map before calling HaulAIUtility.PawnCanAutomaticallyHaul
+				if (!candidate.Spawned || candidate.Destroyed || candidate.Map == null || !HaulAIUtility.PawnCanAutomaticallyHaul(pawn, candidate, false))
+				{
+					continue;
+				}
+
+				currentMass += candidate.GetStatValue(StatDefOf.Mass) * count;
+
+				// Add null checks for collections before adding
+				if (job.targetQueueA != null && job.countQueue != null)
+				{
+					job.targetQueueA.Add(candidate);
+					job.countQueue.Add(count);
+				}
+				else
+				{
+					Log.Warning($"job collections are null, cannot add {candidate.LabelShort} for pawn {pawn.Name?.ToStringShort ?? "Unknown"}");
+				}
+			}
+
+			return;
+		}
+
+		// Add null check for WorkCache.Cache
+		if (WorkCache.Cache == null)
+		{
+			Log.Warning($"WorkCache.Cache is null for pawn {pawn.Name?.ToStringShort ?? "Unknown"}");
+			return;
+		}
+
+		// Original logic - no iteration limits
 		while (!WorkCache.Cache.IsEmpty)
 		{
 			if (job.targetQueueA.Count >= 20)
+			{
 				break;
+			}
 
 			if (!WorkCache.Cache.TryDequeue(out var candidate))
+			{
 				break;
-			var count = Math.Min(candidate.stackCount, candidate.CalculateActualCarriableAmount(currentMass, MassUtility.Capacity(pawn)));
-			if (count <= 0)
-				break;
+			}
 
-			if (!candidate.Spawned || candidate.Destroyed || !HaulAIUtility.PawnCanAutomaticallyHaul(pawn, candidate, false))
+			// Add null check for candidate
+			if (candidate == null)
+			{
+				Log.Warning($"Dequeued candidate is null for pawn {pawn.Name?.ToStringShort ?? "Unknown"}, skipping");
 				continue;
+			}
+
+			var count = Math.Min(candidate.stackCount, candidate.CalculateActualCarriableAmount(currentMass, MassUtility.Capacity(pawn)));
+
+			if (count <= 0)
+			{
+				break;
+			}
+
+			// Add null check for candidate's map before calling HaulAIUtility.PawnCanAutomaticallyHaul
+			if (!candidate.Spawned || candidate.Destroyed || candidate.Map == null || !HaulAIUtility.PawnCanAutomaticallyHaul(pawn, candidate, false))
+			{
+				continue;
+			}
+
 			var thingInSight = (previousThing.Position - candidate.Position).LengthHorizontalSquared <= 49f;
+
 			if (!thingInSight)
+			{
 				continue;
+			}
 
 			currentMass += candidate.GetStatValue(StatDefOf.Mass) * count;
-			job.targetQueueA.Add(candidate);
-			job.countQueue.Add(count);
-			GetClosestAndEnqueue(candidate, pawn, job, currentMass);
+
+			// Add null checks for collections before adding
+			if (job.targetQueueA != null && job.countQueue != null)
+			{
+				job.targetQueueA.Add(candidate);
+				job.countQueue.Add(count);
+			}
+			else
+			{
+				Log.Warning($"job collections are null, cannot add {candidate.LabelShort} for pawn {pawn.Name?.ToStringShort ?? "Unknown"}");
+			}
 		}
 	}
 
 	public static int CalculateActualCarriableAmount(this Thing thing, float currentMass, float capacity)
 	{
-		if (currentMass >= capacity)
+		// Add a small tolerance to prevent issues with rounding errors
+		const float capacityTolerance = 0.1f;
+		var effectiveCapacity = capacity + capacityTolerance;
+
+		// Add a minimum capacity threshold to prevent micro-hauling when almost full
+		const float minimumCapacityThreshold = 0.5f;
+		var remainingCapacity = effectiveCapacity - currentMass;
+
+		if (currentMass >= effectiveCapacity || remainingCapacity < minimumCapacityThreshold)
+		{
 			return 0;
+		}
 
 		var thingMass = thing.GetStatValue(StatDefOf.Mass);
 
 		if (thingMass <= 0)
+		{
 			return thing.stackCount;
+		}
 
-		var remainingCapacity = capacity - currentMass;
 		var maxCarriable = (int)Math.Floor(remainingCapacity / thingMass);
+		var result = Math.Min(maxCarriable, thing.stackCount);
 
-		return Math.Min(maxCarriable, thing.stackCount);
+		return result;
 	}
 
 	public static bool IsModSpecificNamespace(this string name)

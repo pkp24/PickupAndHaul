@@ -12,7 +12,18 @@ public class JobDriver_HaulToInventory : JobDriver
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
-		pawn.ReserveAsManyAsPossible(job.GetTargetQueue(TargetIndex.A), job);
+		var targetQueue = job.GetTargetQueue(TargetIndex.A);
+
+		// Add null check for targetQueue
+		if (targetQueue != null && targetQueue.Count > 0)
+		{
+			pawn.ReserveAsManyAsPossible(targetQueue, job);
+		}
+		else
+		{
+			Log.Warning($"Target queue is null or empty for pawn {pawn.Name?.ToStringShort ?? "Unknown"}");
+		}
+
 		return true;
 	}
 
@@ -24,9 +35,26 @@ public class JobDriver_HaulToInventory : JobDriver
 		yield return Toils_Goto.GotoCell(TargetIndex.A, PathEndMode.ClosestTouch).FailOnDespawnedNullOrForbidden(TargetIndex.A);
 		yield return Toils_General.Do(() =>
 		{
+			// Add null checks to prevent NullReferenceException
+			if (TargetThingA == null)
+			{
+				Log.Warning($"TargetThingA is null for pawn {pawn.Name?.ToStringShort ?? "Unknown"}");
+				return;
+			}
+
 			var countToPickUp = Math.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(pawn, TargetThingA));
 			if (countToPickUp > 0)
-				pawn.inventory.innerContainer.TryAdd(TargetThingA.SplitOff(countToPickUp));
+			{
+				var splitOff = TargetThingA.SplitOff(countToPickUp);
+				if (splitOff != null)
+				{
+					var added = pawn.inventory.innerContainer.TryAdd(splitOff);
+				}
+				else
+				{
+					Log.Warning($"SplitOff returned null for {TargetThingA?.LabelShort ?? "null"}");
+				}
+			}
 		});
 		yield return Toils_Jump.JumpIf(nextTarget, () => !job.targetQueueA.NullOrEmpty());
 	}
