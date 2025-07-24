@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <JobDef>
+    <defName>HaulToInventory</defName>
+    <driverClass>PickUpAndHaul.JobDriver_HaulToInventory</driverClass>
+    <reportString>gathering TargetA to hauling inventory.</reportString>
+    <casualInterruptible>true</casualInterruptible>
+    <suspendable>true</suspendable>
+  </JobDef>
+  <JobDef>
+    <defName>UnloadYourHauledInventory</defName>
+    <driverClass>PickUpAndHaul.JobDriver_UnloadYourHauledInventory</driverClass>
+    <reportString>unloading inventory.</reportString>
+    <casualInterruptible>false</casualInterruptible>
+    <suspendable>false</suspendable>
+  </JobDef>
+</Defs>
