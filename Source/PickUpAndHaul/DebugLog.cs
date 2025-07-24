@@ -1,6 +1,4 @@
-﻿using System.Threading;
-
-namespace PickUpAndHaul;
+﻿namespace PickUpAndHaul;
 
 internal static class Log
 {
