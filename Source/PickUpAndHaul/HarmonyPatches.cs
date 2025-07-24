@@ -43,6 +43,10 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.ExposeSmallComponents)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Game_ExposeSmallComponents_Prefix)));
 
+		// Add patch to intercept RimWorld error logging
+		harmony.Patch(original: AccessTools.Method(typeof(Verse.Log), nameof(Verse.Log.Error), [typeof(string)]),
+			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Log_Error_Prefix)));
+
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
 
@@ -122,5 +126,23 @@ internal static class HarmonyPatches
 		CacheManager.CheckForGameChanges(__instance.Maps);
 
 		return true;
+	}
+
+	/// <summary>
+	/// Intercept RimWorld error logging to capture all errors in our debug log
+	/// </summary>
+	private static void Log_Error_Prefix(string text)
+	{
+		try
+		{
+			// Get the current stack trace
+			var stackTrace = Environment.StackTrace;
+			Log.InterceptRimWorldError(text, stackTrace);
+		}
+		catch (Exception ex)
+		{
+			// Don't let our error interception cause more errors
+			Verse.Log.Warning($"Failed to intercept RimWorld error: {ex.Message}");
+		}
 	}
 }
