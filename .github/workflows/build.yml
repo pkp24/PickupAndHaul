@@ -100,35 +100,17 @@ jobs:
     - name: Set up .NET SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
-
-    # 3️⃣ Restore NuGet packages for both projects
-    - name: Restore packages
-      run: |
-        dotnet restore "${{ env.MOD_SRC_PATH }}"
-
-    # 4️⃣ Build IHoldMultipleThings first (dependency)
-    - name: Build IHoldMultipleThings
-      run: dotnet build "${{ env.IHM_SRC_PATH }}" --no-restore
+        dotnet-version: '9.0.x'
 
     # 5️⃣ Build PickUpAndHaul (depends on IHoldMultipleThings)
     - name: Build PickUpAndHaul
-      run: dotnet build "${{ env.MOD_SRC_PATH }}" --no-restore
+      run: dotnet build "${{ env.MOD_SRC_PATH }}"
 
     # 6️⃣ Verify DLLs were built to the correct location
     - name: Verify built DLLs
       shell: pwsh
       run: |
         $dest = Join-Path $env:GITHUB_WORKSPACE '${{ env.DLL_DEST_PATH }}'
-        
-        # Check if IHoldMultipleThings.dll exists
-        $ihmDll = Join-Path $dest 'IHoldMultipleThings.dll'
-        if (Test-Path $ihmDll) {
-          Write-Host "✓ IHoldMultipleThings.dll found at $ihmDll"
-        } else {
-          Write-Host "✗ IHoldMultipleThings.dll not found at $ihmDll"
-          exit 1
-        }
 
         # Check if PickUpAndHaul.dll exists
         $modDll = Join-Path $dest 'PickUpAndHaul.dll'
