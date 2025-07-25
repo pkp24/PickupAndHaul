@@ -26,6 +26,13 @@ public class JobDriver_HaulToInventory : JobDriver
 	{
 		Log.Message($"MakeNewToils called for pawn {pawn?.Name.ToStringShort}, job targets: {job?.GetTargetQueue(TargetIndex.A)?.Count ?? 0}");
 
+		// Check if we have any targets
+		if (job?.GetTargetQueue(TargetIndex.A)?.Count == 0)
+		{
+			Log.Warning($"Job for pawn {pawn?.Name.ToStringShort} has no targets, ending job");
+			yield break;
+		}
+
 		var nextTarget = Toils_JobTransforms.ExtractNextTargetFromQueue(TargetIndex.A);
 		yield return nextTarget;
 

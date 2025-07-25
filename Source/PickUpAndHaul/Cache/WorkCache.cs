@@ -22,13 +22,27 @@ public class WorkCache : ICache
 
 			Log.Message($"CalculatePotentialWork called for pawn {pawn?.Name.ToStringShort} at tick {currentTick}");
 
+			// Ensure cache is initialized for this map
+			if (!Cache.ContainsKey(pawn.Map))
+			{
+				Cache[pawn.Map] = new ConcurrentQueue<Thing>();
+			}
+			if (!UrgentCache.ContainsKey(pawn.Map))
+			{
+				UrgentCache[pawn.Map] = new ConcurrentQueue<Thing>();
+			}
+
 			if (NextWorkCacheTick.TryGetValue(pawn.Map, out var tick) && currentTick < tick)
 			{
 				var existingCacheCount = Cache.TryGetValue(pawn.Map, out var existingCache) ? existingCache.Count : 0;
 				var existingUrgentCount = UrgentCache.TryGetValue(pawn.Map, out var existingUrgentCache) ? existingUrgentCache.Count : 0;
 
 				Log.Message($"Using cached work for pawn {pawn.Name.ToStringShort} - Cache: {existingCacheCount}, Urgent: {existingUrgentCount}");
-				return UrgentCache[pawn.Map].IsEmpty ? Cache[pawn.Map] : UrgentCache[pawn.Map];
+
+				// Return urgent cache if available, otherwise regular cache
+				return !UrgentCache[pawn.Map].IsEmpty
+					? UrgentCache[pawn.Map]
+					: !Cache[pawn.Map].IsEmpty ? Cache[pawn.Map] : new ConcurrentQueue<Thing>();
 			}
 
 			Log.Message($"Recalculating work cache for pawn {pawn.Name.ToStringShort}");
@@ -55,7 +69,10 @@ public class WorkCache : ICache
 
 			Log.Message($"Work cache updated for pawn {pawn.Name.ToStringShort} - Cache: {newCache.Count}, Urgent: {newUrgentCache.Count}, Next update: {nextTick}");
 
-			return UrgentCache[pawn.Map].IsEmpty ? Cache[pawn.Map] : UrgentCache[pawn.Map];
+			// Return urgent cache if available, otherwise regular cache
+			return !UrgentCache[pawn.Map].IsEmpty
+				? UrgentCache[pawn.Map]
+				: !Cache[pawn.Map].IsEmpty ? Cache[pawn.Map] : new ConcurrentQueue<Thing>();
 		}
 		catch (Exception ex)
 		{
