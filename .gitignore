@@ -70,7 +70,7 @@ StyleCopReport.xml
 *.tmp
 *.tmp_proj
 *_wpftmp.csproj
-*.log
+#*.log
 *.vspscc
 *.vssscc
 .builds
@@ -371,7 +371,7 @@ Thumbs.db
 *~
 
 # Log files
-*.log
-*.log.*
+#*.log
+#*.log.*
 1.5/
  

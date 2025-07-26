@@ -2,12 +2,21 @@
 
 # PickUpAndHaul Build Script
 # This script builds the PickUpAndHaul project
+#
+# Usage:
+#   .\build.ps1                    # Build with default settings
+#   .\build.ps1 -Configuration Release  # Build in Release mode
+#   .\build.ps1 -Clean             # Clean and build
+#   .\build.ps1 -Format            # Format code and build
+#   .\build.ps1 -ClearCache        # Clear publicizer cache and build
+#   .\build.ps1 -Verbose           # Build with verbose output
 
 param(
     [string]$Configuration = "Debug",
     [switch]$Clean,
     [switch]$Verbose,
-    [switch]$Format
+    [switch]$Format,
+    [switch]$ClearCache
 )
 
 # Set error action preference
@@ -297,6 +306,67 @@ function Format-Projects
     }
 }
 
+# Function to clear publicizer cache
+function Clear-PublicizerCache
+{
+    Write-ColorOutput "Clearing publicizer cache..." $Yellow
+    
+    $cachePaths = @(
+        "Source/PickUpAndHaul/obj/Debug/PublicizedAssemblies",
+        "Source/PickUpAndHaul/obj/Release/PublicizedAssemblies"
+    )
+    
+    $totalSize = 0
+    $totalFiles = 0
+    
+    foreach ($cachePath in $cachePaths)
+    {
+        if (Test-Path $cachePath)
+        {
+            Write-ColorOutput "Found cache directory: $cachePath" $Cyan
+            
+            # Calculate size before deletion
+            $cacheInfo = Get-ChildItem $cachePath -Recurse -File | Measure-Object -Property Length -Sum
+            $totalSize += $cacheInfo.Sum
+            $totalFiles += $cacheInfo.Count
+            
+            # Get subdirectories for reporting
+            $subDirs = Get-ChildItem $cachePath -Directory
+            Write-ColorOutput "  Found $($subDirs.Count) cached assembly directories:" $Cyan
+            foreach ($dir in $subDirs)
+            {
+                $dirSize = (Get-ChildItem $dir.FullName -Recurse -File | Measure-Object -Property Length -Sum).Sum
+                Write-ColorOutput "    $($dir.Name) ($([math]::Round($dirSize / 1MB, 2)) MB)" $Yellow
+            }
+            
+            # Remove the cache directory
+            try
+            {
+                Remove-Item $cachePath -Recurse -Force
+                Write-ColorOutput "✓ Cleared cache: $cachePath" $Green
+            }
+            catch
+            {
+                Write-ColorOutput "✗ Error clearing cache $cachePath : $($_.Exception.Message)" $Red
+            }
+        }
+        else
+        {
+            Write-ColorOutput "No cache found: $cachePath" $Cyan
+        }
+    }
+    
+    if ($totalFiles -gt 0)
+    {
+        $totalSizeMB = [math]::Round($totalSize / 1MB, 2)
+        Write-ColorOutput "✓ Cleared $totalFiles files ($totalSizeMB MB) from publicizer cache" $Green
+    }
+    else
+    {
+        Write-ColorOutput "✓ No publicizer cache found to clear" $Green
+    }
+}
+
 # Main execution
 Write-ColorOutput "=== PickUpAndHaul Build Script ===" $Cyan
 Write-ColorOutput "Configuration: $Configuration" $Yellow
@@ -329,6 +399,13 @@ if ($Clean)
 if ($Format)
 {
     Format-Projects
+    Write-ColorOutput ""
+}
+
+# Clear cache if requested
+if ($ClearCache)
+{
+    Clear-PublicizerCache
     Write-ColorOutput ""
 }
 
