@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Reflection.Emit;
 using HarmonyLib;
 
 namespace PickUpAndHaul;
@@ -135,21 +134,7 @@ static class HarmonyPatches
 	/// For animal hauling
 	/// </summary>
 	public static IEnumerable<CodeInstruction> JobGiver_Haul_TryGiveJob_Transpiler(IEnumerable<CodeInstruction> instructions)
-	{
-		var originalMethod = AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.HaulToStorageJob), new[] { typeof(Pawn), typeof(Thing), typeof(bool) });
-		var replacementMethod = AccessTools.Method(typeof(HarmonyPatches), nameof(HaulToStorageJobByRace));
-		foreach (var instruction in instructions)
-		{
-			if (instruction.Calls(originalMethod))
-			{
-				yield return new CodeInstruction(OpCodes.Call, replacementMethod);
-			}
-			else
-			{
-				yield return instruction;
-			}
-		}
-	}
+		=> instructions.MethodReplacer(HaulAIUtility.HaulToStorageJob, HaulToStorageJobByRace);
 
 	public static Job HaulToStorageJobByRace(Pawn p, Thing t, bool forced) => Settings.IsAllowedRace(p.RaceProps) ? HaulToInventoryJob(p, t, forced) : HaulAIUtility.HaulToStorageJob(p, t, forced);
 	private static Func<Pawn, Thing, bool, Job> HaulToInventoryJob => _haulToInventoryJob ??= new(((WorkGiver_Scanner)DefDatabase<WorkGiverDef>.GetNamed("HaulToInventory").Worker).JobOnThing);

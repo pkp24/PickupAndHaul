@@ -30,7 +30,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
 	{
-		var list = new List<Thing>(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
+		var list = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling().ToList();
 		Comparer.rootCell = pawn.Position;
 		list.Sort(Comparer);
 		return list;
@@ -190,7 +190,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 		while ((nextThing = GetClosestAndRemove(lastThing.Position, map, haulables, PathEndMode.ClosestTouch,
 			TraverseParms.For(pawn), distanceToSearchMore, Validator)) != null);
-		
+
 		if (nextThing == null)
 		{
 			skipCells = null;
