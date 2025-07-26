@@ -129,7 +129,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		yield return wait;
 	}
 
-	private static List<Thing> TempListForThings { get; } = new();
+	private static List<Thing> TempListForThings { get; } = [];
 
 	/// <summary>
 	/// the workgiver checks for encumbered, this is purely extra for CE

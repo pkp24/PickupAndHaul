@@ -125,9 +125,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		//Find what fits in inventory, set nextThingLeftOverCount to be 
 		var nextThingLeftOverCount = 0;
 		var encumberance = MassUtility.EncumbrancePercent(pawn);
-		job.targetQueueA = new List<LocalTargetInfo>(); //more things
-		job.targetQueueB = new List<LocalTargetInfo>(); //more storage; keep in mind the job doesn't use it, but reserve it so you don't over-haul
-		job.countQueue = new List<int>();//thing counts
+		job.targetQueueA = []; //more things
+		job.targetQueueB = []; //more storage; keep in mind the job doesn't use it, but reserve it so you don't over-haul
+		job.countQueue = [];//thing counts
 
 		var ceOverweight = false;
 
@@ -155,8 +155,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			[storeTarget] = new(nextThing, capacityStoreCell)
 		};
 		//skipTargets = new() { storeTarget };
-		skipCells = new();
-		skipThings = new();
+		skipCells = [];
+		skipThings = [];
 		if (storeTarget.container != null)
 		{
 			skipThings.Add(storeTarget.container);
@@ -342,16 +342,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return closestThing;
 	}
 
-	public class CellAllocation
+	public class CellAllocation(Thing a, int c)
 	{
-		public Thing allocated;
-		public int capacity;
-
-		public CellAllocation(Thing a, int c)
-		{
-			allocated = a;
-			capacity = c;
-		}
+		public Thing allocated = a;
+		public int capacity = c;
 	}
 
 	public static int CapacityAt(Thing thing, IntVec3 storeCell, Map map)

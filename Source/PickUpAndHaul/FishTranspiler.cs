@@ -1,8 +1,8 @@
-﻿using System.Linq;
+﻿using HarmonyLib;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
-using HarmonyLib;
 
 namespace PickUpAndHaul;
 public static class FishTranspiler

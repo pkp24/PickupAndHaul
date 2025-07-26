@@ -2,7 +2,7 @@
 
 public class CompHauledToInventory : ThingComp
 {
-	private HashSet<Thing> takenToInventory = new();
+	private HashSet<Thing> takenToInventory = [];
 
 	public HashSet<Thing> GetHashSet()
 	{

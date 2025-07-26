@@ -10,7 +10,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	public override void ExposeData()
 	{
 		base.ExposeData();
-		Scribe_Values.Look<int>(ref _countToDrop, "countToDrop", -1);
+		Scribe_Values.Look(ref _countToDrop, "countToDrop", -1);
 	}
 
 	public override bool TryMakePreToilReservations(bool errorOnFailed) => true;
@@ -58,113 +58,104 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 	private bool TargetIsCell() => !TargetB.HasThing;
 
-	private Toil ReleaseReservation()
+	private Toil ReleaseReservation() => new()
 	{
-		return new()
+		initAction = () =>
 		{
-			initAction = () =>
+			if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
 			{
-				if (pawn.Map.reservationManager.ReservedBy(job.targetB, pawn, pawn.CurJob))
-				{
-					pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
-				}
+				pawn.Map.reservationManager.Release(job.targetB, pawn, pawn.CurJob);
 			}
-		};
-	}
+		}
+	};
 
-	private Toil PullItemFromInventory(HashSet<Thing> carriedThings, Toil wait)
+	private Toil PullItemFromInventory(HashSet<Thing> carriedThings, Toil wait) => new()
 	{
-		return new()
+		initAction = () =>
 		{
-			initAction = () =>
+			var thing = job.GetTarget(TargetIndex.A).Thing;
+			if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
 			{
-				var thing = job.GetTarget(TargetIndex.A).Thing;
-				if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
+				carriedThings.Remove(thing);
+				pawn.jobs.curDriver.JumpToToil(wait);
+				return;
+			}
+			if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
+			{
+				Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
+				pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
+				EndJobWith(JobCondition.Succeeded);
+				carriedThings.Remove(thing);
+			}
+			else
+			{
+				pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer,
+					_countToDrop, out thing);
+				job.count = _countToDrop;
+				job.SetTarget(TargetIndex.A, thing);
+				carriedThings.Remove(thing);
+			}
+
+			if (ModCompatibilityCheck.CombatExtendedIsActive)
+			{
+				CompatHelper.UpdateInventory(pawn);
+			}
+
+			thing.SetForbidden(false, false);
+		}
+	};
+
+	private Toil FindTargetOrDrop(HashSet<Thing> carriedThings) => new()
+	{
+		initAction = () =>
+		{
+			var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
+
+			if (unloadableThing.Count == 0)
+			{
+				if (carriedThings.Count == 0)
 				{
-					carriedThings.Remove(thing);
-					pawn.jobs.curDriver.JumpToToil(wait);
-					return;
-				}
-				if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
-				{
-					Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
-					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
 					EndJobWith(JobCondition.Succeeded);
-					carriedThings.Remove(thing);
 				}
-				else
-				{
-					pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer,
-						_countToDrop, out thing);
-					job.count = _countToDrop;
-					job.SetTarget(TargetIndex.A, thing);
-					carriedThings.Remove(thing);
-				}
-
-				if (ModCompatibilityCheck.CombatExtendedIsActive)
-				{
-					CompatHelper.UpdateInventory(pawn);
-				}
-
-				thing.SetForbidden(false, false);
+				return;
 			}
-		};
-	}
 
-	private Toil FindTargetOrDrop(HashSet<Thing> carriedThings)
-	{
-		return new()
-		{
-			initAction = () =>
+			var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
+			if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
+					pawn.Faction, out var cell, out var destination))
 			{
-				var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
-
-				if (unloadableThing.Count == 0)
+				job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+				if (cell == IntVec3.Invalid)
 				{
-					if (carriedThings.Count == 0)
-					{
-						EndJobWith(JobCondition.Succeeded);
-					}
-					return;
-				}
-
-				var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
-				if (StoreUtility.TryFindBestBetterStorageFor(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-						pawn.Faction, out var cell, out var destination))
-				{
-					job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-					if (cell == IntVec3.Invalid)
-					{
-						job.SetTarget(TargetIndex.B, destination as Thing);
-					}
-					else
-					{
-						job.SetTarget(TargetIndex.B, cell);
-					}
-
-					Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-					if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
-					{
-						Log.Message(
-							$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-						pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-							unloadableThing.Thing.stackCount, out _);
-						EndJobWith(JobCondition.Incompletable);
-						return;
-					}
-					_countToDrop = unloadableThing.Thing.stackCount;
+					job.SetTarget(TargetIndex.B, destination as Thing);
 				}
 				else
+				{
+					job.SetTarget(TargetIndex.B, cell);
+				}
+
+				Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
+				if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
 				{
 					Log.Message(
-						$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
+						$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
 					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 						unloadableThing.Thing.stackCount, out _);
-					EndJobWith(JobCondition.Succeeded);
+					EndJobWith(JobCondition.Incompletable);
+					return;
 				}
+				_countToDrop = unloadableThing.Thing.stackCount;
 			}
-		};
-	}
+			else
+			{
+				Log.Message(
+					$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
+				pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+					unloadableThing.Thing.stackCount, out _);
+				EndJobWith(JobCondition.Succeeded);
+			}
+		}
+	};
 
 	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
 	{

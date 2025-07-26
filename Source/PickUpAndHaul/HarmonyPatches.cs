@@ -1,9 +1,9 @@
-﻿using System.Reflection;
-using HarmonyLib;
+﻿using HarmonyLib;
+using System.Reflection;
 
 namespace PickUpAndHaul;
 [StaticConstructorOnStartup]
-static class HarmonyPatches
+internal static class HarmonyPatches
 {
 	static HarmonyPatches()
 	{
@@ -14,7 +14,7 @@ static class HarmonyPatches
 
 		if (!ModCompatibilityCheck.CombatExtendedIsActive)
 		{
-			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.GetMaxAllowedToPickUp), new[] { typeof(Pawn), typeof(ThingDef) }),
+			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.GetMaxAllowedToPickUp), [typeof(Pawn), typeof(ThingDef)]),
 				prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(MaxAllowedToPickUpPrefix)));
 
 			harmony.Patch(original: AccessTools.Method(typeof(PawnUtility), nameof(PawnUtility.CanPickUp)),
