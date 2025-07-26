@@ -1,9 +1,13 @@
-# PickUpAndHaul
-"Greatest hauling mod ever" - Chicken Plucker
+# PickUpAndHaul Forked
+This readme is based on my main branch, I'll update when I push to main or remember to update it
+
+
 
 Colonists will gather stuff in their inventory, then haul it all to a stockpile.
 
 This hauling mod will greatly increase hauling efficiency, because pawns can now carry more than one gun or t-shirt. Those smart and intelligent colonists can use their inventory! You gotta see it to believe it.
+
+**Forked version of PUAH**
 
 ## Functionality
 If possible, colonists that can haul will haul stuff to their inventory, pick up one more item to haul to a stockpile and then unload their inventory by category. If for some reason pawns run out of things to haul before their inventory is full, they will unload themselves:
@@ -24,10 +28,9 @@ Want field-doctoring to be even better? Use [Smart Medicine](https://steamcommun
 ## Compatibility notes:
 Works in unison with AllowTool's Haul Urgently designation.
 
-Fully Combat Extended compatible. Backpacks, bulk, mass - it all works.
 
-## Future plans:
-- Maintenance mode.
+Fully Combat Extended compatible. Backpacks, bulk, mass - (it hopefully all still works, please let me know)
+
 
 ## Credits and thanks:
 - [Uuugggg aka AlexTD](https://steamcommunity.com/id/uuugggg/myworkshopfiles/?appid=294100&p=1&numperpage=30). I cannot thank you enough for your massive contributions to Pick Up and Haul.
@@ -44,4 +47,31 @@ On the one hand this takes away a frustration of mine, but I can't deny that it 
 
 Ludeon: https://ludeon.com/forums/index.php?topic=35832  
 Steam: http://steamcommunity.com/sharedfiles/filedetails/?id=1279012058  
-GitHub: https://github.com/Mehni/PickUpAndHaul/releases
+Original GitHub: https://github.com/Mehni/PickUpAndHaul/releases
+
+## Features
+
+- Pawns can pick up multiple items and carry them in their inventory while hauling
+- Compatible with various other mods
+- Fixes save compatibility by stopping all PUAH jobs and then giving them back after the save completes. This means you can remove it from a save without breaking it.
+- Caching to try and improve performance
+
+## Compatibility
+
+This mod is compatible with:
+- Extended Storage
+- Allow Tool (Some issues right now, working on fixing them)
+
+This mod should be compatible with:
+- Combat Extended, I haven't personally tested it to make sure. Please tell me if it works for you.
+
+## Troubleshooting
+
+If you experience issues:
+
+1. Check the logs for error messages and report them on steam, github, or discord
+2. Enable debug logging in the mod options, pull the PickUpAndHaul_Debug.txt from "AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon Studios", upload the debug file to pastebin or someplace to send it to me. DO NOT KEEP DEBUG LOGGING ENABLED
+
+## License
+
+[License information here]
