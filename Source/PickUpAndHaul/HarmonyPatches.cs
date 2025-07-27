@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using System.Reflection;
+using PickUpAndHaul.Cache;
 
 namespace PickUpAndHaul;
 [StaticConstructorOnStartup]
@@ -52,6 +53,14 @@ internal static class HarmonyPatches
 		// Add patch to register the periodic performance tracker when a game starts
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.InitNewGame)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(InitNewGame_PostFix)));
+
+		// Add patch to ensure cache updater is added to maps when they're created
+		harmony.Patch(original: AccessTools.Method(typeof(Map), nameof(Map.ConstructComponents)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Map_ConstructComponents_PostFix)));
+
+		// Add patch to initialize caches when a game is loaded
+		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.LoadGame)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(LoadGame_PostFix)));
 
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
@@ -211,10 +220,46 @@ internal static class HarmonyPatches
 			// Register the periodic performance tracker when a new game starts
 			__instance.components.Add(new Performance.PeriodicPerformanceTracker(__instance));
 			Log.Message("PeriodicPerformanceTracker registered for new game");
+			
+			// Initialize caches for all existing maps
+			CacheInitializer.InitializeAllCaches();
 		}
 		catch (Exception ex)
 		{
 			Log.Error($"Failed to register PeriodicPerformanceTracker: {ex.Message}");
+		}
+	}
+
+	/// <summary>
+	/// Ensure cache updater is added to maps when they're created
+	/// </summary>
+	private static void Map_ConstructComponents_PostFix(Map __instance)
+	{
+		try
+		{
+			// Ensure the cache updater is added to the map
+			CacheUpdaterHelper.EnsureCacheUpdater(__instance);
+		}
+		catch (Exception ex)
+		{
+			Log.Error($"Failed to add cache updater to map: {ex.Message}");
+		}
+	}
+
+	/// <summary>
+	/// Initialize caches when a game is loaded
+	/// </summary>
+	private static void LoadGame_PostFix(Game __instance)
+	{
+		try
+		{
+			// Initialize caches for all existing maps when loading a game
+			CacheInitializer.InitializeAllCaches();
+			Log.Message("PUAH caches initialized for loaded game");
+		}
+		catch (Exception ex)
+		{
+			Log.Error($"Failed to initialize PUAH caches: {ex.Message}");
 		}
 	}
 }
