@@ -92,6 +92,14 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer,
 					_countToDrop, out thing);
 				job.count = _countToDrop;
+
+				// no more job was 0 errors
+				if (job.count <= 0)
+				{
+					Log.Warning($"Unload job count was {job.count}, setting to 1 for thing {thing}");
+					job.count = 1;
+				}
+
 				job.SetTarget(TargetIndex.A, thing);
 				carriedThings.Remove(thing);
 			}

@@ -52,6 +52,36 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//bulky gear (power armor + minigun) so don't bother.
 	public static bool OverAllowedGearCapacity(Pawn pawn) => MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= Settings.MaximumOccupiedCapacityToConsiderHauling;
 
+	/// <summary>
+	/// Validates and fixes job count, no more job was 0 errors
+	/// </summary>
+	private static void ValidateJobCount(Job job, Thing thing)
+	{
+		if (job.countQueue == null || job.countQueue.Count == 0)
+		{
+			Log.Warning($"Job for {thing} has no count queue, setting count to 1");
+			job.count = 1;
+			return;
+		}
+
+		// Check if any count in the queue is 0 or negative
+		for (var i = 0; i < job.countQueue.Count; i++)
+		{
+			if (job.countQueue[i] <= 0)
+			{
+				Log.Warning($"Job count at index {i} was {job.countQueue[i]} for {thing}, setting to 1");
+				job.countQueue[i] = 1;
+			}
+		}
+
+		// Ensure the main job count is also valid
+		if (job.count <= 0)
+		{
+			Log.Warning($"Main job count was {job.count} for {thing}, setting to 1");
+			job.count = 1;
+		}
+	}
+
 	//pick up stuff until you can't anymore,
 	//while you're up and about, pick up something and haul it
 	//before you go out, empty your pockets
@@ -236,6 +266,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		skipCells = null;
 		skipThings = null;
 		//skipTargets = null;
+
+		// no more job was 0 errors
+		ValidateJobCount(job, thing);
+
 		return job;
 	}
 
@@ -435,7 +469,10 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (capacityOver == 0)
 			{
-				break;  //don't find new cell, might not have more of this thing to haul
+				// no more job was 0 errors
+				job.countQueue.Add(count);
+				Log.Message($"{nextThing}:{count} allocated (capacityOver was 0)");
+				return true;
 			}
 
 			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);

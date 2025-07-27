@@ -37,6 +37,14 @@ public class JobDriver_HaulToInventory : JobDriver
 			{
 				var actor = pawn;
 				var thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
+
+				// no more job was 0 errors
+				if (job.count <= 0)
+				{
+					Log.Warning($"Job count was {job.count}, setting to 1 for thing {thing}");
+					job.count = 1;
+				}
+
 				Toils_Haul.ErrorCheckForCarry(actor, thing);
 
 				//get max we can pick up
