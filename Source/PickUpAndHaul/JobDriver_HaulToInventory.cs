@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 
 namespace PickUpAndHaul;
+
 public class JobDriver_HaulToInventory : JobDriver
 {
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
@@ -92,7 +93,8 @@ public class JobDriver_HaulToInventory : JobDriver
 			{
 				var haulables = TempListForThings;
 				haulables.Clear();
-				haulables.AddRange(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling());
+				haulables.AddRange(pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
+					.Where(t => t != null && t.Spawned && !t.Destroyed)); // Filter out null, unspawned, or destroyed things
 				var haulMoreWork = DefDatabase<WorkGiverDef>.AllDefsListForReading.First(wg => wg.Worker is WorkGiver_HaulToInventory).Worker as WorkGiver_HaulToInventory;
 				Job haulMoreJob = null;
 				var haulMoreThing = WorkGiver_HaulToInventory.GetClosestAndRemove(pawn.Position, pawn.Map, haulables, PathEndMode.ClosestTouch,

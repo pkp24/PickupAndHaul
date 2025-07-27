@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 
 namespace PickUpAndHaul;
+
 public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 {
 	//Thanks to AlexTD for the more dynamic search range
@@ -30,7 +31,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
 	{
-		var list = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling().ToList();
+		var list = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
+			.Where(t => t != null && t.Spawned && !t.Destroyed) // Filter out null, unspawned, or destroyed things
+			.ToList();
 		Comparer.rootCell = pawn.Position;
 		list.Sort(Comparer);
 		return list;
@@ -40,7 +43,23 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	public class ThingPositionComparer : IComparer<Thing>
 	{
 		public IntVec3 rootCell;
-		public int Compare(Thing x, Thing y) => (x.Position - rootCell).LengthHorizontalSquared.CompareTo((y.Position - rootCell).LengthHorizontalSquared);
+		public int Compare(Thing x, Thing y)
+		{
+			// Handle null cases
+			if (x == null && y == null)
+				return 0;
+			if (x == null)
+				return -1;
+			if (y == null)
+				return 1;
+
+			// Handle invalid things
+			return !x.Spawned && !y.Spawned
+				? 0
+				: !x.Spawned
+				? -1
+				: !y.Spawned ? 1 : (x.Position - rootCell).LengthHorizontalSquared.CompareTo((y.Position - rootCell).LengthHorizontalSquared);
+		}
 	}
 
 	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
@@ -173,7 +192,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var haulUrgentlyDesignation = PickUpAndHaulDesignationDefOf.haulUrgently;
 		var isUrgent = ModCompatibilityCheck.AllowToolIsActive && designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling());
+		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling()
+			.Where(t => t != null && t.Spawned && !t.Destroyed)); // Filter out null, unspawned, or destroyed things
 		Comparer.rootCell = thing.Position;
 		haulables.Sort(Comparer);
 
@@ -231,7 +251,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		//Find what can be carried
 		//this doesn't actually get pickupandhauled, but will hold the reservation so others don't grab what this pawn can carry
-		haulables.RemoveAll(t => !t.CanStackWith(nextThing));
+		haulables.RemoveAll(t => t == null || !t.CanStackWith(nextThing));
 
 		var carryCapacity = pawn.carryTracker.MaxStackSpaceEver(nextThing.def) - nextThingLeftOverCount;
 		if (carryCapacity == 0)
@@ -360,17 +380,39 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			return null;
 		}
 
-		var closestThing = searchSet[0];
-		index = 0;
-		var closestThingSquaredLength = (center - closestThing.Position).LengthHorizontalSquared;
-		var count = searchSet.Count;
-		for (var i = 1; i < count; i++)
+		// Find the first valid thing
+		Thing closestThing = null;
+		index = -1;
+		for (var i = 0; i < searchSet.Count; i++)
 		{
-			if (closestThingSquaredLength > (center - searchSet[i].Position).LengthHorizontalSquared)
+			if (searchSet[i] != null && searchSet[i].Spawned && !searchSet[i].Destroyed)
 			{
 				closestThing = searchSet[i];
 				index = i;
-				closestThingSquaredLength = (center - closestThing.Position).LengthHorizontalSquared;
+				break;
+			}
+		}
+
+		// If no valid thing found, return null
+		if (closestThing == null)
+		{
+			index = -1;
+			return null;
+		}
+
+		var closestThingSquaredLength = (center - closestThing.Position).LengthHorizontalSquared;
+		var count = searchSet.Count;
+		for (var i = index + 1; i < count; i++)
+		{
+			var currentThing = searchSet[i];
+			if (currentThing != null && currentThing.Spawned && !currentThing.Destroyed)
+			{
+				if (closestThingSquaredLength > (center - currentThing.Position).LengthHorizontalSquared)
+				{
+					closestThing = currentThing;
+					index = i;
+					closestThingSquaredLength = (center - closestThing.Position).LengthHorizontalSquared;
+				}
 			}
 		}
 		return closestThing;

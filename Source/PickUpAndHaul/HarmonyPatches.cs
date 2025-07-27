@@ -1,8 +1,10 @@
 ﻿using HarmonyLib;
+using System.Linq;
 using System.Reflection;
 using PickUpAndHaul.Cache;
 
 namespace PickUpAndHaul;
+
 [StaticConstructorOnStartup]
 internal static class HarmonyPatches
 {
@@ -61,6 +63,20 @@ internal static class HarmonyPatches
 		// Add patch to initialize caches when a game is loaded
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.LoadGame)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(LoadGame_PostFix)));
+
+		// Add patch to prevent null reference exceptions in HaulAIUtility.PawnCanAutomaticallyHaulFast
+		harmony.Patch(original: AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.PawnCanAutomaticallyHaulFast)),
+			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(PawnCanAutomaticallyHaulFast_Prefix)));
+
+		// Add patch to prevent null reference exceptions in GridsUtility.Fogged
+		// There are two overloads of GridsUtility.Fogged; explicitly target the Thing extension overload
+		harmony.Patch(original: AccessTools.Method(typeof(GridsUtility), nameof(GridsUtility.Fogged), [typeof(Thing)]),
+			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(GridsUtility_Fogged_Prefix)));
+
+		// Add patch to filter out null things from ListerHaulables.ThingsPotentiallyNeedingHauling
+		// Return type is ICollection<Thing>
+		harmony.Patch(original: AccessTools.Method(typeof(ListerHaulables), nameof(ListerHaulables.ThingsPotentiallyNeedingHauling)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(ThingsPotentiallyNeedingHauling_Postfix)));
 
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
@@ -201,6 +217,13 @@ internal static class HarmonyPatches
 		{
 			// Get the current stack trace
 			var stackTrace = Environment.StackTrace;
+
+			// Check if this is the specific AllowTool compatibility error we're seeing
+			if (text.Contains("System.NullReferenceException") && stackTrace.Contains("AllowTool.WorkGiver_HaulUrgently"))
+			{
+				Log.ModCompatibilityError("AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged", "AllowTool");
+			}
+
 			Log.InterceptRimWorldError(text, stackTrace);
 		}
 		catch (Exception ex)
@@ -260,6 +283,110 @@ internal static class HarmonyPatches
 		catch (Exception ex)
 		{
 			Log.Error($"Failed to initialize PUAH caches: {ex.Message}");
+		}
+	}
+
+	/// <summary>
+	/// Prevent null reference exceptions in HaulAIUtility.PawnCanAutomaticallyHaulFast
+	/// This is a safety net to catch any null things that might slip through
+	/// </summary>
+	private static bool PawnCanAutomaticallyHaulFast_Prefix(Pawn p, Thing t, bool forced, ref bool __result)
+	{
+		try
+		{
+			// Check if the thing is null or invalid
+			if (t == null || !t.Spawned || t.Destroyed)
+			{
+				// Suppress noisy error spam – only log in debug mode
+				if (Settings.EnableDebugLogging)
+				{
+					//Log.Message($"Prevented null reference in PawnCanAutomaticallyHaulFast - Thing was null or invalid");
+				}
+				__result = false;
+				return false; // Skip the original method
+			}
+
+			// Check if the pawn is null or invalid
+			if (p == null || p.Destroyed)
+			{
+				if (Settings.EnableDebugLogging)
+				{
+					//Log.Message($"Prevented null reference in PawnCanAutomaticallyHaulFast - Pawn was null or invalid");
+				}
+				__result = false;
+				return false; // Skip the original method
+			}
+
+			// Let the original method run
+			return true;
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in PawnCanAutomaticallyHaulFast_Prefix: {ex.Message}");
+			}
+			__result = false;
+			return false; // Skip the original method on exception
+		}
+	}
+
+	/// <summary>
+	/// Prevent null reference exceptions in GridsUtility.Fogged
+	/// This is the final safety net to catch any null things that reach this method
+	/// </summary>
+	private static bool GridsUtility_Fogged_Prefix(Thing t, ref bool __result)
+	{
+		try
+		{
+			// Check if the thing is null or invalid
+			if (t == null || !t.Spawned || t.Destroyed)
+			{
+				Log.JobError($"Prevented null reference in GridsUtility.Fogged - Thing was null or invalid", null, null, t);
+				__result = false;
+				return false; // Skip the original method
+			}
+
+			// Let the original method run
+			return true;
+		}
+		catch (Exception ex)
+		{
+			Log.JobError($"Exception in GridsUtility_Fogged_Prefix: {ex.Message}", null, null, t);
+			__result = false;
+			return false; // Skip the original method on exception
+		}
+	}
+
+	/// <summary>
+	/// Filter out null and invalid things from the haulables list
+	/// This ensures that no null things are returned to any mod that uses this method
+	/// </summary>
+	private static void ThingsPotentiallyNeedingHauling_Postfix(ref ICollection<Thing> __result)
+	{
+		try
+		{
+			if (__result == null)
+			{
+				return;
+			}
+
+			// If it's a List<Thing>, remove in-place (avoids allocations and preserves expected type)
+			if (__result is List<Thing> list)
+			{
+				list.RemoveAll(t => t == null || !t.Spawned || t.Destroyed);
+				return; // done
+			}
+
+			// Fallback: create a new list with only valid entries and assign
+			var validThings = __result.Where(t => t != null && t.Spawned && !t.Destroyed).ToList();
+			__result = validThings;
+		}
+		catch (Exception ex)
+		{
+			Log.JobError($"Exception in ThingsPotentiallyNeedingHauling_Postfix: {ex.Message}", null, null, null);
+			// On error, clear the collection to avoid downstream issues
+			__result?.Clear();
 		}
 	}
 }
