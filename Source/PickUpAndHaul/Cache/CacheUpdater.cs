@@ -35,6 +35,15 @@ namespace PickUpAndHaul.Cache
             
             // Update unreachable cache
             CacheManager.PopulateUnreachableCache(map);
+            
+            // Clean up stale storage location cache entries
+            CacheManager.CleanupStorageLocationCache(map);
+            
+            // Log cache statistics periodically for debugging
+            if (Settings.EnableDebugLogging && _tickCounter % 5000 == 0) // Every ~80 seconds
+            {
+                Log.Message($"Cache stats: {PUAHHaulCaches.GetCacheStatistics(map)}");
+            }
         }
 
         public override void MapComponentOnGUI()

@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using PickUpAndHaul.Cache;
 
 namespace PickUpAndHaul;
 
@@ -31,12 +32,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public override IEnumerable<Thing> PotentialWorkThingsGlobal(Pawn pawn)
 	{
-		var list = pawn.Map.listerHaulables.ThingsPotentiallyNeedingHauling()
-			.Where(t => t != null && t.Spawned && !t.Destroyed) // Filter out null, unspawned, or destroyed things
+		// Use the cache system instead of directly accessing listerHaulables
+		var cachedHaulables = CacheManager.GetAccessibleHaulables(pawn.Map)
+			.Where(t => t != null && t.Spawned && !t.Destroyed) // Additional safety filter
 			.ToList();
+		
 		Comparer.rootCell = pawn.Position;
-		list.Sort(Comparer);
-		return list;
+		cachedHaulables.Sort(Comparer);
+		return cachedHaulables;
 	}
 
 	private static ThingPositionComparer Comparer { get; } = new();
@@ -66,7 +69,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		=> OkThingToHaul(thing, pawn)
 		&& IsNotCorpseOrAllowed(thing)
 		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
-		&& StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, false);
+		&& CacheManager.TryGetCachedStorageLocation(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, out _);
 
 	//bulky gear (power armor + minigun) so don't bother.
 	public static bool OverAllowedGearCapacity(Pawn pawn) => MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= Settings.MaximumOccupiedCapacityToConsiderHauling;
@@ -106,6 +109,12 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//before you go out, empty your pockets
 	public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
+		// Ensure cache is up to date for this map
+		CacheUpdaterHelper.EnsureCacheUpdater(pawn.Map);
+		
+		// Validate that the thing is in the correct cache
+		ValidateThingInCache(pawn.Map, thing);
+		
 		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
 		{
 			return null;
@@ -125,7 +134,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
 		ThingOwner nonSlotGroupThingOwner = null;
 		StoreTarget storeTarget;
-		if (StoreUtility.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, true))
+		
+		// Use cached storage location if available
+		if (CacheManager.TryGetCachedStorageLocation(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, out nonSlotGroupThingOwner))
 		{
 			if (haulDestination is ISlotGroupParent)
 			{
@@ -192,7 +203,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var haulUrgentlyDesignation = PickUpAndHaulDesignationDefOf.haulUrgently;
 		var isUrgent = ModCompatibilityCheck.AllowToolIsActive && designationManager.DesignationOn(thing)?.def == haulUrgentlyDesignation;
 
-		var haulables = new List<Thing>(map.listerHaulables.ThingsPotentiallyNeedingHauling()
+		// Use the cache system for additional haulable items
+		var haulables = new List<Thing>(CacheManager.GetAccessibleHaulables(map)
 			.Where(t => t != null && t.Spawned && !t.Destroyed)); // Filter out null, unspawned, or destroyed things
 		Comparer.rootCell = thing.Position;
 		haulables.Sort(Comparer);
@@ -462,7 +474,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (storeCell == default)
 		{
 			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-			if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
+			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
 			{
 				if (innerInteractableThingOwner is null)
 				{
@@ -497,6 +509,32 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 		}
 
+		// Ensure the chosen storage spot (cell or container) is actually reservable; otherwise look for an alternative.
+		// This prevents all pawns targeting the same cell and spamming reservation-failure errors.
+		bool reservable;
+		if (storeCell.container != null)
+		{
+			reservable = pawn.CanReserve(storeCell.container, 1, -1, null, false);
+		}
+		else
+		{
+			reservable = pawn.CanReserve(storeCell.cell, 1, -1, null, false);
+		}
+
+		if (!reservable)
+		{
+			// Mark this spot so we don’t consider it again this haul cycle and bail out – caller will try another.
+			if (storeCell.container != null)
+				skipThings.Add(storeCell.container);
+			else
+				skipCells.Add(storeCell.cell);
+
+			// Clear static skip sets so they don’t leak into future jobs if we exit early
+			skipCells = null;
+			skipThings = null;
+			return false;
+		}
+ 
 		job.targetQueueA.Add(nextThing);
 		var count = nextThing.stackCount;
 		storeCellCapacity[storeCell].capacity -= count;
@@ -506,6 +544,16 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			var capacityOver = -storeCellCapacity[storeCell].capacity;
 			storeCellCapacity.Remove(storeCell);
+
+			// Prevent cycling on the same exhausted cell/container again
+			if (storeCell.container != null)
+			{
+				skipThings.Add(storeCell.container);
+			}
+			else
+			{
+				skipCells.Add(storeCell.cell);
+			}
 
 			Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
@@ -518,8 +566,26 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 
 			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-			if (TryFindBestBetterStorageFor(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
+			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
 			{
+				// If we got the same spot back, give up to avoid infinite loops; accept partial allocation
+				if (innerInteractableThingOwner is null && nextStoreCell == storeCell.cell)
+				{
+					count -= capacityOver;
+					job.countQueue.Add(count);
+					Log.Message($"Repeated store cell {nextStoreCell}, allocating partial {count} and aborting further allocation.");
+					skipCells = null; skipThings = null;
+					return false;
+				}
+				else if (innerInteractableThingOwner is not null && nextHaulDestination == storeCell.container)
+				{
+					count -= capacityOver;
+					job.countQueue.Add(count);
+					Log.Message($"Repeated haul destination {nextHaulDestination}, allocating partial {count} and aborting further allocation.");
+					skipCells = null; skipThings = null;
+					return false;
+				}
+
 				if (innerInteractableThingOwner is null)
 				{
 					storeCell = new(nextStoreCell);
@@ -648,6 +714,55 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static int CountPastCapacity(Pawn pawn, Thing thing, float encumberance)
 		=> (int)Math.Ceiling((encumberance - 1) * MassUtility.Capacity(pawn) / thing.GetStatValue(StatDefOf.Mass));
+
+	/// <summary>
+	/// Validate that a thing is in the correct cache and move it if necessary
+	/// </summary>
+	private static void ValidateThingInCache(Map map, Thing thing)
+	{
+		if (map == null || thing == null || thing.Destroyed) return;
+
+		// Check if the thing is too heavy for any pawn
+		bool isTooHeavy = true;
+		foreach (var pawn in map.mapPawns.FreeColonistsSpawned)
+		{
+			if (pawn == null || pawn.Dead || pawn.Downed) continue;
+
+			if (CanPawnCarryThing(pawn, thing))
+			{
+				isTooHeavy = false;
+				break;
+			}
+		}
+
+		// Move thing to appropriate cache
+		if (isTooHeavy)
+		{
+			// Remove from haulable cache and add to too heavy cache
+			PUAHHaulCaches.RemoveFromHaulableCache(map, thing);
+			PUAHHaulCaches.AddToTooHeavyCache(map, thing);
+		}
+		else
+		{
+			// Remove from too heavy cache and add to haulable cache
+			PUAHHaulCaches.RemoveFromTooHeavyCache(map, thing);
+			PUAHHaulCaches.AddToHaulableCache(map, thing);
+		}
+	}
+
+	/// <summary>
+	/// Check if a pawn can carry a specific thing
+	/// </summary>
+	private static bool CanPawnCarryThing(Pawn pawn, Thing thing)
+	{
+		if (pawn == null || thing == null) return false;
+
+		// Check if the thing is too heavy for the pawn
+		float thingMass = thing.GetStatValue(StatDefOf.Mass);
+		float maxCarryMass = pawn.GetStatValue(StatDefOf.CarryingCapacity);
+
+		return thingMass <= maxCarryMass;
+	}
 
 	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
 	{

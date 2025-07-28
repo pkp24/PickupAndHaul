@@ -4,6 +4,7 @@ global using System.Collections.Generic;
 global using UnityEngine;
 global using Verse;
 global using Verse.AI;
+global using PickUpAndHaul.Cache;
 
 namespace PickUpAndHaul;
 
@@ -16,6 +17,9 @@ public class Modbase : Mod
 		
 		// Initialize performance logging
 		InitializePerformanceLogging();
+		
+		// Initialize cache system
+		InitializeCacheSystem();
 	}
 	
 	private void InitializePerformanceLogging()
@@ -29,6 +33,20 @@ public class Modbase : Mod
 		catch (Exception ex)
 		{
 			Log.Error($"Failed to initialize performance logging: {ex.Message}");
+		}
+	}
+	
+	private void InitializeCacheSystem()
+	{
+		try
+		{
+			// Initialize caches for all existing maps
+			CacheInitializer.InitializeAllCaches();
+			Log.Message("PickUpAndHaul cache system initialized");
+		}
+		catch (Exception ex)
+		{
+			Log.Error($"Failed to initialize cache system: {ex.Message}");
 		}
 	}
 	

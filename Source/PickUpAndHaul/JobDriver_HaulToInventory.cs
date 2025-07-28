@@ -6,10 +6,38 @@ public class JobDriver_HaulToInventory : JobDriver
 {
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
-		Log.Message($"{pawn} starting HaulToInventory job: {job.targetQueueA.ToStringSafeEnumerable()}:{job.countQueue.ToStringSafeEnumerable()}");
-		pawn.ReserveAsManyAsPossible(job.targetQueueA, job);
-		pawn.ReserveAsManyAsPossible(job.targetQueueB, job);
-		return pawn.Reserve(job.targetQueueA[0], job) && pawn.Reserve(job.targetB, job);
+		// Silence the usual reservation-spam by disabling error logging on failed reserves.
+		// We still *try* to reserve everything we plan to touch, we just don’t let Verse.Log.Error fire
+		// when another pawn already owns the reservation.
+		bool success = true;
+
+		if (job.targetQueueA != null)
+		{
+			foreach (var target in job.targetQueueA)
+			{
+				if (!pawn.Reserve(target, job, 1, -1, null, false))
+				{
+					success = false;
+				}
+			}
+		}
+
+		if (job.targetQueueB != null)
+		{
+			foreach (var target in job.targetQueueB)
+			{
+				if (!pawn.Reserve(target, job, 1, -1, null, false))
+				{
+					success = false;
+				}
+			}
+		}
+
+		// Always attempt to reserve the main targets as well.
+		if (!pawn.Reserve(job.targetQueueA[0], job, 1, -1, null, false)) success = false;
+		if (!pawn.Reserve(job.targetB, job, 1, -1, null, false)) success = false;
+
+		return success;
 	}
 
 	//get next, goto, take, check for more. Branches off to "all over the place"

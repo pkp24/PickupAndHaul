@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using PickUpAndHaul.Cache;
+using RimWorld;
 
 namespace PickUpAndHaul;
 
@@ -77,6 +78,42 @@ internal static class HarmonyPatches
 		// Return type is ICollection<Thing>
 		harmony.Patch(original: AccessTools.Method(typeof(ListerHaulables), nameof(ListerHaulables.ThingsPotentiallyNeedingHauling)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(ThingsPotentiallyNeedingHauling_Postfix)));
+
+		// Add patch to update cache when things are spawned
+		harmony.Patch(original: AccessTools.Method(typeof(ListerHaulables), nameof(ListerHaulables.Notify_Spawned)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(ListerHaulables_Notify_Spawned_Postfix)));
+
+		// Add patch to update cache when things are despawned
+		harmony.Patch(original: AccessTools.Method(typeof(ListerHaulables), nameof(ListerHaulables.Notify_DeSpawned)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(ListerHaulables_Notify_DeSpawned_Postfix)));
+
+		// Add patch to update cache when haul designations are added
+		harmony.Patch(original: AccessTools.Method(typeof(ListerHaulables), nameof(ListerHaulables.HaulDesignationAdded)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(ListerHaulables_HaulDesignationAdded_Postfix)));
+
+		// Add patch to update cache when haul designations are removed
+		harmony.Patch(original: AccessTools.Method(typeof(ListerHaulables), nameof(ListerHaulables.HaulDesignationRemoved)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(ListerHaulables_HaulDesignationRemoved_Postfix)));
+
+		// Add patch to remove things from cache when they are despawned
+		harmony.Patch(original: AccessTools.Method(typeof(Thing), nameof(Thing.DeSpawn)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Thing_DeSpawn_Postfix)));
+
+		// Add patch to reclassify items when pawns are spawned (affects what's too heavy)
+		harmony.Patch(original: AccessTools.Method(typeof(Pawn), nameof(Pawn.SpawnSetup)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_SpawnSetup_Postfix)));
+
+		// Add patch to reclassify items when pawns are despawned (affects what's too heavy)
+		harmony.Patch(original: AccessTools.Method(typeof(Pawn), nameof(Pawn.DeSpawn)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_DeSpawn_Postfix)));
+
+		// Add patch to clean up cache when a map is destroyed
+		harmony.Patch(original: AccessTools.Method(typeof(Map), nameof(Map.ExposeData)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Map_ExposeData_Postfix)));
+
+		// Add patch to invalidate storage location cache when storage priorities change
+		harmony.Patch(original: AccessTools.PropertySetter(typeof(StorageSettings), nameof(StorageSettings.Priority)),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(StorageSettings_Priority_Postfix)));
 
 		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
 	}
@@ -388,5 +425,297 @@ internal static class HarmonyPatches
 			// On error, clear the collection to avoid downstream issues
 			__result?.Clear();
 		}
+	}
+
+	/// <summary>
+	/// Update cache when a thing is spawned
+	/// </summary>
+	private static void ListerHaulables_Notify_Spawned_Postfix(ListerHaulables __instance, Thing t)
+	{
+		try
+		{
+			if (t?.Map == null || t.Destroyed) return;
+
+			// Check if the thing is too heavy for any pawn
+			bool isTooHeavy = true;
+			foreach (var pawn in t.Map.mapPawns.FreeColonistsSpawned)
+			{
+				if (pawn == null || pawn.Dead || pawn.Downed) continue;
+
+				if (CanPawnCarryThing(pawn, t))
+				{
+					isTooHeavy = false;
+					break;
+				}
+			}
+
+			// Add to appropriate cache
+			if (isTooHeavy)
+			{
+				PUAHHaulCaches.AddToTooHeavyCache(t.Map, t);
+			}
+			else
+			{
+				PUAHHaulCaches.AddToHaulableCache(t.Map, t);
+			}
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in ListerHaulables_Notify_Spawned_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Update cache when a thing is despawned
+	/// </summary>
+	private static void ListerHaulables_Notify_DeSpawned_Postfix(ListerHaulables __instance, Thing t)
+	{
+		try
+		{
+			if (t?.Map == null) return;
+
+			// Remove from all caches
+			PUAHHaulCaches.RemoveFromHaulableCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromTooHeavyCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromUnreachableCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromStorageLocationCache(t.Map, t);
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in ListerHaulables_Notify_DeSpawned_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Update cache when a haul designation is added
+	/// </summary>
+	private static void ListerHaulables_HaulDesignationAdded_Postfix(ListerHaulables __instance, Thing t)
+	{
+		try
+		{
+			if (t?.Map == null || t.Destroyed) return;
+
+			// Check if the thing is too heavy for any pawn
+			bool isTooHeavy = true;
+			foreach (var pawn in t.Map.mapPawns.FreeColonistsSpawned)
+			{
+				if (pawn == null || pawn.Dead || pawn.Downed) continue;
+
+				if (CanPawnCarryThing(pawn, t))
+				{
+					isTooHeavy = false;
+					break;
+				}
+			}
+
+			// Add to appropriate cache
+			if (isTooHeavy)
+			{
+				PUAHHaulCaches.AddToTooHeavyCache(t.Map, t);
+			}
+			else
+			{
+				PUAHHaulCaches.AddToHaulableCache(t.Map, t);
+			}
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in ListerHaulables_HaulDesignationAdded_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Update cache when a haul designation is removed
+	/// </summary>
+	private static void ListerHaulables_HaulDesignationRemoved_Postfix(ListerHaulables __instance, Thing t)
+	{
+		try
+		{
+			if (t?.Map == null) return;
+
+			// Remove from all caches
+			PUAHHaulCaches.RemoveFromHaulableCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromTooHeavyCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromUnreachableCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromStorageLocationCache(t.Map, t);
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in ListerHaulables_HaulDesignationRemoved_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Remove thing from cache when it is despawned
+	/// </summary>
+	private static void Thing_DeSpawn_Postfix(Thing __instance)
+	{
+		try
+		{
+			if (__instance?.Map == null) return;
+
+			// Remove from all caches
+			PUAHHaulCaches.RemoveFromHaulableCache(__instance.Map, __instance);
+			PUAHHaulCaches.RemoveFromTooHeavyCache(__instance.Map, __instance);
+			PUAHHaulCaches.RemoveFromUnreachableCache(__instance.Map, __instance);
+			PUAHHaulCaches.RemoveFromStorageLocationCache(__instance.Map, __instance);
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in Thing_DeSpawn_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Reclassify items when a pawn is spawned (affects what's too heavy)
+	/// </summary>
+	private static void Pawn_SpawnSetup_Postfix(Pawn __instance, Map map)
+	{
+		try
+		{
+			if (map == null || __instance == null || __instance.Dead || __instance.Downed) return;
+
+			// Only reclassify if this is a free colonist (player-controlled)
+			if (__instance.Faction != Faction.OfPlayerSilentFail) return;
+
+			// Reclassify items between haulable and too heavy caches
+			CacheManager.ReclassifyTooHeavyItems(map);
+			CacheManager.ReclassifyHaulableItems(map);
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in Pawn_SpawnSetup_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Reclassify items when a pawn is despawned (affects what's too heavy)
+	/// </summary>
+	private static void Pawn_DeSpawn_Postfix(Pawn __instance)
+	{
+		try
+		{
+			if (__instance?.Map == null) return;
+
+			// Only reclassify if this was a free colonist (player-controlled)
+			if (__instance.Faction != Faction.OfPlayerSilentFail) return;
+
+			// Reclassify items between haulable and too heavy caches
+			CacheManager.ReclassifyTooHeavyItems(__instance.Map);
+			CacheManager.ReclassifyHaulableItems(__instance.Map);
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in Pawn_DeSpawn_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Clean up cache when a map is being destroyed
+	/// </summary>
+	private static void Map_ExposeData_Postfix(Map __instance)
+	{
+		try
+		{
+			if (__instance == null) return;
+
+			// Check if the map is being destroyed (when Scribe.mode is Writing and the map is no longer in Current.Game.Maps)
+			if (Scribe.mode == LoadSaveMode.Saving && Current.Game?.Maps != null && !Current.Game.Maps.Contains(__instance))
+			{
+				// Clear all caches for this map
+				PUAHHaulCaches.ClearMapCaches(__instance);
+				
+				// Remove cache updater from the map
+				CacheUpdaterHelper.RemoveCacheUpdater(__instance);
+			}
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in Map_ExposeData_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Invalidate storage location cache when storage priorities change
+	/// </summary>
+	private static void StorageSettings_Priority_Postfix(StorageSettings __instance)
+	{
+		try
+		{
+			// Find the map this storage setting belongs to
+			Map map = null;
+			
+			// Try to find the map through the parent thing
+			if (__instance.owner is Thing thing && thing.Map != null)
+			{
+				map = thing.Map;
+			}
+			// Try to find the map through slot groups
+			else if (__instance.owner is ISlotGroupParent slotGroupParent)
+			{
+				// Find a slot group that uses this storage setting
+				var slotGroup = slotGroupParent.GetSlotGroup();
+				if (slotGroup != null && slotGroup.Map != null)
+				{
+					map = slotGroup.Map;
+				}
+			}
+
+			if (map != null)
+			{
+				// Invalidate all storage location cache entries for this map
+				CacheManager.InvalidateAllStorageLocationCache(map);
+				
+				if (Settings.EnableDebugLogging)
+				{
+					Log.Message($"Invalidated storage location cache for map {map.uniqueID} due to storage priority change");
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			if (Settings.EnableDebugLogging)
+			{
+				Log.Error($"Exception in StorageSettings_Priority_Postfix: {ex.Message}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// Check if a pawn can carry a specific thing
+	/// </summary>
+	private static bool CanPawnCarryThing(Pawn pawn, Thing thing)
+	{
+		if (pawn == null || thing == null) return false;
+
+		// Check if the thing is too heavy for the pawn
+		float thingMass = thing.GetStatValue(StatDefOf.Mass);
+		float maxCarryMass = pawn.GetStatValue(StatDefOf.CarryingCapacity);
+
+		return thingMass <= maxCarryMass;
 	}
 }

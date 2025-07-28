@@ -1,0 +1,806 @@
+[21:15:38.274] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
+[21:15:38.275] [PUAHForked] [SetupJobSystemMonitoring] [DebugLog.cs:53] [DEBUG] Job system monitoring initialized
+[21:15:38.275] [PUAHForked] [SetupCrossModMonitoring] [DebugLog.cs:69] [DEBUG] Cross-mod monitoring initialized
+[21:15:38.275] [PUAHForked] [SetupCrossModMonitoring] [DebugLog.cs:77] [DEBUG] Loaded mods: brrainz.harmony, ludeon.rimworld, ludeon.rimworld.royalty, ludeon.rimworld.ideology, ludeon.rimworld.biotech, ludeon.rimworld.anomaly, ludeon.rimworld.odyssey, teemo.teemosdevtools, unlimitedhugs.hugslib, adaptive.storage.framework, sbz.neatstorage, nightmare.jaxe.publisherplusmultiversionfork, hatti.qualitybuilder, dhultgren.smarterconstruction, teemo.pickupandhaulforked, unlimitedhugs.allowtool
+[21:15:38.275] [PUAHForked] [SetupRimWorldErrorInterception] [DebugLog.cs:93] [DEBUG] RimWorld error interception initialized
+[21:15:38.275] [PUAHForked] [InitializePerformanceLogging] [Modbase.cs:31] [DEBUG] PickUpAndHaul performance logging initialized
+[21:15:38.275] [PUAHForked] [InitializeCacheSystem] [Modbase.cs:45] [DEBUG] PickUpAndHaul cache system initialized
+[21:15:42.676] [PUAHForked] [.cctor] [HarmonyPatches.cs:118] [DEBUG] PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.
+[21:15:42.682] [PUAHForked] [ClearPerformanceLog] [PerformanceLogger.cs:80] [DEBUG] Performance log cleared on startup
+[21:15:42.682] [PUAHForked] [.cctor] [PerformanceLogger.cs:54] [DEBUG] Performance logger initialized
+[21:16:11.798] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Techprint_MolecularAnalysis2540 to haulable cache for map 0
+[21:16:11.798] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added MedicineUltratech2506 to haulable cache for map 0
+[21:16:11.798] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Neurotrainer_Construction2508 to haulable cache for map 0
+[21:16:11.798] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Steel2854 to haulable cache for map 0
+[21:16:11.798] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Steel2855 to haulable cache for map 0
+[21:16:11.798] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Steel2856 to haulable cache for map 0
+
+deleted many
+
+[21:16:11.888] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkSandstone124187 to haulable cache for map 0
+[21:16:11.888] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone124191 to haulable cache for map 0
+[21:16:11.888] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone124192 to haulable cache for map 0
+[21:16:11.888] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone124193 to haulable cache for map 0
+[21:16:11.888] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone124194 to haulable cache for map 0
+[21:16:11.888] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone124195 to haulable cache for map 0
+[21:16:11.888] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone124196 to haulable cache for map 0
+[21:16:12.165] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2854 to cache for map 0: (151, 0, 180)
+[21:16:12.165] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2855 to cache for map 0: (151, 0, 180)
+[21:16:12.165] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2856 to cache for map 0: (151, 0, 180)
+[21:16:12.165] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2857 to cache for map 0: (151, 0, 180)
+[21:16:12.165] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2858 to cache for map 0: (98, 0, 171)
+[21:16:12.166] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2859 to cache for map 0: (95, 0, 173)
+[21:16:12.166] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2860 to cache for map 0: (95, 0, 173)
+[21:16:12.166] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2861 to cache for map 0: (95, 0, 173)
+
+deleted many
+
+[21:16:12.230] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkSandstone124187 to cache for map 0: (94, 0, 173)
+[21:16:12.230] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone124191 to cache for map 0: (99, 0, 179)
+[21:16:12.230] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone124192 to cache for map 0: (100, 0, 179)
+[21:16:12.230] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone124193 to cache for map 0: (100, 0, 179)
+[21:16:12.230] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone124194 to cache for map 0: (100, 0, 179)
+[21:16:12.230] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone124195 to cache for map 0: (100, 0, 179)
+[21:16:12.230] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone124196 to cache for map 0: (116, 0, 180)
+[21:16:12.230] [PUAHForked] [InitializeStorageLocationCache] [CacheInitializer.cs:91] [DEBUG] Initialized storage location cache for 3433 items on map 0
+[21:16:12.230] [PUAHForked] [LoadGame_PostFix] [HarmonyPatches.cs:318] [DEBUG] PUAH caches initialized for loaded game
+[21:16:17.291] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.291] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.291] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila03 job found to haul: ChunkGranite123532 to (147, 0, 168):1, looking for more now
+[21:16:17.295] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila03 allocating ChunkGranite123532:1, now (147, 0, 168):0
+[21:16:17.295] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila03 overdone (147, 0, 168) by 0
+[21:16:17.295] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkGranite123532:1 allocated (capacityOver was 0)
+[21:16:17.295] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123533 = (147, 0, 168)
+[21:16:17.295] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila03 allocating ChunkLimestone123533:1, now (147, 0, 168):0
+[21:16:17.295] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila03 overdone (147, 0, 168) by 0
+[21:16:17.295] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkLimestone123533:1 allocated (capacityOver was 0)
+[21:16:17.295] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkLimestone123533:1
+[21:16:17.295] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.301] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.301] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.301] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila04 job found to haul: Gun_Autopistol92555 to (126, 0, 165):1, looking for more now
+[21:16:17.302] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila04 allocating Gun_Autopistol92555:1, now (126, 0, 165):0
+[21:16:17.302] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila04 overdone (126, 0, 165) by 0
+[21:16:17.302] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gun_Autopistol92555:1 allocated (capacityOver was 0)
+[21:16:17.307] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.307] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.307] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila05 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.309] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.309] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.309] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.309] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.311] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.311] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.311] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78439 by 0
+[21:16:17.311] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.311] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.311] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.311] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78439 by 0
+[21:16:17.311] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.311] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.311] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.316] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.316] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.316] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila06 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.317] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.317] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.317] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.317] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.319] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.319] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.319] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78439 by 0
+[21:16:17.319] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.319] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.319] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.319] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78439 by 0
+[21:16:17.319] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.319] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.319] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.324] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.324] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.324] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila07 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.326] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.326] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.326] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.326] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.327] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.327] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila07 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.327] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila07 overdone sbz_Crate78439 by 0
+[21:16:17.327] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.327] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.327] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila07 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.327] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila07 overdone sbz_Crate78439 by 0
+[21:16:17.327] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.327] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.327] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.332] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.332] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.332] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila08 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.334] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.334] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.334] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.334] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.336] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.336] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila08 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.336] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila08 overdone sbz_Crate78439 by 0
+[21:16:17.336] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.336] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.336] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila08 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.336] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila08 overdone sbz_Crate78439 by 0
+[21:16:17.336] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.336] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.336] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.340] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.340] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.340] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila09 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.342] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.342] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.342] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.342] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.344] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.344] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.344] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.344] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.344] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.344] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.344] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.344] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.344] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.344] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.348] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.348] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.348] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila10 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.350] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.350] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.350] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.350] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.352] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.352] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.352] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone sbz_Crate78439 by 0
+[21:16:17.352] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.352] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.352] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.352] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone sbz_Crate78439 by 0
+[21:16:17.352] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.352] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.352] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.356] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.356] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.356] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila11 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.358] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.358] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.358] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.358] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.360] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.360] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila11 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.360] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila11 overdone sbz_Crate78439 by 0
+[21:16:17.360] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.360] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.360] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila11 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.360] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila11 overdone sbz_Crate78439 by 0
+[21:16:17.360] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.360] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.360] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.364] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.364] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.364] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila12 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.366] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.366] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.366] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.366] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.367] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.367] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila12 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.367] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila12 overdone sbz_Crate78439 by 0
+[21:16:17.367] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.367] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.367] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila12 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.367] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila12 overdone sbz_Crate78439 by 0
+[21:16:17.367] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.367] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.367] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.377] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.377] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.377] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila01 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.379] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.379] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.379] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.379] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.380] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.381] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.381] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone sbz_Crate78439 by 0
+[21:16:17.381] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.381] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.381] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.381] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone sbz_Crate78439 by 0
+[21:16:17.381] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.381] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.381] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.688] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila03 is hauling to inventory ChunkGranite123532:1
+[21:16:17.689] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed ChunkGranite123532 from haulable cache for map 0
+[21:16:17.709] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.709] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.709] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila10 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.710] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.710] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.710] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123586 = (147, 0, 168)
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkGranite123601 = sbz_Crate78439
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkGranite123601:1, now sbz_Crate78439:0
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone sbz_Crate78439 by 0
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkGranite123601:1 allocated (capacityOver was 0)
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone sbz_Crate78439 by 0
+[21:16:17.711] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.711] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.711] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.719] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.719] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.719] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila06 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123585 = (147, 0, 168)
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123565 = (147, 0, 168)
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123586 = (147, 0, 168)
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkGranite123601 = sbz_Crate78439
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating ChunkGranite123601:1, now sbz_Crate78439:0
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78439 by 0
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkGranite123601:1 allocated (capacityOver was 0)
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123631 = sbz_Crate78439
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating ChunkSandstone123631:1, now sbz_Crate78439:0
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78439 by 0
+[21:16:17.721] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123631:1 allocated (capacityOver was 0)
+[21:16:17.721] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123631:1
+[21:16:17.721] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.728] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila03 is hauling to inventory ChunkLimestone123533:0
+[21:16:17.730] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed ChunkLimestone123533 from haulable cache for map 0
+[21:16:17.740] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila04 is hauling to inventory Gun_Autopistol92555:1
+[21:16:17.741] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Gun_Autopistol92555 from haulable cache for map 0
+[21:16:17.765] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.765] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.765] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila05 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:17.766] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating ChunkLimestone123548:1, now (147, 0, 168):0
+[21:16:17.766] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone (147, 0, 168) by 0
+[21:16:17.766] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkLimestone123548:1 allocated (capacityOver was 0)
+[21:16:17.766] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123563 = (147, 0, 168)
+[21:16:17.766] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating ChunkLimestone123563:1, now (147, 0, 168):0
+[21:16:17.766] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone (147, 0, 168) by 0
+[21:16:17.766] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkLimestone123563:1 allocated (capacityOver was 0)
+[21:16:17.766] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkLimestone123563:1
+[21:16:17.766] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.772] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.772] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.772] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila01 job found to haul: Apparel_ArmorCataphract92361 to (128, 0, 180):1, looking for more now
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating Apparel_ArmorCataphract92361:1, now (128, 0, 180):0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone (128, 0, 180) by 0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_ArmorCataphract92361:1 allocated (capacityOver was 0)
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_SniperRifle92363 = sbz_Crate78456
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating Gun_SniperRifle92363:1, now sbz_Crate78456:0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone sbz_Crate78456 by 0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gun_SniperRifle92363:1 allocated (capacityOver was 0)
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Psytrainer_Chunkskip92357 = sbz_Crate78456
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating Psytrainer_Chunkskip92357:1, now sbz_Crate78456:0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone sbz_Crate78456 by 0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Psytrainer_Chunkskip92357:1 allocated (capacityOver was 0)
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable RevenantSpine92358 = sbz_Crate78456
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating RevenantSpine92358:1, now sbz_Crate78456:0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone sbz_Crate78456 by 0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] RevenantSpine92358:1 allocated (capacityOver was 0)
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Leather_Elephant92359 = sbz_Crate78456
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating Leather_Elephant92359:3, now sbz_Crate78456:0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone sbz_Crate78456 by 0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Leather_Elephant92359:3 allocated (capacityOver was 0)
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Fish_Salmon92362 = sbz_Crate78456
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating Fish_Salmon92362:4, now sbz_Crate78456:0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone sbz_Crate78456 by 0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Fish_Salmon92362:4 allocated (capacityOver was 0)
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable MeleeWeapon_Knife92197 = sbz_Crate78456
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila01 allocating MeleeWeapon_Knife92197:1, now sbz_Crate78456:0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila01 overdone sbz_Crate78456 by 0
+[21:16:17.773] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] MeleeWeapon_Knife92197:1 allocated (capacityOver was 0)
+[21:16:17.773] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry MeleeWeapon_Knife92197:1
+[21:16:17.774] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.789] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.789] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.789] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila09 job found to haul: Meat_HermitCrab92432 to (128, 0, 180):75, looking for more now
+[21:16:17.790] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ComponentSpacer92356 = sbz_Crate78456
+[21:16:17.790] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Psytrainer_BulletShield92431 = sbz_Crate78456
+[21:16:17.790] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable PsychicSensitizer92352 = sbz_Crate78456
+[21:16:17.790] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_ArmorHelmetCataphractPrestige92364 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable BiomutationPulser92198 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable MedicineUltratech92351 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ShuttleEngine92350 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Neurotrainer_Crafting92082 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable EggCassowaryUnfertilized92078 = (103, 0, 163)
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating EggCassowaryUnfertilized92078:1, now (103, 0, 163):74
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] EggCassowaryUnfertilized92078:1 allocated
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_ThumpCannon92075 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable RemoteRepairer92199 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ArchotechLeg92071 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Meat_Megavole92068 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Leather_Heavy92072 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable Meat_YorkshireTerrier92344 = (103, 0, 163)
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Meat_YorkshireTerrier92344:1, now (103, 0, 163):74
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] Meat_YorkshireTerrier92344:1 allocated
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable Meat_Rhinoceros92343 = (103, 0, 163)
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Meat_Rhinoceros92343:3, now (103, 0, 163):72
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] Meat_Rhinoceros92343:3 allocated
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_Gunlink92347 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable EggDuckFertilized92342 = (103, 0, 163)
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating EggDuckFertilized92342:4, now (103, 0, 163):71
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] EggDuckFertilized92342:4 allocated
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable MechanoidTransponder92348 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable VenomTalon92229 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_Burka92339 = sbz_Crate78456
+[21:16:17.791] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Neurotrainer_Mining92230 = sbz_Crate78456
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Neurotrainer_Plants92424 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Neurotrainer_Plants92424:1, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Neurotrainer_Plants92424:1 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable FieldHand92421 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating FieldHand92421:1, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] FieldHand92421:1 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Techprint_NeuralComputation92338 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Techprint_NeuralComputation92338:1, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Techprint_NeuralComputation92338:1 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable Meat_Squirrel92238 = (103, 0, 163)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Meat_Squirrel92238:2, now (103, 0, 163):73
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] Meat_Squirrel92238:2 allocated
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Fish_Piranha92233 = sbz_Crate78456
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_Minigun92232 = sbz_Crate78456
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_GasMask92334 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Apparel_GasMask92334:1, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_GasMask92334:1 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable LearningAssistant92341 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating LearningAssistant92341:1, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] LearningAssistant92341:1 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable BionicHeart92420 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating BionicHeart92420:1, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] BionicHeart92420:1 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gravcore92419 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Gravcore92419:3, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gravcore92419:3 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ThrumboHorn92336 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating ThrumboHorn92336:1, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ThrumboHorn92336:1 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_BeamGraser92246 = sbz_Crate78439
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Gun_BeamGraser92246:1, now sbz_Crate78439:0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78439 by 0
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gun_BeamGraser92246:1 allocated (capacityOver was 0)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable MealFine_Veg92241 = (103, 0, 163)
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating MealFine_Veg92241:6, now (103, 0, 163):4
+[21:16:17.792] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] MealFine_Veg92241:6 allocated
+[21:16:17.792] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry MealFine_Veg92241:4
+[21:16:17.792] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:277] [DEBUG] Looking for more like MealFine_Veg92241
+[21:16:17.792] [PUAHForked] [ValidateJobCount] [WorkGiver_HaulToInventory.cs:102] [WARNING] Main job count was -1 for Meat_HermitCrab92432, setting to 1
+[21:16:17.844] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.844] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.844] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila12 job found to haul: ChunkLimestone123564 to (147, 0, 168):1, looking for more now
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123586 = (147, 0, 168)
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123633 = sbz_Crate78439
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila12 allocating ChunkSandstone123633:1, now sbz_Crate78439:0
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila12 overdone sbz_Crate78439 by 0
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123633:1 allocated (capacityOver was 0)
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila12 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila12 overdone sbz_Crate78439 by 0
+[21:16:17.846] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.846] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123632:1
+[21:16:17.846] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.859] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.859] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.859] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila08 job found to haul: ChunkLimestone123564 to (147, 0, 168):1, looking for more now
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123586 = (147, 0, 168)
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123633 = sbz_Crate78439
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila08 allocating ChunkSandstone123633:1, now sbz_Crate78439:0
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila08 overdone sbz_Crate78439 by 0
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123633:1 allocated (capacityOver was 0)
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila08 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila08 overdone sbz_Crate78439 by 0
+[21:16:17.861] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.861] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123632:1
+[21:16:17.861] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.912] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.912] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.912] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila11 job found to haul: ChunkLimestone123564 to (147, 0, 168):1, looking for more now
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123586 = (147, 0, 168)
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123633 = sbz_Crate78439
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila11 allocating ChunkSandstone123633:1, now sbz_Crate78439:0
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila11 overdone sbz_Crate78439 by 0
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123633:1 allocated (capacityOver was 0)
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila11 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila11 overdone sbz_Crate78439 by 0
+[21:16:17.914] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.914] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123632:1
+[21:16:17.914] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:17.926] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:17.926] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:17.926] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila07 job found to haul: ChunkLimestone123564 to (147, 0, 168):1, looking for more now
+[21:16:17.927] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123586 = (147, 0, 168)
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkLimestone123566 = (147, 0, 168)
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123602 = (147, 0, 168)
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123633 = sbz_Crate78439
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila07 allocating ChunkSandstone123633:1, now sbz_Crate78439:0
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila07 overdone sbz_Crate78439 by 0
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123633:1 allocated (capacityOver was 0)
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSandstone123632 = sbz_Crate78439
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila07 allocating ChunkSandstone123632:1, now sbz_Crate78439:0
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila07 overdone sbz_Crate78439 by 0
+[21:16:17.928] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123632:1 allocated (capacityOver was 0)
+[21:16:17.928] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123632:1
+[21:16:17.928] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:18.044] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:145] [DEBUG] Mila04 found destination (126, 0, 165) for thing Gun_Autopistol92555
+[21:16:18.046] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Gun_Autopistol92555 to haulable cache for map 0
+[21:16:18.061] [PUAHForked] [InterceptRimWorldError] [DebugLog.cs:0] [RIMWORLD_ERROR] PickUpAndHaul.WorkGiver_HaulToInventory provided target Thing_Gun_Autopistol92555 but yielded no actual job for pawn Mila04. The CanGiveJob and JobOnX methods may not be synchronized. | Context: Stack:   at System.Environment.get_StackTrace () [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at PickUpAndHaul.HarmonyPatches.Log_Error_Prefix (System.String text) [0x00000] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Log.Error_Patch1 (System.String ) [0x00000] in <8124cc12bdf242eab0a5f7e7edecf387>:0 
+  at Verse.Log.ErrorOnce (System.String text, System.Int32 key) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.RimWorld.JobGiver_Work.TryIssueJobPackage_Patch0 (RimWorld.JobGiver_Work , Verse.Pawn , Verse.AI.JobIssueParams ) [0x00000] in <8124cc12bdf242eab0a5f7e7edecf387>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Glue:AbiFixup<Verse.AI.ThinkResult RimWorld.JobGiver_Work:TryIssueJobPackage(Verse.Pawn, Verse.AI.JobIssueParams),Verse.AI.ThinkResult RimWorld.JobGiver_Work.TryIssueJobPackage_Patch0(RimWorld.JobGiver_Work, Verse.Pawn, Verse.AI.JobIssueParams)> (RimWorld.JobGiver_Work , Verse.AI.ThinkResult& , Verse.Pawn , Verse.AI.JobIssueParams ) [0x00000] in <8124cc12bdf242eab0a5f7e7edecf387>:0 
+  at Verse.AI.ThinkNode_PrioritySorter.TryIssueJobPackage (Verse.Pawn pawn, Verse.AI.JobIssueParams jobParams) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.ThinkNode_Priority.TryIssueJobPackage (Verse.Pawn pawn, Verse.AI.JobIssueParams jobParams) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.ThinkNode_Tagger.TryIssueJobPackage (Verse.Pawn pawn, Verse.AI.JobIssueParams jobParams) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.ThinkNode_Subtree.TryIssueJobPackage (Verse.Pawn pawn, Verse.AI.JobIssueParams jobParams) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.ThinkNode_Priority.TryIssueJobPackage (Verse.Pawn pawn, Verse.AI.JobIssueParams jobParams) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.ThinkNode_Conditional.TryIssueJobPackage (Verse.Pawn pawn, Verse.AI.JobIssueParams jobParams) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.ThinkNode_Priority.TryIssueJobPackage (Verse.Pawn pawn, Verse.AI.JobIssueParams jobParams) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.Pawn_JobTracker.DetermineNextJob (Verse.ThinkTreeDef& thinkTree, System.Boolean ignoreQueue) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.Pawn_JobTracker.TryFindAndStartJob () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.Pawn_JobTracker.EndCurrentJob (Verse.AI.JobCondition condition, System.Boolean startNewJob, System.Boolean canReturnToPool) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.Pawn_JobTracker.JobTrackerTickInterval (System.Int32 delta) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Pawn.TickInterval (System.Int32 delta) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Thing.DoTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickList.Tick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickManager.DoSingleTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickManager.TickManagerUpdate () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Game.UpdatePlay () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Root_Play.Update () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+[21:16:18.093] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila05 is hauling to inventory ChunkLimestone123548:1
+[21:16:18.093] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed ChunkLimestone123548 from haulable cache for map 0
+[21:16:18.093] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila05 is hauling to inventory ChunkLimestone123563:0
+[21:16:18.094] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed ChunkLimestone123563 from haulable cache for map 0
+[21:16:18.138] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone123533 to haulable cache for map 0
+[21:16:18.141] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:145] [DEBUG] Mila03 found destination (147, 0, 168) for thing ChunkGranite123532
+[21:16:18.159] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila01 is hauling to inventory Apparel_ArmorCataphract92361:1
+[21:16:18.159] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Apparel_ArmorCataphract92361 from haulable cache for map 0
+[21:16:18.191] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkGranite123532 to haulable cache for map 0
+[21:16:18.197] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila01 is hauling to inventory Gun_SniperRifle92363:1
+[21:16:18.198] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Gun_SniperRifle92363 from haulable cache for map 0
+[21:16:18.226] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila01 is hauling to inventory Psytrainer_Chunkskip92357:1
+[21:16:18.226] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Psytrainer_Chunkskip92357 from haulable cache for map 0
+[21:16:18.261] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:18.261] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:18.261] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila10 job found to haul: ChunkLimestone123533 to (147, 0, 168):1, looking for more now
+[21:16:18.263] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkLimestone123533:1, now (147, 0, 168):0
+[21:16:18.263] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone (147, 0, 168) by 0
+[21:16:18.263] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkLimestone123533:1 allocated (capacityOver was 0)
+[21:16:18.264] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123258 = (147, 0, 168)
+[21:16:18.264] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkGranite123258:1, now (147, 0, 168):-1
+[21:16:18.264] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone (147, 0, 168) by 1
+[21:16:18.264] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:573] [DEBUG] Repeated store cell (147, 0, 168), allocating partial 0 and aborting further allocation.
+[21:16:18.264] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123285 = (147, 0, 168)
+[21:16:18.264] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkGranite123285:1, now (147, 0, 168):-1
+[21:16:18.264] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone (147, 0, 168) by 1
+[21:16:18.264] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:573] [DEBUG] Repeated store cell (147, 0, 168), allocating partial 0 and aborting further allocation.
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123259 = (147, 0, 168)
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkGranite123259:1, now (147, 0, 168):-1
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone (147, 0, 168) by 1
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:573] [DEBUG] Repeated store cell (147, 0, 168), allocating partial 0 and aborting further allocation.
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkGranite123286 = (147, 0, 168)
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkGranite123286:1, now (147, 0, 168):-1
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone (147, 0, 168) by 1
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:573] [DEBUG] Repeated store cell (147, 0, 168), allocating partial 0 and aborting further allocation.
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable ChunkSandstone123090 = (147, 0, 168)
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila10 allocating ChunkSandstone123090:1, now (147, 0, 168):0
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila10 overdone (147, 0, 168) by 0
+[21:16:18.265] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSandstone123090:1 allocated (capacityOver was 0)
+[21:16:18.265] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry ChunkSandstone123090:1
+[21:16:18.265] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:18.271] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila01 is hauling to inventory RevenantSpine92358:1
+[21:16:18.271] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed RevenantSpine92358 from haulable cache for map 0
+[21:16:18.304] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila01 is hauling to inventory Leather_Elephant92359:3
+[21:16:18.304] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Leather_Elephant92359 from haulable cache for map 0
+[21:16:18.345] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila01 is hauling to inventory Fish_Salmon92362:4
+[21:16:18.345] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Fish_Salmon92362 from haulable cache for map 0
+[21:16:18.374] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila01 is hauling to inventory MeleeWeapon_Knife92197:0
+[21:16:18.376] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed MeleeWeapon_Knife92197 from haulable cache for map 0
+[21:16:18.390] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila10 is hauling to inventory ChunkLimestone123533:1
+[21:16:18.390] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed ChunkLimestone123533 from haulable cache for map 0
+[21:16:18.413] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone123563 to haulable cache for map 0
+[21:16:18.423] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:145] [DEBUG] Mila05 found destination (147, 0, 168) for thing ChunkLimestone123548
+[21:16:18.424] [PUAHForked] [InterceptRimWorldError] [DebugLog.cs:0] [RIMWORLD_ERROR] Could not reserve (147, 0, 168) (layer: null) for Mila05 for job UnloadYourHauledInventory (Job_516517) A = Thing_ChunkLimestone123548 B = (147, 0, 168) Giver = ThinkNode_QueuedJob [workGiverDef: null] (now doing job UnloadYourHauledInventory (Job_516517) A = Thing_ChunkLimestone123548 B = (147, 0, 168) Giver = ThinkNode_QueuedJob [workGiverDef: null](curToil=1)) for maxPawns 1 and stackCount -1.
+Existing reservers:
+   [0] Mila10 (job: HaulToInventory (Job_516524) A = Thing_ChunkGranite123258 B = (147, 0, 168) Giver = JobGiver_Work [workGiverDef: HaulToInventory], toil: 2, maxPawns: 1, stackCount: -1) | Context: Stack:   at System.Environment.get_StackTrace () [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at PickUpAndHaul.HarmonyPatches.Log_Error_Prefix (System.String text) [0x00000] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Log.Error_Patch1 (System.String ) [0x00000] in <8124cc12bdf242eab0a5f7e7edecf387>:0 
+  at Verse.AI.ReservationManager.LogCouldNotReserveError (Verse.Pawn claimant, Verse.AI.Job job, Verse.LocalTargetInfo target, System.Int32 maxPawns, System.Int32 stackCount, Verse.ReservationLayerDef layer) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.ReservationManager.Reserve (Verse.Pawn claimant, Verse.AI.Job job, Verse.LocalTargetInfo target, System.Int32 maxPawns, System.Int32 stackCount, Verse.ReservationLayerDef layer, System.Boolean errorOnFailed, System.Boolean ignoreOtherReservations, System.Boolean canReserversStartJobs) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at PickUpAndHaul.JobDriver_UnloadYourHauledInventory+<>c__DisplayClass8_0.<FindTargetOrDrop>b__0 () [0x00000] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at Verse.AI.JobDriver.TryActuallyStartNextToil () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.JobDriver.ReadyForNextToil () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.JobDriver.DriverTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.Pawn_JobTracker.JobTrackerTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Pawn.Tick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Thing.DoTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickList.Tick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickManager.DoSingleTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickManager.TickManagerUpdate () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Game.UpdatePlay () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Root_Play.Update () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+[21:16:18.424] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:148] [DEBUG] Mila05 failed reserving destination (147, 0, 168), dropping ChunkLimestone123548
+[21:16:18.425] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone123548 to haulable cache for map 0
+[21:16:18.429] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:18.429] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:18.429] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila05 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:18.430] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable RemoteShielder92446 = sbz_Crate78456
+[21:16:18.430] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating RemoteShielder92446:1, now sbz_Crate78456:0
+[21:16:18.430] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.430] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] RemoteShielder92446:1 allocated (capacityOver was 0)
+[21:16:18.430] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_SniperRifle92449 = sbz_Crate78456
+[21:16:18.430] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Gun_SniperRifle92449:1, now sbz_Crate78456:0
+[21:16:18.430] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.430] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gun_SniperRifle92449:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Leather_Light92451 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Leather_Light92451:3, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Leather_Light92451:3 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable MealFine92454 = (103, 0, 163)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating MealFine92454:3, now (103, 0, 163):7
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] MealFine92454:3 allocated
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_DisruptorFlarePack92101 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Apparel_DisruptorFlarePack92101:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_DisruptorFlarePack92101:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Psytrainer_Smokepop92100 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Psytrainer_Smokepop92100:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Psytrainer_Smokepop92100:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Meat_Badger92037 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Meat_Badger92037:3, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Meat_Badger92037:3 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_Needle92021 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Gun_Needle92021:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gun_Needle92021:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable Meat_Tortoise92008 = (103, 0, 163)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Meat_Tortoise92008:1, now (103, 0, 163):74
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] Meat_Tortoise92008:1 allocated
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_TortureCrown92015 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Apparel_TortureCrown92015:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_TortureCrown92015:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable WoolMuffalo92032 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating WoolMuffalo92032:2, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] WoolMuffalo92032:2 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_Headwrap92095 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Apparel_Headwrap92095:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_Headwrap92095:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Fish_Toxfish92096 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Fish_Toxfish92096:4, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Fish_Toxfish92096:4 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable MeleeWeapon_PsyfocusStaff92189 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating MeleeWeapon_PsyfocusStaff92189:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] MeleeWeapon_PsyfocusStaff92189:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable AestheticNose92439 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating AestheticNose92439:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] AestheticNose92439:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable CorrosiveHeart92360 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating CorrosiveHeart92360:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] CorrosiveHeart92360:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Psytrainer_Farskip92443 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Psytrainer_Farskip92443:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Psytrainer_Farskip92443:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSlagSteel123668 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating ChunkSlagSteel123668:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSlagSteel123668:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_Duster92194 = sbz_Crate78456
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila05 allocating Apparel_Duster92194:1, now sbz_Crate78456:0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila05 overdone sbz_Crate78456 by 0
+[21:16:18.431] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_Duster92194:1 allocated (capacityOver was 0)
+[21:16:18.431] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry Apparel_Duster92194:1
+[21:16:18.431] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:18.519] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for MeleeWeapon_Knife92197 from cache for map 0
+[21:16:18.519] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for Psytrainer_Chunkskip92357 from cache for map 0
+[21:16:18.519] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for RevenantSpine92358 from cache for map 0
+[21:16:18.519] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for Leather_Elephant92359 from cache for map 0
+[21:16:18.519] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for Apparel_ArmorCataphract92361 from cache for map 0
+[21:16:18.519] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for Fish_Salmon92362 from cache for map 0
+[21:16:18.519] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for Gun_SniperRifle92363 from cache for map 0
+[21:16:18.519] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for ChunkLimestone123533 from cache for map 0
+[21:16:18.519] [PUAHForked] [CleanupStorageLocationCache] [CacheManager.cs:167] [DEBUG] Cleaned up 8 stale storage location cache entries for map 0
+[21:16:18.519] [PUAHForked] [UpdateCaches] [CacheUpdater.cs:45] [DEBUG] Cache stats: Map 0: Haulable=3425, Unreachable=3, TooHeavy=0, StorageLocations=3101, Accessible=3422
+[21:16:18.594] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:18.594] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:18.594] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila06 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable RemoteShielder92446 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating RemoteShielder92446:1, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] RemoteShielder92446:1 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_SniperRifle92449 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Gun_SniperRifle92449:1, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gun_SniperRifle92449:1 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Leather_Light92451 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Leather_Light92451:3, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Leather_Light92451:3 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable MealFine92454 = (103, 0, 163)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating MealFine92454:3, now (103, 0, 163):7
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] MealFine92454:3 allocated
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_DisruptorFlarePack92101 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Apparel_DisruptorFlarePack92101:1, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_DisruptorFlarePack92101:1 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Psytrainer_Smokepop92100 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Psytrainer_Smokepop92100:1, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Psytrainer_Smokepop92100:1 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Meat_Badger92037 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Meat_Badger92037:3, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Meat_Badger92037:3 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_Needle92021 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Gun_Needle92021:1, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gun_Needle92021:1 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable Meat_Tortoise92008 = (103, 0, 163)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Meat_Tortoise92008:1, now (103, 0, 163):74
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] Meat_Tortoise92008:1 allocated
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_TortureCrown92015 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Apparel_TortureCrown92015:1, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_TortureCrown92015:1 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable WoolMuffalo92032 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating WoolMuffalo92032:2, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] WoolMuffalo92032:2 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_Headwrap92095 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Apparel_Headwrap92095:1, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_Headwrap92095:1 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Fish_Toxfish92096 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Fish_Toxfish92096:4, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Fish_Toxfish92096:4 allocated (capacityOver was 0)
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable MeleeWeapon_PsyfocusStaff92189 = sbz_Crate78456
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating MeleeWeapon_PsyfocusStaff92189:1, now sbz_Crate78456:0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.596] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] MeleeWeapon_PsyfocusStaff92189:1 allocated (capacityOver was 0)
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable AestheticNose92439 = sbz_Crate78456
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating AestheticNose92439:1, now sbz_Crate78456:0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] AestheticNose92439:1 allocated (capacityOver was 0)
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable CorrosiveHeart92360 = sbz_Crate78456
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating CorrosiveHeart92360:1, now sbz_Crate78456:0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] CorrosiveHeart92360:1 allocated (capacityOver was 0)
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Psytrainer_Farskip92443 = sbz_Crate78456
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Psytrainer_Farskip92443:1, now sbz_Crate78456:0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Psytrainer_Farskip92443:1 allocated (capacityOver was 0)
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable ChunkSlagSteel123668 = sbz_Crate78456
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating ChunkSlagSteel123668:1, now sbz_Crate78456:0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkSlagSteel123668:1 allocated (capacityOver was 0)
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Apparel_Duster92194 = sbz_Crate78456
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila06 allocating Apparel_Duster92194:1, now sbz_Crate78456:0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila06 overdone sbz_Crate78456 by 0
+[21:16:18.597] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Apparel_Duster92194:1 allocated (capacityOver was 0)
+[21:16:18.597] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry Apparel_Duster92194:1
+[21:16:18.597] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:271] [DEBUG] Can't carry more, nevermind!
+[21:16:18.642] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:73] [WARNING] Job count was 0, setting to 1 for thing ChunkGranite123258
+[21:16:18.642] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila10 is hauling to inventory ChunkGranite123258:0
+[21:16:18.643] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed ChunkGranite123258 from haulable cache for map 0
+[21:16:18.697] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:181] [DEBUG] -------------------------------------------------------------------
+[21:16:18.697] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:182] [DEBUG] ------------------------------------------------------------------
+[21:16:18.697] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:183] [DEBUG] Mila09 job found to haul: ChunkLimestone123548 to (147, 0, 168):1, looking for more now
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating ChunkLimestone123548:1, now (147, 0, 168):0
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone (147, 0, 168) by 0
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] ChunkLimestone123548:1 allocated (capacityOver was 0)
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable RemoteShielder92446 = sbz_Crate78456
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating RemoteShielder92446:1, now sbz_Crate78456:0
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78456 by 0
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] RemoteShielder92446:1 allocated (capacityOver was 0)
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Gun_SniperRifle92449 = sbz_Crate78456
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Gun_SniperRifle92449:1, now sbz_Crate78456:0
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78456 by 0
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Gun_SniperRifle92449:1 allocated (capacityOver was 0)
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:496] [DEBUG] New haulDestination for unstackable Leather_Light92451 = sbz_Crate78456
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating Leather_Light92451:3, now sbz_Crate78456:0
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:555] [DEBUG] Mila09 overdone sbz_Crate78456 by 0
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:561] [DEBUG] Leather_Light92451:3 allocated (capacityOver was 0)
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:486] [DEBUG] New cell for unstackable MealFine92454 = (103, 0, 163)
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:538] [DEBUG] Mila09 allocating MealFine92454:3, now (103, 0, 163):7
+[21:16:18.699] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:616] [DEBUG] MealFine92454:3 allocated
+[21:16:18.699] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:248] [DEBUG] Inventory allocated, will carry MealFine92454:2
+[21:16:18.699] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:277] [DEBUG] Looking for more like MealFine92454
+[21:16:18.699] [PUAHForked] [ValidateJobCount] [WorkGiver_HaulToInventory.cs:102] [WARNING] Main job count was -1 for ChunkLimestone123548, setting to 1
+[21:16:18.724] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed MealLavish58602 from haulable cache for map 0
+[21:16:18.726] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added MealLavish58602 to haulable cache for map 0
+[21:16:18.731] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed MealLavish58601 from haulable cache for map 0
+[21:16:18.822] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila09 is hauling to inventory ChunkLimestone123548:1
+[21:16:18.822] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed ChunkLimestone123548 from haulable cache for map 0
+[21:16:18.825] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added MealLavish58601 to haulable cache for map 0
+[21:16:18.855] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added MeleeWeapon_Knife92197 to haulable cache for map 0
+[21:16:18.860] [PUAHForked] [InterceptRimWorldError] [DebugLog.cs:0] [RIMWORLD_ERROR] JobDriver threw exception in toil unnamed's initAction for pawn Mila01 driver=JobDriver_UnloadYourHauledInventory (toilIndex=1) driver.job=(UnloadYourHauledInventory (Job_516536) A = Thing_Human38885 Giver = ThinkNode_QueuedJob [workGiverDef: null])
+System.NullReferenceException: Object reference not set to an instance of an object
+[Ref B96D38AC]
+  at PickUpAndHaul.WorkGiver_HaulToInventory.TryFindBestBetterStoreCellFor (Verse.Thing thing, Verse.Pawn carrier, Verse.Map map, RimWorld.StoragePriority currentPriority, RimWorld.Faction faction, Verse.IntVec3& foundCell) [0x0004d] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at PickUpAndHaul.WorkGiver_HaulToInventory.TryFindBestBetterStorageFor (Verse.Thing t, Verse.Pawn carrier, Verse.Map map, RimWorld.StoragePriority currentPriority, RimWorld.Faction faction, Verse.IntVec3& foundCell, RimWorld.IHaulDestination& haulDestination, Verse.ThingOwner& innerInteractableThingOwner) [0x00006] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at PickUpAndHaul.Cache.CacheManager.TryGetCachedStorageLocation (Verse.Thing thing, Verse.Pawn pawn, Verse.Map map, RimWorld.StoragePriority currentPriority, RimWorld.Faction faction, Verse.IntVec3& foundCell, RimWorld.IHaulDestination& haulDestination, Verse.ThingOwner& innerInteractableThingOwner) [0x00047] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at PickUpAndHaul.JobDriver_UnloadYourHauledInventory+<>c__DisplayClass8_0.<FindTargetOrDrop>b__0 () [0x0006f] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at Verse.AI.JobDriver.TryActuallyStartNextToil () [0x001b0] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0  | Context: Stack:   at System.Environment.get_StackTrace () [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at PickUpAndHaul.HarmonyPatches.Log_Error_Prefix (System.String text) [0x00000] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Log.Error_Patch1 (System.String ) [0x00000] in <8124cc12bdf242eab0a5f7e7edecf387>:0 
+  at Verse.AI.JobUtility.TryStartErrorRecoverJob (Verse.Pawn pawn, System.String message, System.Exception exception, Verse.AI.JobDriver concreteDriver) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.JobDriver.TryActuallyStartNextToil () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.JobDriver.ReadyForNextToil () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.JobDriver.DriverTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.Pawn_JobTracker.JobTrackerTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Pawn.Tick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Thing.DoTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickList.Tick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickManager.DoSingleTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickManager.TickManagerUpdate () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Game.UpdatePlay () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Root_Play.Update () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+[21:16:18.889] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkGranite123258 to haulable cache for map 0
+[21:16:18.892] [PUAHForked] [InterceptRimWorldError] [DebugLog.cs:0] [RIMWORLD_ERROR] JobDriver threw exception in toil unnamed's initAction for pawn Mila10 driver=JobDriver_UnloadYourHauledInventory (toilIndex=1) driver.job=(UnloadYourHauledInventory (Job_516568) A = Thing_Human38932 Giver = ThinkNode_QueuedJob [workGiverDef: null])
+System.NullReferenceException: Object reference not set to an instance of an object
+[Ref B96D38AC] Duplicate stacktrace, see ref for original | Context: Stack:   at System.Environment.get_StackTrace () [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at PickUpAndHaul.HarmonyPatches.Log_Error_Prefix (System.String text) [0x00000] in <21ac0096b6774a8688e49cbc9010f14d>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Log.Error_Patch1 (System.String ) [0x00000] in <8124cc12bdf242eab0a5f7e7edecf387>:0 
+  at Verse.AI.JobUtility.TryStartErrorRecoverJob (Verse.Pawn pawn, System.String message, System.Exception exception, Verse.AI.JobDriver concreteDriver) [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.JobDriver.TryActuallyStartNextToil () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.JobDriver.ReadyForNextToil () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.JobDriver.DriverTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.AI.Pawn_JobTracker.JobTrackerTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Pawn.Tick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Thing.DoTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickList.Tick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickManager.DoSingleTick () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.TickManager.TickManagerUpdate () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Game.UpdatePlay () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+  at Verse.Root_Play.Update () [0x00000] in <d2f9716cc2ac4cda9c2a174cc147bf37>:0 
+[21:16:19.126] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Corpse_Raccoon69120 from haulable cache for map 0
+[21:16:19.223] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila09 is hauling to inventory RemoteShielder92446:1
+[21:16:19.223] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed RemoteShielder92446 from haulable cache for map 0
+[21:16:19.257] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila09 is hauling to inventory Gun_SniperRifle92449:1
+[21:16:19.257] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Gun_SniperRifle92449 from haulable cache for map 0
+[21:16:19.291] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila09 is hauling to inventory Leather_Light92451:3
+[21:16:19.291] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Leather_Light92451 from haulable cache for map 0
+[21:16:19.324] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:81] [DEBUG] Mila09 is hauling to inventory MealFine92454:1
+[21:16:19.325] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed MealFine92454 from haulable cache for map 0
+[21:16:19.540] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed MealFine_Veg92001 from haulable cache for map 0
+[21:16:19.621] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for Corpse_Raccoon69120 from cache for map 0
+[21:16:19.621] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for MealFine_Veg92001 from cache for map 0
+[21:16:19.621] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for RemoteShielder92446 from cache for map 0
+[21:16:19.621] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for Gun_SniperRifle92449 from cache for map 0
+[21:16:19.621] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for Leather_Light92451 from cache for map 0
+[21:16:19.621] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for MealFine92454 from cache for map 0
+[21:16:19.621] [PUAHForked] [RemoveFromStorageLocationCache] [PUAHHaulCaches.cs:198] [DEBUG] Removed storage location for ChunkLimestone123548 from cache for map 0
+[21:16:19.621] [PUAHForked] [CleanupStorageLocationCache] [CacheManager.cs:167] [DEBUG] Cleaned up 7 stale storage location cache entries for map 0
+[21:16:19.621] [PUAHForked] [UpdateCaches] [CacheUpdater.cs:45] [DEBUG] Cache stats: Map 0: Haulable=3419, Unreachable=3, TooHeavy=0, StorageLocations=3094, Accessible=3416

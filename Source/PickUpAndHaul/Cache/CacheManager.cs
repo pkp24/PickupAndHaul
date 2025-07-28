@@ -3,6 +3,7 @@ using System.Linq;
 using RimWorld;
 using Verse;
 using Verse.AI;
+using PickUpAndHaul; // for WorkGiver_HaulToInventory
 
 namespace PickUpAndHaul.Cache
 {
@@ -119,6 +120,79 @@ namespace PickUpAndHaul.Cache
         }
 
         /// <summary>
+        /// Clean up stale storage location cache entries
+        /// </summary>
+        public static void CleanupStorageLocationCache(Map map)
+        {
+            if (map == null) return;
+
+            var storageLocationCache = PUAHHaulCaches.GetStorageLocationCache(map);
+            var staleEntries = new List<Thing>();
+
+            foreach (var entry in storageLocationCache)
+            {
+                var thing = entry.Key;
+                var cache = entry.Value;
+
+                // Check if the thing still exists and is valid
+                if (thing == null || thing.Destroyed || !thing.Spawned)
+                {
+                    staleEntries.Add(thing);
+                    continue;
+                }
+
+                // Check if cache is too old (more than 10 seconds)
+                if (Find.TickManager.TicksGame - cache.TickCreated > 2500)
+                {
+                    staleEntries.Add(thing);
+                    continue;
+                }
+
+                // Check if the haul destination is still valid
+                if (cache.HaulDestination is Thing destinationThing && (destinationThing.Destroyed || !destinationThing.Spawned))
+                {
+                    staleEntries.Add(thing);
+                    continue;
+                }
+            }
+
+            // Remove stale entries
+            foreach (var thing in staleEntries)
+            {
+                PUAHHaulCaches.RemoveFromStorageLocationCache(map, thing);
+            }
+
+            if (staleEntries.Count > 0 && Settings.EnableDebugLogging)
+            {
+                Log.Message($"Cleaned up {staleEntries.Count} stale storage location cache entries for map {map.uniqueID}");
+            }
+        }
+
+        /// <summary>
+        /// Invalidate storage location cache for a specific thing
+        /// </summary>
+        public static void InvalidateStorageLocationCache(Map map, Thing thing)
+        {
+            if (map == null || thing == null) return;
+            PUAHHaulCaches.RemoveFromStorageLocationCache(map, thing);
+        }
+
+        /// <summary>
+        /// Invalidate storage location cache for all things (when storage priorities change)
+        /// </summary>
+        public static void InvalidateAllStorageLocationCache(Map map)
+        {
+            if (map == null) return;
+            var storageLocationCache = PUAHHaulCaches.GetStorageLocationCache(map);
+            storageLocationCache.Clear();
+            
+            if (Settings.EnableDebugLogging)
+            {
+                Log.Message($"Invalidated all storage location cache entries for map {map.uniqueID}");
+            }
+        }
+
+        /// <summary>
         /// Check if a pawn can carry a specific thing
         /// </summary>
         private static bool CanPawnCarryThing(Pawn pawn, Thing thing)
@@ -140,6 +214,7 @@ namespace PickUpAndHaul.Cache
             PopulateUnreachableCache(map);
             ReclassifyTooHeavyItems(map);
             ReclassifyHaulableItems(map);
+            CleanupStorageLocationCache(map);
         }
 
         /// <summary>
@@ -164,6 +239,38 @@ namespace PickUpAndHaul.Cache
         public static int GetAccessibleHaulableCount(Map map)
         {
             return GetAccessibleHaulables(map).Count();
+        }
+
+        /// <summary>
+        /// Get cached storage location for a thing, or find and cache a new one
+        /// </summary>
+        public static bool TryGetCachedStorageLocation(Thing thing, Pawn pawn, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner)
+        {
+            foundCell = default;
+            haulDestination = null;
+            innerInteractableThingOwner = null;
+
+            if (thing == null || pawn == null || map == null) return false;
+
+            // Try to get from cache first
+            var cachedLocation = PUAHHaulCaches.GetCachedStorageLocation(map, thing);
+            if (cachedLocation != null)
+            {
+                foundCell = cachedLocation.TargetCell;
+                haulDestination = cachedLocation.HaulDestination;
+                innerInteractableThingOwner = cachedLocation.InnerInteractableThingOwner;
+                return true;
+            }
+
+            // If not in cache, find storage location and cache it via PUAH helper (supports ThingOwner out param)
+            if (WorkGiver_HaulToInventory.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, faction, out foundCell, out haulDestination, out innerInteractableThingOwner))
+            {
+                // Cache the result
+                PUAHHaulCaches.AddToStorageLocationCache(map, thing, foundCell, haulDestination, innerInteractableThingOwner);
+                return true;
+            }
+
+            return false;
         }
     }
 } 
