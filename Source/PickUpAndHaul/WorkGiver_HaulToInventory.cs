@@ -676,6 +676,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool TryFindBestBetterStoreCellFor(Thing thing, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell)
 	{
+		// Initialize skipCells if it's null to prevent NullReferenceException
+		skipCells ??= new HashSet<IntVec3>();
+		
 		var haulDestinations = map.haulDestinationManager.AllGroupsListInPriorityOrder;
 		for (var i = 0; i < haulDestinations.Count; i++)
 		{
@@ -766,6 +769,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
 	{
+		// Initialize skipThings if it's null to prevent NullReferenceException
+		skipThings ??= new HashSet<Thing>();
+		
 		var allHaulDestinationsListInPriorityOrder = map.haulDestinationManager.AllHaulDestinationsListInPriorityOrder;
 		var intVec = t.SpawnedOrAnyParentSpawned ? t.PositionHeld : carrier.PositionHeld;
 		var num = float.MaxValue;
