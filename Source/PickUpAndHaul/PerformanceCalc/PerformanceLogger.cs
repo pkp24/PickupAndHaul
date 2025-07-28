@@ -111,7 +111,7 @@ namespace PickUpAndHaul.Performance
 
                 string line = string.Format(
                     CultureInfo.InvariantCulture,
-                    "{0},{1:0.000},{2},{3},{4},{5},{6},{7}\n",
+                    "{0},{1:0.000},{2},{3},{4},{5},{6},{7},{8}\n",
                     timestamp, t, evt, count, pawnID, thingID, mapID, tick, additionalInfo);
 
                 _queue.Enqueue(line);
