@@ -3,12 +3,15 @@ using System.Linq;
 using System.Reflection;
 using PickUpAndHaul.Cache;
 using RimWorld;
+using System.IO;
 
 namespace PickUpAndHaul;
 
 [StaticConstructorOnStartup]
 internal static class HarmonyPatches
 {
+	private static bool _isInErrorInterception = false;
+
 	static HarmonyPatches()
 	{
 		var harmony = new Harmony("mehni.rimworld.pickupandhaul.main");
@@ -115,7 +118,11 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.PropertySetter(typeof(StorageSettings), nameof(StorageSettings.Priority)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(StorageSettings_Priority_Postfix)));
 
-		Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, thanks for enabling debug logging for pointless logspam.");
+		// Only show the welcome message if debug logging is enabled
+		if (Settings.EnableDebugLogging)
+		{
+			Log.Message("PickUpAndHaul v1.6.0 welcomes you to RimWorld, debug logging is enabled.");
+		}
 	}
 
 	private static bool Drop_Prefix(Pawn pawn, Thing thing)
@@ -250,23 +257,57 @@ internal static class HarmonyPatches
 	/// </summary>
 	private static void Log_Error_Prefix(string text)
 	{
+		// Prevent infinite recursion by checking if we're already in error interception
+		if (_isInErrorInterception)
+		{
+			return;
+		}
+
 		try
 		{
+			_isInErrorInterception = true;
+
 			// Get the current stack trace
 			var stackTrace = Environment.StackTrace;
 
 			// Check if this is the specific AllowTool compatibility error we're seeing
 			if (text.Contains("System.NullReferenceException") && stackTrace.Contains("AllowTool.WorkGiver_HaulUrgently"))
 			{
-				Log.ModCompatibilityError("AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged", "AllowTool");
+				// Use direct Verse.Log calls to avoid recursion
+				Verse.Log.Warning("[PickUpAndHaul] AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged");
 			}
 
-			Log.InterceptRimWorldError(text, stackTrace);
+			// Only call custom logging methods if debug logging is enabled and we're not in a recursive call
+			if (Settings.EnableDebugLogging)
+			{
+				// Use direct file logging to avoid recursion
+				try
+				{
+					var logMessage = $"[RIMWORLD_ERROR] {text}";
+					if (!string.IsNullOrEmpty(stackTrace))
+					{
+						logMessage += $"\n[STACK_TRACE] {stackTrace}";
+					}
+					
+					// Write directly to file without going through custom Log methods
+					var logPath = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaulForked.log");
+					File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {logMessage}\n");
+				}
+				catch
+				{
+					// Ignore file logging errors to prevent further recursion
+				}
+			}
 		}
 		catch (Exception ex)
 		{
 			// Don't let our error interception cause more errors
-			Verse.Log.Warning($"Failed to intercept RimWorld error: {ex.Message}");
+			// Use direct Verse.Log call to avoid recursion
+			Verse.Log.Warning($"[PickUpAndHaul] Failed to intercept RimWorld error: {ex.Message}");
+		}
+		finally
+		{
+			_isInErrorInterception = false;
 		}
 	}
 
