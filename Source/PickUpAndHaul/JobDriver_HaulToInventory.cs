@@ -11,6 +11,7 @@ public class JobDriver_HaulToInventory : JobDriver
 		// when another pawn already owns the reservation.
 		bool success = true;
 
+		// Reserve all targets in targetQueueA
 		if (job.targetQueueA != null)
 		{
 			foreach (var target in job.targetQueueA)
@@ -22,6 +23,7 @@ public class JobDriver_HaulToInventory : JobDriver
 			}
 		}
 
+		// Reserve all targets in targetQueueB
 		if (job.targetQueueB != null)
 		{
 			foreach (var target in job.targetQueueB)
@@ -33,9 +35,11 @@ public class JobDriver_HaulToInventory : JobDriver
 			}
 		}
 
-		// Always attempt to reserve the main targets as well.
-		if (!pawn.Reserve(job.targetQueueA[0], job, 1, -1, null, false)) success = false;
-		if (!pawn.Reserve(job.targetB, job, 1, -1, null, false)) success = false;
+		// Reserve the main targetB (destination)
+		if (job.targetB != null && !pawn.Reserve(job.targetB, job, 1, -1, null, false))
+		{
+			success = false;
+		}
 
 		return success;
 	}
