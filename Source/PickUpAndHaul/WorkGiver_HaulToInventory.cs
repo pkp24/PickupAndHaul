@@ -69,6 +69,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		=> OkThingToHaul(thing, pawn)
 		&& IsNotCorpseOrAllowed(thing)
 		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
+		&& !OverAllowedGearCapacity(pawn)
 		&& CacheManager.TryGetCachedStorageLocation(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, out _);
 
 	//bulky gear (power armor + minigun) so don't bother.
