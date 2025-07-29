@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using PickUpAndHaul.Cache;
 
 namespace PickUpAndHaul;
@@ -218,15 +218,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			[storeTarget] = new(nextThing, capacityStoreCell)
 		};
 		//skipTargets = new() { storeTarget };
-		skipCells = [];
-		skipThings = [];
+		ClearSkipCollections();
 		if (storeTarget.container != null)
 		{
-			skipThings.Add(storeTarget.container);
+			AddSkipThing(storeTarget.container);
 		}
 		else
 		{
-			skipCells.Add(storeTarget.cell);
+			AddSkipCell(storeTarget.cell);
 		}
 
 		bool Validator(Thing t)
@@ -256,8 +255,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		if (nextThing == null)
 		{
-			skipCells = null;
-			skipThings = null;
+			ClearSkipCollections();
 			//skipTargets = null;
 			return job;
 		}
@@ -270,8 +268,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (carryCapacity == 0)
 		{
 			Log.Message("Can't carry more, nevermind!");
-			skipCells = null;
-			skipThings = null;
+			ClearSkipCollections();
 			//skipTargets = null;
 			return job;
 		}
@@ -296,8 +293,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 		}
 
-		skipCells = null;
-		skipThings = null;
+		ClearSkipCollections();
 		//skipTargets = null;
 
 		// no more job was 0 errors
@@ -463,6 +459,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
 	{
+		// Ensure skip collections are initialized for thread safety
+		EnsureSkipCollectionsInitialized();
+		
 		var map = pawn.Map;
 		var allocation = storeCellCapacity.FirstOrDefault(kvp =>
 			kvp.Key is var storeTarget
@@ -515,24 +514,23 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		bool reservable;
 		if (storeCell.container != null)
 		{
-			reservable = pawn.CanReserve(storeCell.container, 1, -1, null, false);
+			reservable = TryReserveSafely(pawn, storeCell.container, job, 1, -1, null, false);
 		}
 		else
 		{
-			reservable = pawn.CanReserve(storeCell.cell, 1, -1, null, false);
+			reservable = TryReserveSafely(pawn, storeCell.cell, job, 1, -1, null, false);
 		}
 
 		if (!reservable)
 		{
 			// Mark this spot so we don’t consider it again this haul cycle and bail out – caller will try another.
 			if (storeCell.container != null)
-				skipThings.Add(storeCell.container);
+				AddSkipThing(storeCell.container);
 			else
-				skipCells.Add(storeCell.cell);
+				AddSkipCell(storeCell.cell);
 
 			// Clear static skip sets so they don’t leak into future jobs if we exit early
-			skipCells = null;
-			skipThings = null;
+			ClearSkipCollections();
 			return false;
 		}
  
@@ -549,11 +547,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			// Prevent cycling on the same exhausted cell/container again
 			if (storeCell.container != null)
 			{
-				skipThings.Add(storeCell.container);
+				AddSkipThing(storeCell.container);
 			}
 			else
 			{
-				skipCells.Add(storeCell.cell);
+				AddSkipCell(storeCell.cell);
 			}
 
 			Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
@@ -575,7 +573,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					count -= capacityOver;
 					job.countQueue.Add(count);
 					Log.Message($"Repeated store cell {nextStoreCell}, allocating partial {count} and aborting further allocation.");
-					skipCells = null; skipThings = null;
+					ClearSkipCollections();
 					return false;
 				}
 				else if (innerInteractableThingOwner is not null && nextHaulDestination == storeCell.container)
@@ -583,7 +581,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					count -= capacityOver;
 					job.countQueue.Add(count);
 					Log.Message($"Repeated haul destination {nextHaulDestination}, allocating partial {count} and aborting further allocation.");
-					skipCells = null; skipThings = null;
+					ClearSkipCollections();
 					return false;
 				}
 
@@ -624,8 +622,133 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	}
 
 	//public static HashSet<StoreTarget> skipTargets;
-	public static HashSet<IntVec3> skipCells;
-	public static HashSet<Thing> skipThings;
+	// Thread-safe alternatives to static fields to prevent race conditions
+	private static readonly object skipCellsLock = new object();
+	private static readonly object skipThingsLock = new object();
+	private static HashSet<IntVec3> skipCells;
+	private static HashSet<Thing> skipThings;
+
+	/// <summary>
+	/// Thread-safe method to add a cell to the skip list
+	/// </summary>
+	private static void AddSkipCell(IntVec3 cell)
+	{
+		lock (skipCellsLock)
+		{
+			skipCells ??= new HashSet<IntVec3>();
+			skipCells.Add(cell);
+		}
+	}
+
+	/// <summary>
+	/// Thread-safe method to add a thing to the skip list
+	/// </summary>
+	private static void AddSkipThing(Thing thing)
+	{
+		lock (skipThingsLock)
+		{
+			skipThings ??= new HashSet<Thing>();
+			skipThings.Add(thing);
+		}
+	}
+
+	/// <summary>
+	/// Thread-safe method to check if a cell is in the skip list
+	/// </summary>
+	private static bool ContainsSkipCell(IntVec3 cell)
+	{
+		lock (skipCellsLock)
+		{
+			return skipCells?.Contains(cell) ?? false;
+		}
+	}
+
+	/// <summary>
+	/// Thread-safe method to check if a thing is in the skip list
+	/// </summary>
+	private static bool ContainsSkipThing(Thing thing)
+	{
+		lock (skipThingsLock)
+		{
+			return skipThings?.Contains(thing) ?? false;
+		}
+	}
+
+	/// <summary>
+	/// Thread-safe method to clear skip collections
+	/// </summary>
+	private static void ClearSkipCollections()
+	{
+		lock (skipCellsLock)
+		{
+			skipCells?.Clear();
+		}
+		lock (skipThingsLock)
+		{
+			skipThings?.Clear();
+		}
+	}
+
+	/// <summary>
+	/// Thread-safe method to ensure skip collections are initialized
+	/// </summary>
+	private static void EnsureSkipCollectionsInitialized()
+	{
+		lock (skipCellsLock)
+		{
+			skipCells ??= new HashSet<IntVec3>();
+		}
+		lock (skipThingsLock)
+		{
+			skipThings ??= new HashSet<Thing>();
+		}
+	}
+
+	/// <summary>
+	/// Thread-safe method to attempt reservation with retry logic to prevent race conditions
+	/// </summary>
+	private static bool TryReserveSafely(Pawn pawn, object target, Job job, int maxPawns = 1, int stackCount = -1, ReservationLayerDef layer = null, bool ignoreOtherReservations = false)
+	{
+		if (target == null || pawn == null || job == null) return false;
+
+		// First check if we can reserve
+		bool canReserve = target is Thing thing 
+			? pawn.CanReserve(thing, maxPawns, stackCount, layer, ignoreOtherReservations)
+			: pawn.CanReserve((IntVec3)target, maxPawns, stackCount, layer, ignoreOtherReservations);
+
+		if (!canReserve) return false;
+
+		// Attempt the actual reservation with a small retry loop to handle race conditions
+		for (int attempt = 0; attempt < 3; attempt++)
+		{
+			try
+			{
+				bool reserved = target is Thing thingTarget
+					? pawn.Reserve(thingTarget, job, maxPawns, stackCount, layer, ignoreOtherReservations)
+					: pawn.Reserve((IntVec3)target, job, maxPawns, stackCount, layer, ignoreOtherReservations);
+
+				if (reserved) return true;
+
+				// If reservation failed, check if it's because another pawn got it first
+				if (attempt < 2) // Don't sleep on the last attempt
+				{
+					// Small delay to let other reservations complete
+					System.Threading.Thread.Sleep(1);
+				}
+			}
+			catch (System.Exception ex)
+			{
+				// Log the exception but continue trying
+				Verse.Log.Warning($"Reservation attempt {attempt + 1} failed for {pawn} on {target}: {ex.Message}");
+				if (attempt < 2)
+				{
+					System.Threading.Thread.Sleep(1);
+				}
+			}
+		}
+
+		return false;
+	}
 
 	public static bool TryFindBestBetterStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner)
 	{
@@ -677,8 +800,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool TryFindBestBetterStoreCellFor(Thing thing, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell)
 	{
-		// Initialize skipCells if it's null to prevent NullReferenceException
-		skipCells ??= new HashSet<IntVec3>();
+		// Ensure skip collections are initialized for thread safety
+		EnsureSkipCollectionsInitialized();
 		
 		var haulDestinations = map.haulDestinationManager.AllGroupsListInPriorityOrder;
 		for (var i = 0; i < haulDestinations.Count; i++)
@@ -694,7 +817,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			for (var j = 0; j < cellsList.Count; j++)
 			{
 				var cell = cellsList[j];
-				if (skipCells.Contains(cell))
+				if (ContainsSkipCell(cell))
 				{
 					continue;
 				}
@@ -703,7 +826,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				{
 					foundCell = cell;
 
-					skipCells.Add(cell);
+					AddSkipCell(cell);
 
 					return true;
 				}
@@ -770,8 +893,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
 	{
-		// Initialize skipThings if it's null to prevent NullReferenceException
-		skipThings ??= new HashSet<Thing>();
+		// Ensure skip collections are initialized for thread safety
+		EnsureSkipCollectionsInitialized();
 		
 		var allHaulDestinationsListInPriorityOrder = map.haulDestinationManager.AllHaulDestinationsListInPriorityOrder;
 		var intVec = t.SpawnedOrAnyParentSpawned ? t.PositionHeld : carrier.PositionHeld;
@@ -801,15 +924,28 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (iHaulDestination is Thing thing)
 			{
-				if (skipThings.Contains(thing) || thing.Faction != faction)
+				if (ContainsSkipThing(thing) || thing.Faction != faction)
 				{
 					continue;
 				}
 
 				if (carrier != null)
 				{
+					// Use a more robust reservation check to prevent race conditions
+					bool canReserve = false;
+					try
+					{
+						canReserve = carrier.CanReserveNew(thing);
+					}
+					catch (System.Exception ex)
+					{
+						// Log the exception but continue with other destinations
+						Verse.Log.Warning($"Reservation check failed for {carrier} on {thing}: {ex.Message}");
+						continue;
+					}
+
 					if (thing.IsForbidden(carrier)
-						|| !carrier.CanReserveNew(thing)
+						|| !canReserve
 						|| !carrier.Map.reachability.CanReach(intVec, thing, PathEndMode.ClosestTouch, TraverseParms.For(carrier)))
 					{
 						continue;
@@ -823,7 +959,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					}
 				}
 
-				skipThings.Add(thing);
+				AddSkipThing(thing);
 			}
 			else
 			{
