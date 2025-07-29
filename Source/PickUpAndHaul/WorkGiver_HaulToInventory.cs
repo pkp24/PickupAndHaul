@@ -17,7 +17,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| !Settings.IsAllowedRace(pawn.RaceProps)
 		|| pawn.GetComp<CompHauledToInventory>() == null
 		|| pawn.IsQuestLodger()
-		|| OverAllowedGearCapacity(pawn);
+		|| OverAllowedGearCapacity(pawn)
+		|| (!forced && pawn.CurJob != null); // Prevent creating jobs when pawn already has a job unless forced
 
 	public static bool GoodThingToHaul(Thing t, Pawn pawn)
 		=> OkThingToHaul(t, pawn)
@@ -247,7 +248,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 
 
-		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory, null, storeTarget);   //Things will be in queues
+		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory, thing);   //Things will be in queues
+		job.count = thing.stackCount; // Set the job count to the first item's stack count
 		Log.Message($"-------------------------------------------------------------------");
 		Log.Message($"------------------------------------------------------------------");//different size so the log doesn't count it 2x
 		Log.Message($"{pawn} job found to haul: {thing} to {storeTarget}:{capacityStoreCell}, looking for more now");
@@ -258,6 +260,16 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		job.targetQueueA = []; //more things
 		job.targetQueueB = []; //more storage; keep in mind the job doesn't use it, but reserve it so you don't over-haul
 		job.countQueue = [];//thing counts
+
+		// Add the initial storage location to targetQueueB
+		if (storeTarget.container != null)
+		{
+			job.targetQueueB.Add(storeTarget.container);
+		}
+		else
+		{
+			job.targetQueueB.Add(storeTarget.cell);
+		}
 
 		var ceOverweight = false;
 
@@ -332,56 +344,70 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		haulables.RemoveAll(t => t == null || !t.CanStackWith(nextThing));
 
 		var carryCapacity = pawn.carryTracker.MaxStackSpaceEver(nextThing.def) - nextThingLeftOverCount;
-		if (carryCapacity == 0)
+		if (carryCapacity <= 0)
 		{
-			Log.Message("Can't carry more, nevermind!");
-			return job;
+			Log.Message($"Can't carry more (capacity: {carryCapacity}), but job already has {job.targetQueueA.Count} items allocated. Continuing with existing job.");
+			// Don't return here - continue with the job as-is since we already have items allocated
 		}
-		Log.Message($"Looking for more like {nextThing}");
-
-		while ((nextThing = GetClosestAndRemove(nextThing.Position, map, haulables,
-			   PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, Validator)) != null)
+		else
 		{
-			carryCapacity -= nextThing.stackCount;
+			Log.Message($"Looking for more like {nextThing}");
+		}
 
-			if (this.AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, skipContext))
+		// Only search for more items if we have capacity to carry them
+		if (carryCapacity > 0)
+		{
+			while ((nextThing = GetClosestAndRemove(nextThing.Position, map, haulables,
+				   PathEndMode.ClosestTouch, TraverseParms.For(pawn), 8f, Validator)) != null)
 			{
-				break;
-			}
+				carryCapacity -= nextThing.stackCount;
 
-			if (carryCapacity <= 0)
-			{
-				// Ensure we have items in both queues before attempting to adjust
-				if (job.countQueue.Count > 0 && job.targetQueueA.Count > 0)
+				if (this.AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job, skipContext))
 				{
-					var lastCount = job.countQueue.Pop() + carryCapacity;
-					
-					// If the adjusted count is positive, add it back to the queue
-					if (lastCount > 0)
+					break;
+				}
+
+				if (carryCapacity <= 0)
+				{
+					// Ensure we have items in both queues before attempting to adjust
+					if (job.countQueue.Count > 0 && job.targetQueueA.Count > 0)
 					{
-						job.countQueue.Add(lastCount);
-						Log.Message($"Adjusted last count to {lastCount}");
+						var lastCount = job.countQueue.Pop() + carryCapacity;
+						
+						// If the adjusted count is positive, add it back to the queue
+						if (lastCount > 0)
+						{
+							job.countQueue.Add(lastCount);
+							Log.Message($"Adjusted last count to {lastCount}");
+						}
+						else
+						{
+							// If the adjusted count is zero or negative, remove the corresponding item from targetQueueA
+							// This ensures the queues stay synchronized
+							var removedThing = job.targetQueueA[job.targetQueueA.Count - 1];
+							job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+							Log.Message($"Capacity exceeded, removing {removedThing} from queue (adjusted count was {lastCount})");
+						}
 					}
 					else
 					{
-						// If the adjusted count is zero or negative, remove the corresponding item from targetQueueA
-						// This ensures the queues stay synchronized
-						var removedThing = job.targetQueueA[job.targetQueueA.Count - 1];
-						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-						Log.Message($"Capacity exceeded, removing {removedThing} from queue (adjusted count was {lastCount})");
+						// If queues are empty or mismatched, log a warning
+						Log.Warning($"Queue synchronization issue: countQueue.Count={job.countQueue.Count}, targetQueueA.Count={job.targetQueueA.Count}");
 					}
+					break;
 				}
-				else
-				{
-					// If queues are empty or mismatched, log a warning
-					Log.Warning($"Queue synchronization issue: countQueue.Count={job.countQueue.Count}, targetQueueA.Count={job.targetQueueA.Count}");
-				}
-				break;
 			}
 		}
 
 		// no more job was 0 errors
 		ValidateJobCount(job, thing);
+
+		// If the job has no items to haul, return null instead of an empty job
+		if (job.targetQueueA == null || job.targetQueueA.Count == 0)
+		{
+			Log.Message("Job has no items to haul, returning null");
+			return null;
+		}
 
 		return job;
 	}
@@ -555,31 +581,31 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (storeCell == default)
 		{
 			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner, this))
+			
+			// Use our new reservation system to find storage with available capacity
+			PUAHReservationSystem.StorageLocation storageLocation;
+			int availableCapacity;
+			
+			if (PUAHReservationSystem.TryFindBestStorageWithReservation(nextThing, pawn, map, currentPriority, pawn.Faction, out storageLocation, out availableCapacity))
 			{
-				if (innerInteractableThingOwner is null)
+				if (storageLocation.IsContainer)
 				{
-					storeCell = new(nextStoreCell);
-					job.targetQueueB.Add(nextStoreCell);
-
-					storeCellCapacity[storeCell] = new(nextThing, CapacityAt(nextThing, nextStoreCell, map));
-
-					Log.Message($"New cell for unstackable {nextThing} = {nextStoreCell}");
+					storeCell = new(storageLocation.Container);
+					job.targetQueueB.Add(storageLocation.Container);
+					storeCellCapacity[storeCell] = new(nextThing, availableCapacity);
+					Log.Message($"New container for unstackable {nextThing} = {storageLocation.Container}");
 				}
 				else
 				{
-					var destinationAsThing = (Thing)haulDestination;
-					storeCell = new(destinationAsThing);
-					job.targetQueueB.Add(destinationAsThing);
-
-					storeCellCapacity[storeCell] = new(nextThing, innerInteractableThingOwner.GetCountCanAccept(nextThing));
-
-					Log.Message($"New haulDestination for unstackable {nextThing} = {haulDestination}");
+					storeCell = new(storageLocation.Cell);
+					job.targetQueueB.Add(storageLocation.Cell);
+					storeCellCapacity[storeCell] = new(nextThing, availableCapacity);
+					Log.Message($"New cell for unstackable {nextThing} = {storageLocation.Cell}");
 				}
 			}
 			else
 			{
-				Log.Message($"{nextThing} can't stack with allocated cells");
+				Log.Message($"{nextThing} can't find storage with available capacity");
 
 				if (job.targetQueueA.NullOrEmpty())
 				{
@@ -590,21 +616,48 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 		}
 
-		// Ensure the chosen storage spot (cell or container) is actually reservable; otherwise look for an alternative.
-		// This prevents all pawns targeting the same cell and spamming reservation-failure errors.
-		bool reservable;
+		// Convert StoreTarget to our StorageLocation
+		PUAHReservationSystem.StorageLocation puahLocation;
 		if (storeCell.container != null)
 		{
-			reservable = TryReserveSafely(pawn, storeCell.container, job, 1, -1, null, false);
+			puahLocation = new PUAHReservationSystem.StorageLocation(storeCell.container);
 		}
 		else
 		{
-			reservable = TryReserveSafely(pawn, storeCell.cell, job, 1, -1, null, false);
+			puahLocation = new PUAHReservationSystem.StorageLocation(storeCell.cell);
 		}
 
-		if (!reservable)
+		// Try to reserve using our system
+		bool reserved = PUAHReservationSystem.TryReserveStorage(pawn, nextThing, puahLocation, job, map);
+		
+		if (!reserved)
 		{
-			// Mark this spot so we don't consider it again this haul cycle and bail out – caller will try another.
+			// Mark this spot so we don't consider it again this haul cycle
+			if (storeCell.container != null)
+				skipContext.AddSkipThing(storeCell.container);
+			else
+				skipContext.AddSkipCell(storeCell.cell);
+
+			return false;
+		}
+		
+		// Also make vanilla reservation for compatibility
+		bool vanillaReservable;
+		if (storeCell.container != null)
+		{
+			vanillaReservable = TryReserveSafely(pawn, storeCell.container, job, 1, -1, null, false);
+		}
+		else
+		{
+			vanillaReservable = TryReserveSafely(pawn, storeCell.cell, job, 1, -1, null, false);
+		}
+
+		if (!vanillaReservable)
+		{
+			// Release our reservation if vanilla fails
+			PUAHReservationSystem.ReleaseAllReservationsForJob(pawn, job, map);
+			
+			// Mark this spot so we don't consider it again
 			if (storeCell.container != null)
 				skipContext.AddSkipThing(storeCell.container);
 			else

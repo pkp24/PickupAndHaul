@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using RimWorld;
@@ -256,13 +257,33 @@ namespace PickUpAndHaul.Cache
             var cachedLocation = PUAHHaulCaches.GetCachedStorageLocation(map, thing);
             if (cachedLocation != null)
             {
-                foundCell = cachedLocation.TargetCell;
-                haulDestination = cachedLocation.HaulDestination;
-                innerInteractableThingOwner = cachedLocation.InnerInteractableThingOwner;
-                return true;
+                // Validate that the cached location still has capacity
+                PUAHReservationSystem.StorageLocation storageLocation;
+                if (cachedLocation.InnerInteractableThingOwner != null)
+                {
+                    storageLocation = new PUAHReservationSystem.StorageLocation((Thing)cachedLocation.HaulDestination);
+                }
+                else
+                {
+                    storageLocation = new PUAHReservationSystem.StorageLocation(cachedLocation.TargetCell);
+                }
+                
+                var availableCapacity = PUAHReservationSystem.GetAvailableCapacity(storageLocation, thing, map);
+                if (availableCapacity > 0)
+                {
+                    foundCell = cachedLocation.TargetCell;
+                    haulDestination = cachedLocation.HaulDestination;
+                    innerInteractableThingOwner = cachedLocation.InnerInteractableThingOwner;
+                    return true;
+                }
+                else
+                {
+                    // Cached location is full, invalidate it
+                    PUAHHaulCaches.InvalidateStorageLocationCache(map, thing);
+                }
             }
 
-            // If not in cache, find storage location and cache it via PUAH helper (supports ThingOwner out param)
+            // If not in cache or cache was invalid, find storage location and cache it via PUAH helper (supports ThingOwner out param)
             if (workGiver != null && workGiver.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, faction, out foundCell, out haulDestination, out innerInteractableThingOwner))
             {
                 // Cache the result
@@ -281,6 +302,52 @@ namespace PickUpAndHaul.Cache
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Invalidate storage locations that are full
+        /// </summary>
+        public static void InvalidateFullStorageLocations(Map map)
+        {
+            if (map == null) return;
+
+            var storageCache = PUAHHaulCaches.GetStorageLocationCache(map);
+            var toInvalidate = new List<Thing>();
+
+            foreach (var kvp in storageCache)
+            {
+                var thing = kvp.Key;
+                var cachedLocation = kvp.Value;
+
+                if (thing == null || thing.Destroyed || cachedLocation == null) 
+                {
+                    toInvalidate.Add(thing);
+                    continue;
+                }
+
+                // Check if the location is full
+                PUAHReservationSystem.StorageLocation storageLocation;
+                if (cachedLocation.InnerInteractableThingOwner != null)
+                {
+                    storageLocation = new PUAHReservationSystem.StorageLocation((Thing)cachedLocation.HaulDestination);
+                }
+                else
+                {
+                    storageLocation = new PUAHReservationSystem.StorageLocation(cachedLocation.TargetCell);
+                }
+
+                var availableCapacity = PUAHReservationSystem.GetAvailableCapacity(storageLocation, thing, map);
+                if (availableCapacity <= 0)
+                {
+                    toInvalidate.Add(thing);
+                }
+            }
+
+            // Invalidate full locations
+            foreach (var thing in toInvalidate)
+            {
+                PUAHHaulCaches.InvalidateStorageLocationCache(map, thing);
+            }
         }
     }
 } 

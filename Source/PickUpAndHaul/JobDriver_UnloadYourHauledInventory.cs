@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 namespace PickUpAndHaul;
 
@@ -130,30 +131,57 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			}
 
 			var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
-			if (CacheManager.TryGetCachedStorageLocation(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					pawn.Faction, out var cell, out var destination, out var _, null))
+			
+			// Use our new reservation system to find storage with available capacity
+			PUAHReservationSystem.StorageLocation storageLocation;
+			int availableCapacity;
+			
+			if (PUAHReservationSystem.TryFindBestStorageWithReservation(unloadableThing.Thing, pawn, pawn.Map, 
+				currentPriority, pawn.Faction, out storageLocation, out availableCapacity))
 			{
 				job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-				if (cell == IntVec3.Invalid)
+				
+				// Set target based on storage type
+				if (storageLocation.IsContainer)
 				{
-					job.SetTarget(TargetIndex.B, destination as Thing);
+					job.SetTarget(TargetIndex.B, storageLocation.Container);
 				}
 				else
 				{
-					job.SetTarget(TargetIndex.B, cell);
+					job.SetTarget(TargetIndex.B, storageLocation.Cell);
 				}
 
-				Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-				if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+				Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing} with capacity {availableCapacity}");
+				
+				// Determine how much we can actually drop
+				var countToReserve = Math.Min(unloadableThing.Thing.stackCount, availableCapacity);
+				_countToDrop = countToReserve;
+				
+				// Try to reserve using our system
+				bool reserved = PUAHReservationSystem.TryReservePartialStorage(pawn, unloadableThing.Thing, 
+					countToReserve, storageLocation, job, pawn.Map);
+				
+				if (!reserved)
 				{
-					Log.Message(
-						$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
+					Log.Message($"{pawn} failed PUAH reservation for {job.targetB}, dropping {unloadableThing.Thing}");
 					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 						unloadableThing.Thing.stackCount, out _);
 					EndJobWith(JobCondition.Incompletable);
 					return;
 				}
-				_countToDrop = unloadableThing.Thing.stackCount;
+				
+				// Also make vanilla reservation for compatibility
+				if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+				{
+					// Release our reservation if vanilla fails
+					PUAHReservationSystem.ReleaseAllReservationsForJob(pawn, job, pawn.Map);
+					
+					Log.Message($"{pawn} failed vanilla reservation for {job.targetB}, dropping {unloadableThing.Thing}");
+					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
+						unloadableThing.Thing.stackCount, out _);
+					EndJobWith(JobCondition.Incompletable);
+					return;
+				}
 			}
 			else
 			{
