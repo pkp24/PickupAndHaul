@@ -49,6 +49,9 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(WorkGiver_Haul), nameof(WorkGiver_Haul.ShouldSkip)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(SkipCorpses_Prefix)));
 
+		// Apply reservation system patches
+		harmony.PatchAll(typeof(HarmonyPatches_ReservationSystem).Assembly);
+
 		harmony.Patch(AccessTools.Method(typeof(JobGiver_Haul), nameof(JobGiver_Haul.TryGiveJob)),
 			transpiler: new(typeof(HarmonyPatches), nameof(JobGiver_Haul_TryGiveJob_Transpiler)));
 
@@ -117,6 +120,10 @@ internal static class HarmonyPatches
 		// Add patch to invalidate storage location cache when storage priorities change
 		harmony.Patch(original: AccessTools.PropertySetter(typeof(StorageSettings), nameof(StorageSettings.Priority)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(StorageSettings_Priority_Postfix)));
+
+		// Add patch to log when a pawn is undrafted
+		harmony.Patch(original: AccessTools.Method(typeof(Pawn_DraftController), "set_Drafted", new[] { typeof(bool) }),
+			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(Pawn_DraftController_SetDrafted_Postfix)));
 
 		// Only show the welcome message if debug logging is enabled
 		if (Settings.EnableDebugLogging)
@@ -257,39 +264,34 @@ internal static class HarmonyPatches
 	/// </summary>
 	private static void Log_Error_Prefix(string text)
 	{
-		// Prevent infinite recursion by checking if we're already in error interception
+		// If this thread is already handling an error, abort to avoid recursion
 		if (_isInErrorInterception)
 		{
-				return;
+			return;
 		}
-
 		try
 		{
-				_isInErrorInterception = true;
-
-				// Get the current stack trace
-				var stackTrace = Environment.StackTrace;
-
-				// Check if this is the specific AllowTool compatibility error we're seeing
-				if (text.Contains("System.NullReferenceException") && stackTrace.Contains("AllowTool.WorkGiver_HaulUrgently"))
-				{
-						// Use direct Verse.Log calls to avoid recursion
-						Verse.Log.Warning("[PickUpAndHaul] AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged");
-				}
-
-				// Forward to debug logger (initializes if needed)
-				Log.InterceptRimWorldError(text, stackTrace);
+			_isInErrorInterception = true;
+			var stackTrace = Environment.StackTrace;
+			// Detect known AllowTool compatibility issue and emit warning
+			if (text != null && stackTrace != null && text.Contains("System.NullReferenceException") && stackTrace.Contains("AllowTool.WorkGiver_HaulUrgently"))
+			{
+				Verse.Log.Warning("AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged");
+			}
+			// Forward intercepted error to the mod's debug logger
+			Log.InterceptRimWorldError(text, stackTrace);
 		}
 		catch (Exception ex)
 		{
-				// Don't let our error interception cause more errors
-				Verse.Log.Warning($"[PickUpAndHaul] Failed to intercept RimWorld error: {ex.Message}");
+			// Ensure we never crash due to error interception
+			Verse.Log.Warning($"Failed to intercept RimWorld error: {ex.Message}");
 		}
 		finally
 		{
-				_isInErrorInterception = false;
+			_isInErrorInterception = false;
 		}
 	}
+
 
 	/// <summary>
 	/// Register the periodic performance tracker when a new game starts
@@ -337,6 +339,12 @@ internal static class HarmonyPatches
 			// Initialize caches for all existing maps when loading a game
 			CacheInitializer.InitializeAllCaches();
 			Log.Message("PUAH caches initialized for loaded game");
+		
+		// Initialize PUAH reservation manager for all maps
+		foreach (var map in Find.Maps)
+		{
+			PUAHReservationManager.InitializeMap(map);
+		}
 		}
 		catch (Exception ex)
 		{
@@ -738,5 +746,32 @@ internal static class HarmonyPatches
 		float maxCarryMass = pawn.GetStatValue(StatDefOf.CarryingCapacity);
 
 		return thingMass <= maxCarryMass;
+	}
+
+	private static void Pawn_DraftController_SetDrafted_Postfix(Pawn_DraftController __instance, bool value)
+	{
+		if (!value && __instance.pawn != null)
+		{
+			Log.Message($"{__instance.pawn} was undrafted. Current job: {__instance.pawn.jobs?.curJob?.def?.defName ?? "null"}, Downed: {__instance.pawn.Downed}, Dead: {__instance.pawn.Dead}, Position: {__instance.pawn.Position}");
+		}
+	}
+}
+
+// Additional patch to clean up PUAH reservations when jobs end
+[HarmonyPatch(typeof(Pawn_JobTracker), "EndCurrentJob")]
+public static class Pawn_JobTracker_EndCurrentJob_Patch
+{
+	public static void Prefix(Pawn_JobTracker __instance, JobCondition condition)
+	{
+		var pawn = __instance.pawn;
+		var job = __instance.curJob;
+		
+		// If this was a PUAH job, clean up our custom reservations
+		// Using Prefix to ensure job is still available
+		if (job?.def == PickUpAndHaulJobDefOf.HaulToInventory || job?.def == PickUpAndHaulJobDefOf.UnloadYourHauledInventory)
+		{
+			Log.Message($"[PUAH] Cleaning up PUAH reservations for {pawn} job {job.def.defName}");
+			PUAHReservationManager.ReleaseAllForPawn(pawn, job);
+		}
 	}
 }

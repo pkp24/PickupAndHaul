@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using RimWorld;
@@ -256,15 +257,66 @@ namespace PickUpAndHaul.Cache
             var cachedLocation = PUAHHaulCaches.GetCachedStorageLocation(map, thing);
             if (cachedLocation != null)
             {
-                foundCell = cachedLocation.TargetCell;
-                haulDestination = cachedLocation.HaulDestination;
-                innerInteractableThingOwner = cachedLocation.InnerInteractableThingOwner;
-                return true;
+                // Validate that the cached location still has capacity AND is not reserved by vanilla reservations
+                PUAHReservationSystem.StorageLocation storageLocation;
+                LocalTargetInfo reservationTarget;
+                if (cachedLocation.InnerInteractableThingOwner != null)
+                {
+                    storageLocation = new PUAHReservationSystem.StorageLocation((Thing)cachedLocation.HaulDestination);
+                    reservationTarget = (Thing)cachedLocation.HaulDestination;
+                }
+                else
+                {
+                    storageLocation = new PUAHReservationSystem.StorageLocation(cachedLocation.TargetCell);
+                    reservationTarget = cachedLocation.TargetCell;
+                }
+
+                var availableCapacity = PUAHReservationSystem.GetAvailableCapacity(storageLocation, thing, map);
+
+                // Check vanilla reservation state and our custom reservation ownership
+                var vanillaReservable   = pawn.CanReserve(reservationTarget, 1, -1, null, false);
+                var claimantHasPuahRes = PUAHReservationSystem.PawnHasReservation(pawn, storageLocation, map);
+                var anyPuahRes         = PUAHReservationSystem.HasAnyReservation(storageLocation, map);
+
+                var puahOkay = !anyPuahRes || claimantHasPuahRes; // allow if none or owned by claimant
+
+                if (availableCapacity > 0 && (vanillaReservable || claimantHasPuahRes) && puahOkay)
+                {
+                    foundCell = cachedLocation.TargetCell;
+                    haulDestination = cachedLocation.HaulDestination;
+                    innerInteractableThingOwner = cachedLocation.InnerInteractableThingOwner;
+                    return true;
+                }
+                else
+                {
+                    // Cached location is no longer valid (full or reserved by other pawn)
+                    PUAHHaulCaches.InvalidateStorageLocationCache(map, thing);
+                }
             }
 
-            // If not in cache, find storage location and cache it via PUAH helper (supports ThingOwner out param)
+            // If not in cache or cache was invalid, find storage location and cache it via PUAH helper (supports ThingOwner out param)
             if (workGiver != null && workGiver.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, faction, out foundCell, out haulDestination, out innerInteractableThingOwner))
             {
+                // Ensure the found location is usable considering both vanilla and PUAH reservations
+                PUAHReservationSystem.StorageLocation newLocation = haulDestination is Thing destThing2
+                    ? new PUAHReservationSystem.StorageLocation(destThing2)
+                    : new PUAHReservationSystem.StorageLocation(foundCell);
+
+                LocalTargetInfo reservationTarget = haulDestination is Thing destThing ? (LocalTargetInfo)destThing : (LocalTargetInfo)foundCell;
+
+                var vanillaReservable   = pawn.CanReserve(reservationTarget, 1, -1, null, false);
+                var claimantHasPuahRes = PUAHReservationSystem.PawnHasReservation(pawn, newLocation, map);
+                var anyPuahRes         = PUAHReservationSystem.HasAnyReservation(newLocation, map);
+
+                if (!vanillaReservable && !claimantHasPuahRes) // blocked by another vanilla reservation
+                {
+                    return false;
+                }
+
+                if (anyPuahRes && !claimantHasPuahRes) // blocked by another pawn's PUAH reservation
+                {
+                    return false;
+                }
                 // Cache the result
                 PUAHHaulCaches.AddToStorageLocationCache(map, thing, foundCell, haulDestination, innerInteractableThingOwner);
                 return true;
@@ -274,6 +326,26 @@ namespace PickUpAndHaul.Cache
                 // Fallback to vanilla StoreUtility when workGiver is not available
                 if (StoreUtility.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, faction, out foundCell, out haulDestination, true))
                 {
+                    // Ensure location is usable with reservation checks
+                    PUAHReservationSystem.StorageLocation newLocation = haulDestination is Thing destThing2
+                        ? new PUAHReservationSystem.StorageLocation(destThing2)
+                        : new PUAHReservationSystem.StorageLocation(foundCell);
+
+                    LocalTargetInfo reservationTarget = haulDestination is Thing destThing ? (LocalTargetInfo)destThing : (LocalTargetInfo)foundCell;
+
+                    var vanillaReservable   = pawn.CanReserve(reservationTarget, 1, -1, null, false);
+                    var claimantHasPuahRes = PUAHReservationSystem.PawnHasReservation(pawn, newLocation, map);
+                    var anyPuahRes         = PUAHReservationSystem.HasAnyReservation(newLocation, map);
+
+                    if (!vanillaReservable && !claimantHasPuahRes)
+                    {
+                        return false;
+                    }
+
+                    if (anyPuahRes && !claimantHasPuahRes)
+                    {
+                        return false;
+                    }
                     // Cache the result
                     PUAHHaulCaches.AddToStorageLocationCache(map, thing, foundCell, haulDestination, null);
                     return true;
@@ -281,6 +353,52 @@ namespace PickUpAndHaul.Cache
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Invalidate storage locations that are full
+        /// </summary>
+        public static void InvalidateFullStorageLocations(Map map)
+        {
+            if (map == null) return;
+
+            var storageCache = PUAHHaulCaches.GetStorageLocationCache(map);
+            var toInvalidate = new List<Thing>();
+
+            foreach (var kvp in storageCache)
+            {
+                var thing = kvp.Key;
+                var cachedLocation = kvp.Value;
+
+                if (thing == null || thing.Destroyed || cachedLocation == null) 
+                {
+                    toInvalidate.Add(thing);
+                    continue;
+                }
+
+                // Check if the location is full
+                PUAHReservationSystem.StorageLocation storageLocation;
+                if (cachedLocation.InnerInteractableThingOwner != null)
+                {
+                    storageLocation = new PUAHReservationSystem.StorageLocation((Thing)cachedLocation.HaulDestination);
+                }
+                else
+                {
+                    storageLocation = new PUAHReservationSystem.StorageLocation(cachedLocation.TargetCell);
+                }
+
+                var availableCapacity = PUAHReservationSystem.GetAvailableCapacity(storageLocation, thing, map);
+                if (availableCapacity <= 0)
+                {
+                    toInvalidate.Add(thing);
+                }
+            }
+
+            // Invalidate full locations
+            foreach (var thing in toInvalidate)
+            {
+                PUAHHaulCaches.InvalidateStorageLocationCache(map, thing);
+            }
         }
     }
 } 

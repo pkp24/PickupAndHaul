@@ -15,11 +15,28 @@ public class Modbase : Mod
 		Instance = this;
 		Settings = GetSettings<Settings>();
 		
+		// Clear debug log on mod initialization
+		ClearDebugLogOnStartup();
+		
 		// Initialize performance logging
 		InitializePerformanceLogging();
 		
 		// Initialize cache system
 		InitializeCacheSystem();
+	}
+	
+	private void ClearDebugLogOnStartup()
+	{
+		try
+		{
+			Log.ClearDebugLogFile();
+			Log.Message("PickUpAndHaul debug log cleared on startup");
+		}
+		catch (Exception ex)
+		{
+			// Use Verse.Log as fallback since our Log might not be initialized yet
+			Verse.Log.Warning($"Failed to clear debug log on startup: {ex.Message}");
+		}
 	}
 	
 	private void InitializePerformanceLogging()

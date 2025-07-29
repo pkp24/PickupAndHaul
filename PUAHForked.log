@@ -1,0 +1,183 @@
+[21:48:03.155] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
+[21:48:03.155] [PUAHForked] [ClearDebugLogFile] [DebugLog.cs:0] Debug log file cleared.
+[21:48:03.156] [PUAHForked] [ClearDebugLogOnStartup] [Modbase.cs:33] [DEBUG] PickUpAndHaul debug log cleared on startup
+[21:48:03.156] [PUAHForked] [InitializePerformanceLogging] [Modbase.cs:48] [DEBUG] PickUpAndHaul performance logging initialized
+[21:48:03.156] [PUAHForked] [InitializeCacheSystem] [Modbase.cs:62] [DEBUG] PickUpAndHaul cache system initialized
+[21:48:09.182] [PUAHForked] [.cctor] [HarmonyPatches.cs:131] [DEBUG] PickUpAndHaul v1.6.0 welcomes you to RimWorld, debug logging is enabled.
+[21:48:09.190] [PUAHForked] [ClearPerformanceLog] [PerformanceLogger.cs:80] [DEBUG] Performance log cleared on startup
+[21:48:09.190] [PUAHForked] [.cctor] [PerformanceLogger.cs:54] [DEBUG] Performance logger initialized
+[21:48:14.650] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Meat_Iguana127537 to haulable cache for map 0
+[21:48:14.651] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkGranite127538 to haulable cache for map 0
+[21:48:14.790] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Meat_Iguana127537 to cache for map 0: (133, 0, 178)
+[21:48:14.790] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkGranite127538 to cache for map 0: (133, 0, 178)
+[21:48:14.790] [PUAHForked] [InitializeStorageLocationCache] [CacheInitializer.cs:91] [DEBUG] Initialized storage location cache for 2 items on map 0
+[21:48:14.790] [PUAHForked] [LoadGame_PostFix] [HarmonyPatches.cs:341] [DEBUG] PUAH caches initialized for loaded game
+[21:48:18.635] [PUAHForked] [CheckIfPawnShouldUnloadInventory] [PawnUnloadChecker.cs:6] [DEBUG] called for pawn Mila02 (forced: False, Drafted: False, Downed: False, Dead: False, CurrentJob: null)
+[21:48:18.635] [PUAHForked] [CheckIfPawnShouldUnloadInventory] [PawnUnloadChecker.cs:16] [DEBUG] Mila02 carriedThing count: 0
+[21:48:18.656] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:138] [DEBUG] Checking pawn Mila02 (Drafted: False, Downed: False, Dead: False, Forced: False, CurrentJob: null) for thing Meat_Iguana127537
+[21:48:18.656] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:150] [DEBUG] Mila02 WEIGHT ANALYSIS - Thing mass: 0.03, Pawn capacity: 28, Gear mass: 0, Current occupied: 0.00, Max allowed: 0.80, Will be over encumbered: False, Count until over encumbered: 918
+[21:48:18.657] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:171] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:48:18.657] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:188] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:48:18.660] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:215] [DEBUG] Mila02 storage capacity at (133, 0, 178): 75
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:267] [DEBUG] Mila02 WORKGIVER RESERVATION SYSTEM STATE:
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:268] [DEBUG]   Total active reservations: 0
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:269] [DEBUG]   Pawn's current reservations: 0
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:270] [DEBUG]   Reservation manager type: ReservationManager
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:272] [DEBUG] Mila02 WORKGIVER DETAILED RESERVATION TEST:
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:273] [DEBUG]   Target Thing: null at (-1000, -1000, -1000)
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:274] [DEBUG]   Target Cell: (133, 0, 178)
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:275] [DEBUG]   CanReserve(target, 1, -1, null, false): True
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:276] [DEBUG]   CanReserve(target, 1, -1, null, true): True
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:277] [DEBUG]   CanReserve(target, 1, 1, null, false): True
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:278] [DEBUG]   CanReserve(target): True
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:279] [DEBUG]   Existing reservations for target: 0
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:321] [DEBUG] Mila02 FINAL RESERVATION CHECK before returning true: True
+[21:48:18.661] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:327] [DEBUG] Mila02 can haul Meat_Iguana127537 to inventory (storage validated as reservable)
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:376] [DEBUG] Mila02 creating job for Meat_Iguana127537 (forced: False)
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:385] [DEBUG] Mila02 JOBONTHING START - Can still reserve (133, 0, 178): True
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:467] [DEBUG] Mila02 WORKGIVER JOB CREATION:
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:468] [DEBUG]   Initial job - TargetA: Thing_Meat_Iguana127537, TargetB: null
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:469] [DEBUG]   StoreTarget - Container: null, Cell: (133, 0, 178)
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:480] [DEBUG]   Set TargetB to cell: (133, 0, 178)
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:483] [DEBUG]   After setting targets - TargetA: Thing_Meat_Iguana127537, TargetB: (133, 0, 178)
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:499] [DEBUG]   Added cell to queueB: (133, 0, 178)
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:506] [DEBUG]   Final queueA[0]: Thing_Meat_Iguana127537
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:507] [DEBUG]   Final queueB[0]: (133, 0, 178)
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:508] [DEBUG]   Final countQueue[0]: 1
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:510] [DEBUG] -------------------------------------------------------------------
+[21:48:18.662] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:511] [DEBUG] ------------------------------------------------------------------
+[21:48:18.669] [PUAHForked] [TryFindBestStorageWithReservation] [ReservationSystem.cs:532] [DEBUG] PUAHReservationSystem found storage for ChunkGranite127538 at Cell:(134, 0, 178) with capacity 1 (NO RESERVATION MADE - will be reserved by JobDriver)
+[21:48:18.669] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:744] [DEBUG] New cell for unstackable ChunkGranite127538 = (134, 0, 178)
+[21:48:18.669] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:776] [DEBUG] WorkGiver found storage for ChunkGranite127538 at (134, 0, 178), building job queue (no reservations)
+[21:48:18.669] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:786] [DEBUG] Mila02 allocating ChunkGranite127538:1, now (134, 0, 178):0
+[21:48:18.670] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:803] [DEBUG] Mila02 overdone (134, 0, 178) by 0
+[21:48:18.670] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:809] [DEBUG] ChunkGranite127538:1 allocated (capacityOver was 0)
+[21:48:18.670] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:537] [DEBUG] Mila02 returning NEW radial job with 2 items allocated
+[21:48:18.670] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:540] [DEBUG] Mila02 FINAL JOB RESERVATION TEST - Testing all storage locations:
+[21:48:18.670] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:547] [DEBUG]   QueueB[0]: (133, 0, 178) - CanReserve: True
+[21:48:18.670] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:547] [DEBUG]   QueueB[1]: (134, 0, 178) - CanReserve: True
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:10] [DEBUG] Mila02 attempting reservations for job with 2 items in queueA, 2 items in queueB
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:13] [DEBUG] Mila02 JOB DETAILS:
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:14] [DEBUG]   Job: HaulToInventory (ID: 516478)
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:15] [DEBUG]   TargetA: Thing_Meat_Iguana127537
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:16] [DEBUG]   TargetB: (133, 0, 178)
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:17] [DEBUG]   Count: -1
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:23] [DEBUG]   QueueA[0]: Thing_Meat_Iguana127537
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:23] [DEBUG]   QueueA[1]: Thing_ChunkGranite127538
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:31] [DEBUG]   QueueB[0]: (133, 0, 178)
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:31] [DEBUG]   QueueB[1]: (134, 0, 178)
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:46] [DEBUG] Mila02 attempting to reserve 2 storage locations in queueB
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:50] [DEBUG] Mila02 attempting to reserve storage (133, 0, 178)
+[21:48:18.673] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:61] [DEBUG] Mila02 RESERVATION DEBUG - Target: (133, 0, 178), CanReserve: False, Existing reservations: 0
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:70] [DEBUG] Mila02 DETAILED VALIDATION - Cell valid: True, Walkable: True, Reachable: True, SlotGroup: True, Settings: True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:82] [DEBUG] Mila02 CELL CONTENTS - Things at (133, 0, 178): 0
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:93] [DEBUG] Mila02 JOBDRIVER RESERVATION ATTEMPT - Target: (133, 0, 178), Job: HaulToInventory, JobID: 516478, MaxPawns: 1, StackCount: -1, Layer: null, ErrorOnFailed: true
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:100] [DEBUG] Mila02 JOBDRIVER PRE-RESERVE TESTS:
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:101] [DEBUG]   CanReserve(target, 1, -1, null, false): False
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:102] [DEBUG]   CanReserve(target, 1, -1, null, true): False
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:103] [DEBUG]   CanReserve(target): False
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:104] [DEBUG]   Target.Thing: null
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:105] [DEBUG]   Target.Cell: (133, 0, 178)
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:106] [DEBUG]   Target.HasThing: False
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:109] [DEBUG] Mila02 CANRESERVE VALIDATION BREAKDOWN:
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:110] [DEBUG]   pawn != null: True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:111] [DEBUG]   pawn.Spawned: True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:112] [DEBUG]   pawn.Map == target.Map: True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:113] [DEBUG]   target.IsValid: True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:114] [DEBUG]   target.ThingDestroyed: False
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:124] [DEBUG]   DETAILED RESERVATION ANALYSIS:
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:125] [DEBUG]     Total reservations on map: 0
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:128] [DEBUG]     Reservations for this exact target: 0
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:131] [DEBUG]     Reservations for this cell: 0
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:141] [DEBUG]   physicalInteractionReservationManager.IsReserved: False
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:150] [DEBUG]   cell.InBounds(map): True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:151] [DEBUG]   cell.Walkable(map): True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:152] [DEBUG]   cell.Standable(map): True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:153] [DEBUG]   pawn.CanReach(cell): True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:158] [DEBUG]   cellContents.Count: 0
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:160] [DEBUG]   edifice: null
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:164] [DEBUG]   slotGroup != null: True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:167] [DEBUG]   slotGroup.Settings != null: True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:173] [DEBUG]   slotGroup.Settings.AllowedToAccept(Meat_Iguana127537): True
+[21:48:18.674] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:191] [DEBUG] Mila02 JOBDRIVER RESERVATION - Cell: (133, 0, 178), using PUAH reservation system
+[21:48:18.675] [PUAHForked] [Reserve] [PUAHReservationManager.cs:119] [DEBUG] [PUAH] Mila02 successfully reserved (133, 0, 178) (stackCount: 1)
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:205] [DEBUG] Mila02 successfully reserved storage (133, 0, 178)
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:50] [DEBUG] Mila02 attempting to reserve storage (134, 0, 178)
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:61] [DEBUG] Mila02 RESERVATION DEBUG - Target: (134, 0, 178), CanReserve: False, Existing reservations: 0
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:70] [DEBUG] Mila02 DETAILED VALIDATION - Cell valid: True, Walkable: True, Reachable: True, SlotGroup: True, Settings: True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:82] [DEBUG] Mila02 CELL CONTENTS - Things at (134, 0, 178): 0
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:93] [DEBUG] Mila02 JOBDRIVER RESERVATION ATTEMPT - Target: (134, 0, 178), Job: HaulToInventory, JobID: 516478, MaxPawns: 1, StackCount: -1, Layer: null, ErrorOnFailed: true
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:100] [DEBUG] Mila02 JOBDRIVER PRE-RESERVE TESTS:
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:101] [DEBUG]   CanReserve(target, 1, -1, null, false): False
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:102] [DEBUG]   CanReserve(target, 1, -1, null, true): False
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:103] [DEBUG]   CanReserve(target): False
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:104] [DEBUG]   Target.Thing: null
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:105] [DEBUG]   Target.Cell: (134, 0, 178)
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:106] [DEBUG]   Target.HasThing: False
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:109] [DEBUG] Mila02 CANRESERVE VALIDATION BREAKDOWN:
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:110] [DEBUG]   pawn != null: True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:111] [DEBUG]   pawn.Spawned: True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:112] [DEBUG]   pawn.Map == target.Map: True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:113] [DEBUG]   target.IsValid: True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:114] [DEBUG]   target.ThingDestroyed: False
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:124] [DEBUG]   DETAILED RESERVATION ANALYSIS:
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:125] [DEBUG]     Total reservations on map: 0
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:128] [DEBUG]     Reservations for this exact target: 0
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:131] [DEBUG]     Reservations for this cell: 0
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:141] [DEBUG]   physicalInteractionReservationManager.IsReserved: False
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:150] [DEBUG]   cell.InBounds(map): True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:151] [DEBUG]   cell.Walkable(map): True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:152] [DEBUG]   cell.Standable(map): True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:153] [DEBUG]   pawn.CanReach(cell): True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:158] [DEBUG]   cellContents.Count: 0
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:160] [DEBUG]   edifice: null
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:164] [DEBUG]   slotGroup != null: True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:167] [DEBUG]   slotGroup.Settings != null: True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:173] [DEBUG]   slotGroup.Settings.AllowedToAccept(Meat_Iguana127537): True
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:191] [DEBUG] Mila02 JOBDRIVER RESERVATION - Cell: (134, 0, 178), using PUAH reservation system
+[21:48:18.675] [PUAHForked] [Reserve] [PUAHReservationManager.cs:119] [DEBUG] [PUAH] Mila02 successfully reserved (134, 0, 178) (stackCount: 1)
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:205] [DEBUG] Mila02 successfully reserved storage (134, 0, 178)
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:323] [DEBUG] Mila02 attempting to reserve targetB (133, 0, 178)
+[21:48:18.675] [PUAHForked] [CanReserve] [PUAHReservationManager.cs:61] [DEBUG] [PUAH] Mila02 already has reservation for (133, 0, 178)
+[21:48:18.675] [PUAHForked] [Reserve] [PUAHReservationManager.cs:109] [DEBUG] [PUAH] Mila02 updated reservation for (133, 0, 178)
+[21:48:18.675] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:344] [DEBUG] Mila02 successfully reserved targetB (133, 0, 178)
+[21:48:18.676] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:366] [DEBUG] Mila02 starting HaulToInventory job with 2 items in queue
+[21:48:18.676] [PUAHForked] [CheckForOverencumberedForCombatExtended] [JobDriver_HaulToInventory.cs:558] [DEBUG] Combat Extended not active for Mila02
+[21:48:18.678] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:382] [DEBUG] Mila02 starting path to Meat_Iguana127537
+[21:48:18.678] [PUAHForked] [ReserveThing] [PUAHReservationManager.cs:238] [DEBUG] [PUAH] Mila02 successfully reserved thing Meat_Iguana127537
+[21:48:18.678] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:404] [DEBUG] Mila02 successfully reserved Meat_Iguana127537, starting path
+[21:48:18.682] [PUAHForked] [Pawn_DraftController_SetDrafted_Postfix] [HarmonyPatches.cs:755] [DEBUG] Mila02 was undrafted. Current job: HaulToInventory, Downed: False, Dead: False, Position: (134, 0, 172)
+[21:48:23.091] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:421] [DEBUG] Mila02 attempting to pick up Meat_Iguana127537
+[21:48:23.091] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:436] [DEBUG] Mila02 calculated countToPickUp: 1 (job.count: 1, maxUntilOverEncumbered: 918)
+[21:48:23.091] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:447] [DEBUG] Mila02 will pick up 1 of Meat_Iguana127537
+[21:48:23.093] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Meat_Iguana127537 from haulable cache for map 0
+[21:48:23.094] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:485] [DEBUG] Meat_Iguana127537 no longer spawned, continuing to next target
+[21:48:23.094] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:382] [DEBUG] Mila02 starting path to ChunkGranite127538
+[21:48:23.094] [PUAHForked] [ReserveThing] [PUAHReservationManager.cs:238] [DEBUG] [PUAH] Mila02 successfully reserved thing ChunkGranite127538
+[21:48:23.094] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:404] [DEBUG] Mila02 successfully reserved ChunkGranite127538, starting path
+[21:48:23.094] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:421] [DEBUG] Mila02 attempting to pick up ChunkGranite127538
+[21:48:23.094] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:436] [DEBUG] Mila02 calculated countToPickUp: 1 (job.count: 1, maxUntilOverEncumbered: 1)
+[21:48:23.094] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:447] [DEBUG] Mila02 will pick up 1 of ChunkGranite127538
+[21:48:23.094] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed ChunkGranite127538 from haulable cache for map 0
+[21:48:23.094] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:485] [DEBUG] ChunkGranite127538 no longer spawned, continuing to next target
+[21:48:23.095] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:497] [DEBUG] Mila02 looking for more haulable items
+[21:48:23.095] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:502] [DEBUG] Found 0 potential haulable items
+[21:48:23.096] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:515] [DEBUG] No more work found for Mila02
+[21:48:24.124] [PUAHForked] [Prefix] [HarmonyPatches.cs:773] [DEBUG] [PUAH] Cleaning up PUAH reservations for Mila02 job HaulToInventory
+[21:48:24.126] [PUAHForked] [Release] [PUAHReservationManager.cs:153] [DEBUG] [PUAH] Mila02 released reservation for (133, 0, 178)
+[21:48:24.126] [PUAHForked] [Release] [PUAHReservationManager.cs:153] [DEBUG] [PUAH] Mila02 released reservation for (134, 0, 178)
+[21:48:24.127] [PUAHForked] [ReleaseThing] [PUAHReservationManager.cs:270] [DEBUG] [PUAH] Mila02 released thing reservation for Meat_Iguana127537
+[21:48:24.127] [PUAHForked] [ReleaseThing] [PUAHReservationManager.cs:270] [DEBUG] [PUAH] Mila02 released thing reservation for ChunkGranite127538
+[21:48:24.193] [PUAHForked] [TryFindBestStorageWithReservation] [ReservationSystem.cs:537] [DEBUG] PUAHReservationSystem found NO storage for Meat_Iguana127537
+[21:48:24.193] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:202] [DEBUG] Pawn Mila02 unable to find hauling destination, dropping Meat_Iguana127537
+[21:48:24.197] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Meat_Iguana127537 to haulable cache for map 0
+[21:48:24.198] [PUAHForked] [Prefix] [HarmonyPatches.cs:773] [DEBUG] [PUAH] Cleaning up PUAH reservations for Mila02 job UnloadYourHauledInventory
+[21:48:24.207] [PUAHForked] [CheckIfPawnShouldUnloadInventory] [PawnUnloadChecker.cs:6] [DEBUG] called for pawn Mila02 (forced: False, Drafted: False, Downed: False, Dead: False, CurrentJob: null)
+[21:48:24.207] [PUAHForked] [CheckIfPawnShouldUnloadInventory] [PawnUnloadChecker.cs:16] [DEBUG] Mila02 carriedThing count: 1
+[21:48:28.540] [PUAHForked] [TryFindBestStorageWithReservation] [ReservationSystem.cs:537] [DEBUG] PUAHReservationSystem found NO storage for ChunkGranite127538
+[21:48:28.540] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:202] [DEBUG] Pawn Mila02 unable to find hauling destination, dropping ChunkGranite127538
+[21:48:28.541] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkGranite127538 to haulable cache for map 0
+[21:48:28.541] [PUAHForked] [Prefix] [HarmonyPatches.cs:773] [DEBUG] [PUAH] Cleaning up PUAH reservations for Mila02 job UnloadYourHauledInventory
+[21:48:28.557] [PUAHForked] [CheckIfPawnShouldUnloadInventory] [PawnUnloadChecker.cs:6] [DEBUG] called for pawn Mila02 (forced: False, Drafted: False, Downed: False, Dead: False, CurrentJob: null)
+[21:48:28.557] [PUAHForked] [CheckIfPawnShouldUnloadInventory] [PawnUnloadChecker.cs:16] [DEBUG] Mila02 carriedThing count: 0
+[21:48:40.549] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.

@@ -1,0 +1,91 @@
+# ILSpy MCP usage
+
+You can call the following MCP tools that are exposed by the local `ilspy` server:
+
+## Core Tools
+
+1. `ilspy.decompile_all_dlls(force=False)`  
+   – Decompiles and caches all DLLs in the RimWorld Managed directory.  
+   – NEVER SET FORCE = true!!!
+
+2. `ilspy.search_methods(pattern, dll_name="", limit=50, case_sensitive=False)`  
+   – Searches for method signatures in cached decompilations using regex patterns.  
+   – Leave `dll_name` empty to search all cached DLLs, or specify a specific DLL.
+
+3. `ilspy.list_cached_dlls()`  
+   – Lists all cached DLLs and their status (cached, outdated, or not cached).
+
+4. `ilspy.get_dll_info(dll_name)`  
+   – Gets detailed information about a specific DLL including cache status and method counts.
+
+## Decompilation Tools
+
+5. `ilspy.decompile_single_dll(dll_name, force=False)`  
+   – Decompiles a specific DLL.  
+   – Set `force=True` to re-decompile even if cache is up to date.
+
+6. `ilspy.decompile_background(force=False)`  
+   – Starts background decompilation of all DLLs. Check logs for progress.
+
+## Search Tools
+
+7. `ilspy.grep_decompiled(pattern, dll_name="", limit=50, context_lines=2)`  
+   – Greps through decompiled source code with context lines.  
+   – Leave `dll_name` empty to search all decompiled files.
+
+8. `ilspy.test_connection(message="Hello from MCP!")`  
+   – Tests if the MCP server is working properly and shows server status.
+
+## Type Definition Tools
+
+9. `ilspy.search_interfaces(pattern="", dll_name="", limit=50, case_sensitive=False)`  
+   – Searches for interface definitions in decompiled code.  
+   – Use `pattern` to filter interface names with regex.
+
+10. `ilspy.search_classes(pattern="", dll_name="", limit=50, case_sensitive=False)`  
+    – Searches for class definitions in decompiled code.  
+    – Use `pattern` to filter class names with regex.
+
+11. `ilspy.search_context_definitions(pattern="", dll_name="", limit=50, case_sensitive=False)`  
+    – Searches specifically for context-related definitions (Context, IContext, etc.).  
+    – Perfect for finding context interfaces and classes.
+
+12. `ilspy.extract_type_definitions(dll_name="", include_interfaces=True, include_classes=True, include_structs=True)`  
+    – Extracts all type definitions (interfaces, classes, structs) from decompiled code.  
+    – Use to get an overview of all types in a DLL.
+
+13. `ilspy.search_namespace_definitions(namespace_pattern="", dll_name="", limit=50)`  
+    – Searches for namespace definitions in decompiled code.  
+    – Use to understand the codebase organization.
+
+## Guidelines
+
+* **First time setup**: Run `ilspy.decompile_all_dlls()` to cache all DLLs for faster searching.
+* **Find methods**: Use `ilspy.search_methods("MethodName")` to find specific methods.
+* **Search code**: Use `ilspy.grep_decompiled("pattern")` to search through decompiled source code.
+* **Find interfaces**: Use `ilspy.search_interfaces("InterfaceName")` to find interface definitions.
+* **Find context types**: Use `ilspy.search_context_definitions("Context")` to find context-related types.
+* **Explore types**: Use `ilspy.extract_type_definitions(dll_name="Assembly-CSharp.dll")` to see all types in a DLL.
+* **Check status**: Use `ilspy.list_cached_dlls()` to see which DLLs are cached and up to date.
+* **Get details**: Use `ilspy.get_dll_info("Assembly-CSharp.dll")` for detailed DLL information.
+
+## Examples
+
+* If I ask "Where is `HaulThingInOrder` defined?" call `ilspy.search_methods("HaulThingInOrder")`.
+* If I say "Show me every method in `Unity.TextMeshPro` that contains `Awake`", call `ilspy.search_methods("Awake", dll_name="Unity.TextMeshPro.dll")`.
+* If I want to search through the actual decompiled code, use `ilspy.grep_decompiled("Awake", dll_name="Unity.TextMeshPro.dll")`.
+* If I ask "Find all context interfaces", call `ilspy.search_context_definitions(".*Context.*")`.
+* If I ask "Show me all interfaces in Assembly-CSharp", call `ilspy.search_interfaces(dll_name="Assembly-CSharp.dll")`.
+* If I ask "What types are in this DLL?", call `ilspy.extract_type_definitions(dll_name="Assembly-CSharp.dll")`.
+* If I ask "Find all namespaces", call `ilspy.search_namespace_definitions()`.
+* To check if DLLs are cached, use `ilspy.list_cached_dlls()`.
+
+## Target Directory
+
+The server searches through **C:\Program Files (x86)\Steam\steamapps\common\RimWorld\RimWorldWin64_Data\Managed** for DLLs.
+
+---
+description: How to use the rimworld ilspy mcp
+globs:
+alwaysApply: true
+---
