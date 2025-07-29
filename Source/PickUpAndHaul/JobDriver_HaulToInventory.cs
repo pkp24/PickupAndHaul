@@ -7,38 +7,65 @@ public class JobDriver_HaulToInventory : JobDriver
 	public override bool TryMakePreToilReservations(bool errorOnFailed)
 	{
 		// Silence the usual reservation-spam by disabling error logging on failed reserves.
-		// We still *try* to reserve everything we plan to touch, we just don’t let Verse.Log.Error fire
+		// We still *try* to reserve everything we plan to touch, we just don't let Verse.Log.Error fire
 		// when another pawn already owns the reservation.
 		bool success = true;
+		var successfulReservations = new List<LocalTargetInfo>();
 
 		// Reserve all targets in targetQueueA
 		if (job.targetQueueA != null)
 		{
 			foreach (var target in job.targetQueueA)
 			{
-				if (!pawn.Reserve(target, job, 1, -1, null, false))
+				if (pawn.Reserve(target, job, 1, -1, null, false))
+				{
+					successfulReservations.Add(target);
+				}
+				else
 				{
 					success = false;
+					break; // Stop trying to reserve more targets
 				}
 			}
 		}
 
-		// Reserve all targets in targetQueueB
-		if (job.targetQueueB != null)
+		// Only continue if all targetQueueA reservations succeeded
+		if (success && job.targetQueueB != null)
 		{
 			foreach (var target in job.targetQueueB)
 			{
-				if (!pawn.Reserve(target, job, 1, -1, null, false))
+				if (pawn.Reserve(target, job, 1, -1, null, false))
+				{
+					successfulReservations.Add(target);
+				}
+				else
 				{
 					success = false;
+					break; // Stop trying to reserve more targets
 				}
 			}
 		}
 
-		// Reserve the main targetB (destination)
-		if (job.targetB != null && !pawn.Reserve(job.targetB, job, 1, -1, null, false))
+		// Only try to reserve targetB if all previous reservations succeeded
+		if (success && job.targetB != null)
 		{
-			success = false;
+			if (pawn.Reserve(job.targetB, job, 1, -1, null, false))
+			{
+				successfulReservations.Add(job.targetB);
+			}
+			else
+			{
+				success = false;
+			}
+		}
+
+		// If any reservation failed, release all successful reservations to prevent leaks
+		if (!success)
+		{
+			foreach (var target in successfulReservations)
+			{
+				pawn.Map.reservationManager.Release(target, pawn, job);
+			}
 		}
 
 		return success;
