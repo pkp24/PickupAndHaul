@@ -67,11 +67,67 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	}
 
 	public override bool HasJobOnThing(Pawn pawn, Thing thing, bool forced = false)
-		=> OkThingToHaul(thing, pawn)
-		&& IsNotCorpseOrAllowed(thing)
-		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
-		&& !OverAllowedGearCapacity(pawn)
-		&& CacheManager.TryGetCachedStorageLocation(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, out _, this);
+	{
+		// Ensure cache is up to date for this map (same as JobOnThing)
+		CacheUpdaterHelper.EnsureCacheUpdater(pawn.Map);
+		
+		// Validate that the thing is in the correct cache (same as JobOnThing)
+		ValidateThingInCache(pawn.Map, thing);
+		
+				// Check basic conditions that JobOnThing checks first
+		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
+		{
+			return false;
+		}
+		
+		// Check if conditions would force JobOnThing to use fallback HaulToStorageJob
+		if (OverAllowedGearCapacity(pawn)
+			|| pawn.GetComp<CompHauledToInventory>() == null
+			|| !IsNotCorpseOrAllowed(thing)
+			|| MassUtility.WillBeOverEncumberedAfterPickingUp(pawn, thing, 1))
+		{
+			// JobOnThing will try HaulToStorageJob - check if that would succeed
+			return StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, true);
+		}
+		
+		// If we get here, JobOnThing will try to create an inventory hauling job
+		// Check if storage location can be found for inventory hauling AND has capacity
+		if (!CacheManager.TryGetCachedStorageLocation(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out var targetCell, out var haulDestination, out var nonSlotGroupThingOwner, this))
+		{
+			return false;
+		}
+
+		// Check capacity at the storage location (same logic as JobOnThing)
+		StoreTarget storeTarget;
+		if (haulDestination is ISlotGroupParent)
+		{
+			storeTarget = new(targetCell);
+		}
+		else if (haulDestination is Thing destinationAsThing && (nonSlotGroupThingOwner = destinationAsThing.TryGetInnerInteractableThingOwner()) != null)
+		{
+			storeTarget = new(destinationAsThing);
+		}
+		else
+		{
+			return false;
+		}
+
+		var capacityStoreCell = storeTarget.container is null 
+			? CapacityAt(thing, storeTarget.cell, pawn.Map)
+			: nonSlotGroupThingOwner.GetCountCanAccept(thing);
+
+		if (capacityStoreCell == 0)
+		{
+			// JobOnThing will try HaulToStorageJob when no capacity - check if that would succeed
+			return StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, true);
+		}
+
+		var result = true;
+		
+
+		
+		return result;
+	}
 
 	//bulky gear (power armor + minigun) so don't bother.
 	public static bool OverAllowedGearCapacity(Pawn pawn) => MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= Settings.MaximumOccupiedCapacityToConsiderHauling;
@@ -111,6 +167,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	//before you go out, empty your pockets
 	public override Job JobOnThing(Pawn pawn, Thing thing, bool forced = false)
 	{
+		
 		// Ensure cache is up to date for this map
 		CacheUpdaterHelper.EnsureCacheUpdater(pawn.Map);
 		
@@ -181,6 +238,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
 		}
+
+
 
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.HaulToInventory, null, storeTarget);   //Things will be in queues
 		Log.Message($"-------------------------------------------------------------------");
@@ -949,6 +1008,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		return thingMass <= maxCarryMass;
 	}
+
+
 
 	public bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
 	{
