@@ -260,54 +260,34 @@ internal static class HarmonyPatches
 		// Prevent infinite recursion by checking if we're already in error interception
 		if (_isInErrorInterception)
 		{
-			return;
+				return;
 		}
 
 		try
 		{
-			_isInErrorInterception = true;
+				_isInErrorInterception = true;
 
-			// Get the current stack trace
-			var stackTrace = Environment.StackTrace;
+				// Get the current stack trace
+				var stackTrace = Environment.StackTrace;
 
-			// Check if this is the specific AllowTool compatibility error we're seeing
-			if (text.Contains("System.NullReferenceException") && stackTrace.Contains("AllowTool.WorkGiver_HaulUrgently"))
-			{
-				// Use direct Verse.Log calls to avoid recursion
-				Verse.Log.Warning("[PickUpAndHaul] AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged");
-			}
-
-			// Only call custom logging methods if debug logging is enabled and we're not in a recursive call
-			if (Settings.EnableDebugLogging)
-			{
-				// Use direct file logging to avoid recursion
-				try
+				// Check if this is the specific AllowTool compatibility error we're seeing
+				if (text.Contains("System.NullReferenceException") && stackTrace.Contains("AllowTool.WorkGiver_HaulUrgently"))
 				{
-					var logMessage = $"[RIMWORLD_ERROR] {text}";
-					if (!string.IsNullOrEmpty(stackTrace))
-					{
-						logMessage += $"\n[STACK_TRACE] {stackTrace}";
-					}
-					
-					// Write directly to file without going through custom Log methods
-					var logPath = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaulForked.log");
-					File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {logMessage}\n");
+						// Use direct Verse.Log calls to avoid recursion
+						Verse.Log.Warning("[PickUpAndHaul] AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged");
 				}
-				catch
-				{
-					// Ignore file logging errors to prevent further recursion
-				}
-			}
+
+				// Forward to debug logger (initializes if needed)
+				Log.InterceptRimWorldError(text, stackTrace);
 		}
 		catch (Exception ex)
 		{
-			// Don't let our error interception cause more errors
-			// Use direct Verse.Log call to avoid recursion
-			Verse.Log.Warning($"[PickUpAndHaul] Failed to intercept RimWorld error: {ex.Message}");
+				// Don't let our error interception cause more errors
+				Verse.Log.Warning($"[PickUpAndHaul] Failed to intercept RimWorld error: {ex.Message}");
 		}
 		finally
 		{
-			_isInErrorInterception = false;
+				_isInErrorInterception = false;
 		}
 	}
 
