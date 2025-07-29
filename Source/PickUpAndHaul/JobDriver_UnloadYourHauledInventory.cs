@@ -96,8 +96,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				// no more job was 0 errors
 				if (job.count <= 0)
 				{
-					Log.Warning($"Unload job count was {job.count}, setting to 1 for thing {thing}");
+					Log.Warning($"Unload job count was {job.count}, setting to 1 for thing {thing?.def?.defName ?? "null"}");
 					job.count = 1;
+					_countToDrop = 1; // Fix Bug 1: Update _countToDrop to match job.count
 				}
 
 				job.SetTarget(TargetIndex.A, thing);
