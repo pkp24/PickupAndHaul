@@ -130,7 +130,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 
 			var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
 			if (CacheManager.TryGetCachedStorageLocation(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					pawn.Faction, out var cell, out var destination, out var _))
+					pawn.Faction, out var cell, out var destination, out var _, null))
 			{
 				job.SetTarget(TargetIndex.A, unloadableThing.Thing);
 				if (cell == IntVec3.Invalid)

@@ -244,7 +244,7 @@ namespace PickUpAndHaul.Cache
         /// <summary>
         /// Get cached storage location for a thing, or find and cache a new one
         /// </summary>
-        public static bool TryGetCachedStorageLocation(Thing thing, Pawn pawn, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner)
+        public static bool TryGetCachedStorageLocation(Thing thing, Pawn pawn, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner, WorkGiver_HaulToInventory workGiver = null)
         {
             foundCell = default;
             haulDestination = null;
@@ -263,11 +263,21 @@ namespace PickUpAndHaul.Cache
             }
 
             // If not in cache, find storage location and cache it via PUAH helper (supports ThingOwner out param)
-            if (WorkGiver_HaulToInventory.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, faction, out foundCell, out haulDestination, out innerInteractableThingOwner))
+            if (workGiver != null && workGiver.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, faction, out foundCell, out haulDestination, out innerInteractableThingOwner))
             {
                 // Cache the result
                 PUAHHaulCaches.AddToStorageLocationCache(map, thing, foundCell, haulDestination, innerInteractableThingOwner);
                 return true;
+            }
+            else if (workGiver == null)
+            {
+                // Fallback to vanilla StoreUtility when workGiver is not available
+                if (StoreUtility.TryFindBestBetterStorageFor(thing, pawn, map, currentPriority, faction, out foundCell, out haulDestination, true))
+                {
+                    // Cache the result
+                    PUAHHaulCaches.AddToStorageLocationCache(map, thing, foundCell, haulDestination, null);
+                    return true;
+                }
             }
 
             return false;

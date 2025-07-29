@@ -70,7 +70,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		&& IsNotCorpseOrAllowed(thing)
 		&& HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced)
 		&& !OverAllowedGearCapacity(pawn)
-		&& CacheManager.TryGetCachedStorageLocation(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, out _);
+		&& CacheManager.TryGetCachedStorageLocation(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, out _, this);
 
 	//bulky gear (power armor + minigun) so don't bother.
 	public static bool OverAllowedGearCapacity(Pawn pawn) => MassUtility.GearMass(pawn) / MassUtility.Capacity(pawn) >= Settings.MaximumOccupiedCapacityToConsiderHauling;
@@ -137,7 +137,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		StoreTarget storeTarget;
 		
 		// Use cached storage location if available
-		if (CacheManager.TryGetCachedStorageLocation(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, out nonSlotGroupThingOwner))
+		if (CacheManager.TryGetCachedStorageLocation(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, out nonSlotGroupThingOwner, this))
 		{
 			if (haulDestination is ISlotGroupParent)
 			{
@@ -218,7 +218,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			[storeTarget] = new(nextThing, capacityStoreCell)
 		};
 		//skipTargets = new() { storeTarget };
-		ClearSkipCollections();
+		this.ClearSkipCollections();
 		if (storeTarget.container != null)
 		{
 			AddSkipThing(storeTarget.container);
@@ -236,7 +236,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		do
 		{
-			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
+			if (this.AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
 			{
 				lastThing = nextThing;
 				encumberance += AddedEncumberance(pawn, nextThing);
@@ -255,7 +255,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		if (nextThing == null)
 		{
-			ClearSkipCollections();
+			this.ClearSkipCollections();
 			//skipTargets = null;
 			return job;
 		}
@@ -268,7 +268,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (carryCapacity == 0)
 		{
 			Log.Message("Can't carry more, nevermind!");
-			ClearSkipCollections();
+			this.ClearSkipCollections();
 			//skipTargets = null;
 			return job;
 		}
@@ -279,7 +279,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			carryCapacity -= nextThing.stackCount;
 
-			if (AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
+			if (this.AllocateThingAtCell(storeCellCapacity, pawn, nextThing, job))
 			{
 				break;
 			}
@@ -293,7 +293,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 		}
 
-		ClearSkipCollections();
+		this.ClearSkipCollections();
 		//skipTargets = null;
 
 		// no more job was 0 errors
@@ -457,7 +457,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| allocation.Value.allocated.CanStackWith(nextThing)
 		|| HoldMultipleThings_Support.StackableAt(nextThing, allocation.Key.cell, nextThing.Map);
 
-	public static bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
+	public bool AllocateThingAtCell(Dictionary<StoreTarget, CellAllocation> storeCellCapacity, Pawn pawn, Thing nextThing, Job job)
 	{
 		// Ensure skip collections are initialized for thread safety
 		EnsureSkipCollectionsInitialized();
@@ -474,7 +474,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (storeCell == default)
 		{
 			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner))
+			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var haulDestination, out var innerInteractableThingOwner, this))
 			{
 				if (innerInteractableThingOwner is null)
 				{
@@ -530,7 +530,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				AddSkipCell(storeCell.cell);
 
 			// Clear static skip sets so they don’t leak into future jobs if we exit early
-			ClearSkipCollections();
+			this.ClearSkipCollections();
 			return false;
 		}
  
@@ -565,7 +565,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 
 			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
+			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner, this))
 			{
 				// Fix for unreliable repeated storage detection: properly compare storage types
 				bool isRepeatedStorage = false;
@@ -587,7 +587,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					var adjustedCount = Math.Max(0, count - capacityOver);
 					job.countQueue.Add(adjustedCount);
 					Log.Message($"Repeated storage detected, allocating partial {adjustedCount} and aborting further allocation.");
-					ClearSkipCollections();
+					this.ClearSkipCollections();
 					return adjustedCount > 0;
 				}
 
@@ -628,87 +628,57 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return true;
 	}
 
-	//public static HashSet<StoreTarget> skipTargets;
-	// Thread-safe alternatives to static fields to prevent race conditions
-	private static readonly object skipCellsLock = new object();
-	private static readonly object skipThingsLock = new object();
-	private static HashSet<IntVec3> skipCells;
-	private static HashSet<Thing> skipThings;
+	// Instance-specific skip collections to prevent race conditions between different pawns
+	private readonly HashSet<IntVec3> skipCells = new();
+	private readonly HashSet<Thing> skipThings = new();
 
 	/// <summary>
-	/// Thread-safe method to add a cell to the skip list
+	/// Add a cell to the skip list
 	/// </summary>
-	private static void AddSkipCell(IntVec3 cell)
+	private void AddSkipCell(IntVec3 cell)
 	{
-		lock (skipCellsLock)
-		{
-			skipCells ??= new HashSet<IntVec3>();
-			skipCells.Add(cell);
-		}
+		skipCells.Add(cell);
 	}
 
 	/// <summary>
-	/// Thread-safe method to add a thing to the skip list
+	/// Add a thing to the skip list
 	/// </summary>
-	private static void AddSkipThing(Thing thing)
+	private void AddSkipThing(Thing thing)
 	{
-		lock (skipThingsLock)
-		{
-			skipThings ??= new HashSet<Thing>();
-			skipThings.Add(thing);
-		}
+		skipThings.Add(thing);
 	}
 
 	/// <summary>
-	/// Thread-safe method to check if a cell is in the skip list
+	/// Check if a cell is in the skip list
 	/// </summary>
-	private static bool ContainsSkipCell(IntVec3 cell)
+	private bool ContainsSkipCell(IntVec3 cell)
 	{
-		lock (skipCellsLock)
-		{
-			return skipCells?.Contains(cell) ?? false;
-		}
+		return skipCells.Contains(cell);
 	}
 
 	/// <summary>
-	/// Thread-safe method to check if a thing is in the skip list
+	/// Check if a thing is in the skip list
 	/// </summary>
-	private static bool ContainsSkipThing(Thing thing)
+	private bool ContainsSkipThing(Thing thing)
 	{
-		lock (skipThingsLock)
-		{
-			return skipThings?.Contains(thing) ?? false;
-		}
+		return skipThings.Contains(thing);
 	}
 
 	/// <summary>
-	/// Thread-safe method to clear skip collections
+	/// Clear skip collections
 	/// </summary>
-	private static void ClearSkipCollections()
+	private void ClearSkipCollections()
 	{
-		lock (skipCellsLock)
-		{
-			skipCells?.Clear();
-		}
-		lock (skipThingsLock)
-		{
-			skipThings?.Clear();
-		}
+		skipCells.Clear();
+		skipThings.Clear();
 	}
 
 	/// <summary>
-	/// Thread-safe method to ensure skip collections are initialized
+	/// Ensure skip collections are initialized (no longer needed since they're instance fields)
 	/// </summary>
-	private static void EnsureSkipCollectionsInitialized()
+	private void EnsureSkipCollectionsInitialized()
 	{
-		lock (skipCellsLock)
-		{
-			skipCells ??= new HashSet<IntVec3>();
-		}
-		lock (skipThingsLock)
-		{
-			skipThings ??= new HashSet<Thing>();
-		}
+		// Collections are already initialized as readonly fields
 	}
 
 	/// <summary>
@@ -757,7 +727,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return false;
 	}
 
-	public static bool TryFindBestBetterStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner)
+	public bool TryFindBestBetterStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner)
 	{
 		var storagePriority = StoragePriority.Unstored;
 		innerInteractableThingOwner = null;
@@ -805,7 +775,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return true;
 	}
 
-	public static bool TryFindBestBetterStoreCellFor(Thing thing, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell)
+	public bool TryFindBestBetterStoreCellFor(Thing thing, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell)
 	{
 		// Ensure skip collections are initialized for thread safety
 		EnsureSkipCollectionsInitialized();
@@ -898,7 +868,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		return thingMass <= maxCarryMass;
 	}
 
-	public static bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
+	public bool TryFindBestBetterNonSlotGroupStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IHaulDestination haulDestination, bool acceptSamePriority = false)
 	{
 		// Ensure skip collections are initialized for thread safety
 		EnsureSkipCollectionsInitialized();
