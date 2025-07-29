@@ -19,6 +19,7 @@ internal static class Log
 	private static StreamWriter _sw;
 	private static bool _shutdownRequested;
 	private static volatile bool _initialized;
+	private static volatile bool _initializing;
 	private static readonly object _jobErrorLock = new();
 	private static int _jobErrorCount;
 	private static readonly Dictionary<string, int> _jobErrorTypes = [];
@@ -39,10 +40,20 @@ internal static class Log
 		if (_initialized)
 			return;
 
+		// Prevent recursive initialization
+		if (_initializing)
+			return;
+
 		lock (_initLock)
 		{
 			if (_initialized)
 				return;
+
+			// Double-check to prevent recursive initialization
+			if (_initializing)
+				return;
+
+			_initializing = true;
 
 			try
 			{
@@ -70,6 +81,10 @@ internal static class Log
 				Verse.Log.Warning($"Failed to initialize debug logger: {ex.Message}");
 				// Don't set _initialized to true if initialization fails
 			}
+			finally
+			{
+				_initializing = false;
+			}
 		}
 	}
 
@@ -89,7 +104,8 @@ internal static class Log
 		{
 			// Monitor for job-related errors by intercepting common job failure points
 			// This will help catch errors that occur in RimWorld's job system
-			Message("Job system monitoring initialized");
+			// Note: Don't call Message() here to avoid circular dependency during initialization
+			Verse.Log.Message("PickUpAndHaul: Job system monitoring initialized");
 
 			// Set up additional monitoring for cross-mod compatibility
 			SetupCrossModMonitoring();
@@ -105,7 +121,8 @@ internal static class Log
 		try
 		{
 			// Monitor for mod interaction errors
-			Message("Cross-mod monitoring initialized");
+			// Note: Don't call Message() here to avoid circular dependency during initialization
+			Verse.Log.Message("PickUpAndHaul: Cross-mod monitoring initialized");
 
 			// Log loaded mods for debugging compatibility issues
 			var loadedMods = LoadedModManager.RunningModsListForReading
@@ -113,7 +130,7 @@ internal static class Log
 				.Select(m => m.PackageId)
 				.ToList();
 
-			Message($"Loaded mods: {string.Join(", ", loadedMods)}");
+			Verse.Log.Message($"PickUpAndHaul: Loaded mods: {string.Join(", ", loadedMods)}");
 
 			// Set up RimWorld error interception
 			SetupRimWorldErrorInterception();
@@ -129,7 +146,8 @@ internal static class Log
 		try
 		{
 			// Monitor for RimWorld errors that might be related to our mod
-			Message("RimWorld error interception initialized");
+			// Note: Don't call Message() here to avoid circular dependency during initialization
+			Verse.Log.Message("PickUpAndHaul: RimWorld error interception initialized");
 
 			// We'll use Harmony to patch Verse.Log.Error to capture relevant errors
 			// This will be set up in the HarmonyPatches.cs file
@@ -145,7 +163,11 @@ internal static class Log
 	/// </summary>
 	public static void InterceptRimWorldError(string errorMessage, string stackTrace = null)
 	{
-		EnsureInitialized(); // Ensure initialized before intercepting errors
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
 		
 		try
 		{
@@ -176,7 +198,12 @@ internal static class Log
 	[Conditional("DEBUG")]
 	public static void Message(string x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
 	{
-		EnsureInitialized(); // Ensure initialized before calling Message
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
 		if (Settings.EnableDebugLogging)
 			QueueLogEntry($"[DEBUG] {x}", memberName, sourceFilePath, sourceLineNumber);
 	}
@@ -186,7 +213,12 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
-		EnsureInitialized(); // Ensure initialized before calling Warning
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
 		Verse.Log.Warning($"[WARNING] {x}");
 		QueueLogEntry($"[WARNING] {x}", memberName, sourceFilePath, sourceLineNumber);
 	}
@@ -196,7 +228,12 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
-		EnsureInitialized(); // Ensure initialized before calling Error
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
 		Verse.Log.Error($"[ERROR] {x}");
 		QueueLogEntry($"[ERROR] {x}", memberName, sourceFilePath, sourceLineNumber);
 
@@ -209,7 +246,12 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
-		EnsureInitialized(); // Ensure initialized before calling Error
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
 		var errorMessage = string.IsNullOrEmpty(context) ? ex.ToString() : $"{context}: {ex}";
 		Verse.Log.Error($"[ERROR] {errorMessage}");
 		QueueLogEntry($"[ERROR] {errorMessage}", memberName, sourceFilePath, sourceLineNumber);
@@ -232,7 +274,12 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
-		EnsureInitialized(); // Ensure initialized before calling JobError
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
 		var context = new List<string>();
 
 		if (pawn != null)
@@ -275,7 +322,12 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
-		EnsureInitialized(); // Ensure initialized before calling ModCompatibilityError
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
 		var context = new List<string>();
 
 		if (!string.IsNullOrEmpty(modName))
@@ -328,7 +380,12 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
-		EnsureInitialized(); // Ensure initialized before calling ModInteractionError
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
 		var context = new List<string>();
 
 		if (!string.IsNullOrEmpty(interactionType))
@@ -385,7 +442,12 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
-		EnsureInitialized(); // Ensure initialized before calling JobExecution
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
 		if (!Settings.EnableDebugLogging)
 			return;
 
@@ -448,7 +510,15 @@ internal static class Log
 				if (_jobErrorCount % 10 == 0)
 				{
 					var stats = string.Join(", ", _jobErrorTypes.Select(kvp => $"{kvp.Key}: {kvp.Value}"));
-					QueueLogEntry($"[ERROR_STATS] Total errors: {_jobErrorCount} | Types: {stats}", memberName, "DebugLog.cs", 0);
+					// Use direct logging to avoid circular dependency
+					if (_initialized)
+					{
+						QueueLogEntry($"[ERROR_STATS] Total errors: {_jobErrorCount} | Types: {stats}", memberName, "DebugLog.cs", 0);
+					}
+					else
+					{
+						Verse.Log.Message($"PickUpAndHaul: [ERROR_STATS] Total errors: {_jobErrorCount} | Types: {stats}");
+					}
 				}
 			}
 		}
@@ -478,7 +548,18 @@ internal static class Log
 
 	private static void QueueLogEntry(string message, string memberName, string sourceFilePath, int sourceLineNumber)
 	{
-		EnsureInitialized(); // Ensure initialized before calling QueueLogEntry
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+
+		// If still not initialized, fall back to direct writing
+		if (!_initialized)
+		{
+			WriteToFileDirect($"[NOT_INITIALIZED] {message}", memberName, sourceFilePath, sourceLineNumber);
+			return;
+		}
 
 		try
 		{
@@ -657,7 +738,11 @@ internal static class Log
 
 	public static void ClearDebugLogFile()
 	{
-		EnsureInitialized(); // Ensure initialized before clearing
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
 		
 		try
 		{
@@ -705,7 +790,11 @@ internal static class Log
 	/// </summary>
 	public static string GetJobErrorStats()
 	{
-		EnsureInitialized(); // Ensure initialized before getting stats
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
 		
 		try
 		{
@@ -726,7 +815,11 @@ internal static class Log
 	/// </summary>
 	public static void ResetJobErrorStats()
 	{
-		EnsureInitialized(); // Ensure initialized before resetting stats
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
 		
 		try
 		{
@@ -748,7 +841,11 @@ internal static class Log
 	/// </summary>
 	public static void LogErrorReport(string context = "")
 	{
-		EnsureInitialized(); // Ensure initialized before logging error report
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
 		
 		try
 		{
