@@ -523,109 +523,129 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		if (!reservable)
 		{
-			// Mark this spot so we don’t consider it again this haul cycle and bail out – caller will try another.
+			// Mark this spot so we don't consider it again this haul cycle and bail out – caller will try another.
 			if (storeCell.container != null)
 				AddSkipThing(storeCell.container);
 			else
 				AddSkipCell(storeCell.cell);
 
-			// Clear static skip sets so they don’t leak into future jobs if we exit early
-			this.ClearSkipCollections();
+			// Don't clear skip collections here - they should persist for the current job cycle
 			return false;
 		}
  
-		job.targetQueueA.Add(nextThing);
-		var count = nextThing.stackCount;
-		storeCellCapacity[storeCell].capacity -= count;
-		Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
-
-		while (storeCellCapacity[storeCell].capacity <= 0)
+		// Track if we need to release the reservation on failure
+		bool reservationMade = true;
+		try
 		{
-			var capacityOver = -storeCellCapacity[storeCell].capacity;
-			storeCellCapacity.Remove(storeCell);
+			job.targetQueueA.Add(nextThing);
+			var count = nextThing.stackCount;
+			storeCellCapacity[storeCell].capacity -= count;
+			Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
 
-			// Prevent cycling on the same exhausted cell/container again
-			if (storeCell.container != null)
+			while (storeCellCapacity[storeCell].capacity <= 0)
 			{
-				AddSkipThing(storeCell.container);
-			}
-			else
-			{
-				AddSkipCell(storeCell.cell);
-			}
+				var capacityOver = -storeCellCapacity[storeCell].capacity;
+				storeCellCapacity.Remove(storeCell);
 
-			Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
-
-			// Fix for infinite loop: when capacity is exactly met, break out
-			if (capacityOver == 0)
-			{
-				job.countQueue.Add(count);
-				Log.Message($"{nextThing}:{count} allocated (capacityOver was 0)");
-				return true;
-			}
-
-			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
-			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner, this))
-			{
-				// Fix for unreliable repeated storage detection: properly compare storage types
-				bool isRepeatedStorage = false;
-				if (innerInteractableThingOwner is null && storeCell.container is null)
+				// Prevent cycling on the same exhausted cell/container again
+				if (storeCell.container != null)
 				{
-					// Both are cell-based storage
-					isRepeatedStorage = nextStoreCell == storeCell.cell;
+					AddSkipThing(storeCell.container);
 				}
-				else if (innerInteractableThingOwner is not null && storeCell.container is not null)
+				else
 				{
-					// Both are container-based storage
-					isRepeatedStorage = nextHaulDestination == storeCell.container;
+					AddSkipCell(storeCell.cell);
 				}
-				// If storage types don't match, they're not the same storage
 
-				if (isRepeatedStorage)
+				Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
+
+				// Fix for infinite loop: when capacity is exactly met, break out
+				if (capacityOver == 0)
+				{
+					job.countQueue.Add(count);
+					Log.Message($"{nextThing}:{count} allocated (capacityOver was 0)");
+					return true;
+				}
+
+				var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
+				if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner, this))
+				{
+					// Fix for unreliable repeated storage detection: properly compare storage types
+					bool isRepeatedStorage = false;
+					if (innerInteractableThingOwner is null && storeCell.container is null)
+					{
+						// Both are cell-based storage
+						isRepeatedStorage = nextStoreCell == storeCell.cell;
+					}
+					else if (innerInteractableThingOwner is not null && storeCell.container is not null)
+					{
+						// Both are container-based storage
+						isRepeatedStorage = nextHaulDestination == storeCell.container;
+					}
+					// If storage types don't match, they're not the same storage
+
+					if (isRepeatedStorage)
+					{
+						// Fix for incorrect item count reduction: ensure count doesn't go negative
+						var adjustedCount = Math.Max(0, count - capacityOver);
+						job.countQueue.Add(adjustedCount);
+						Log.Message($"Repeated storage detected, allocating partial {adjustedCount} and aborting further allocation.");
+						// Don't clear skip collections here - they should persist for the current job cycle
+						return adjustedCount > 0;
+					}
+
+					if (innerInteractableThingOwner is null)
+					{
+						storeCell = new(nextStoreCell);
+						job.targetQueueB.Add(nextStoreCell);
+
+						var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
+						storeCellCapacity[storeCell] = new(nextThing, capacity);
+
+						Log.Message($"New cell {nextStoreCell}:{capacity}, allocated extra {capacityOver}");
+					}
+					else
+					{
+						var destinationAsThing = (Thing)nextHaulDestination;
+						storeCell = new(destinationAsThing);
+						job.targetQueueB.Add(destinationAsThing);
+
+						var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
+
+						storeCellCapacity[storeCell] = new(nextThing, capacity);
+
+						Log.Message($"New haulDestination {nextHaulDestination}:{capacity}, allocated extra {capacityOver}");
+					}
+				}
+				else
 				{
 					// Fix for incorrect item count reduction: ensure count doesn't go negative
 					var adjustedCount = Math.Max(0, count - capacityOver);
 					job.countQueue.Add(adjustedCount);
-					Log.Message($"Repeated storage detected, allocating partial {adjustedCount} and aborting further allocation.");
-					this.ClearSkipCollections();
+					Log.Message($"Nowhere else to store, allocated {nextThing}:{adjustedCount}");
 					return adjustedCount > 0;
 				}
-
-				if (innerInteractableThingOwner is null)
-				{
-					storeCell = new(nextStoreCell);
-					job.targetQueueB.Add(nextStoreCell);
-
-					var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
-					storeCellCapacity[storeCell] = new(nextThing, capacity);
-
-					Log.Message($"New cell {nextStoreCell}:{capacity}, allocated extra {capacityOver}");
-				}
-				else
-				{
-					var destinationAsThing = (Thing)nextHaulDestination;
-					storeCell = new(destinationAsThing);
-					job.targetQueueB.Add(destinationAsThing);
-
-					var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
-
-					storeCellCapacity[storeCell] = new(nextThing, capacity);
-
-					Log.Message($"New haulDestination {nextHaulDestination}:{capacity}, allocated extra {capacityOver}");
-				}
 			}
-			else
+			job.countQueue.Add(count);
+			Log.Message($"{nextThing}:{count} allocated");
+			return true;
+		}
+		catch (System.Exception ex)
+		{
+			// If any exception occurs during allocation, we need to release the reservation
+			Log.Warning($"Exception during allocation for {nextThing} by {pawn}: {ex.Message}");
+			reservationMade = false;
+			throw;
+		}
+		finally
+		{
+			// Release reservation if we made one but failed to complete allocation
+			if (reservationMade && !job.targetQueueA.Contains(nextThing))
 			{
-				// Fix for incorrect item count reduction: ensure count doesn't go negative
-				var adjustedCount = Math.Max(0, count - capacityOver);
-				job.countQueue.Add(adjustedCount);
-				Log.Message($"Nowhere else to store, allocated {nextThing}:{adjustedCount}");
-				return adjustedCount > 0;
+				ReleaseReservationSafely(pawn, storeCell, job);
+				Log.Message($"Released orphaned reservation for {nextThing} at {storeCell}");
 			}
 		}
-		job.countQueue.Add(count);
-		Log.Message($"{nextThing}:{count} allocated");
-		return true;
 	}
 
 	// Instance-specific skip collections to prevent race conditions between different pawns
@@ -725,6 +745,30 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Safely release a reservation for a storage target
+	/// </summary>
+	private static void ReleaseReservationSafely(Pawn pawn, StoreTarget storeTarget, Job job)
+	{
+		if (pawn?.Map?.reservationManager == null) return;
+
+		try
+		{
+			if (storeTarget.container != null)
+			{
+				pawn.Map.reservationManager.Release(storeTarget.container, pawn, job);
+			}
+			else
+			{
+				pawn.Map.reservationManager.Release(storeTarget.cell, pawn, job);
+			}
+		}
+		catch (System.Exception ex)
+		{
+			Log.Warning($"Failed to release reservation for {storeTarget}: {ex.Message}");
+		}
 	}
 
 	public bool TryFindBestBetterStorageFor(Thing t, Pawn carrier, Map map, StoragePriority currentPriority, Faction faction, out IntVec3 foundCell, out IHaulDestination haulDestination, out ThingOwner innerInteractableThingOwner)
