@@ -139,8 +139,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		if (job.countQueue == null || job.countQueue.Count == 0)
 		{
-			Log.Warning($"Job for {thing} has no count queue, setting count to 1");
+			Log.Warning($"Job for {thing} has no count queue, initializing with count 1");
 			job.count = 1;
+			// Initialize countQueue if null and add the count to keep them in sync
+			if (job.countQueue == null)
+			{
+				job.countQueue = new List<int>();
+			}
+			job.countQueue.Add(1);
 			return;
 		}
 
