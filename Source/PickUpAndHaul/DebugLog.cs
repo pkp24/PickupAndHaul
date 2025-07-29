@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -13,35 +13,74 @@ internal static class Log
 	private static readonly object _fileLock = new();
 	private static readonly object _queueLock = new();
 	private static readonly Queue<LogEntry> _logQueue = new();
-	private static readonly Thread _logThread;
+	private static readonly object _initLock = new();
+	private static Thread _logThread;
 	private static readonly AutoResetEvent _logEvent = new(false);
 	private static StreamWriter _sw;
 	private static bool _shutdownRequested;
-	private static bool _initialized;
+	private static volatile bool _initialized;
 	private static readonly object _jobErrorLock = new();
 	private static int _jobErrorCount;
 	private static readonly Dictionary<string, int> _jobErrorTypes = [];
 
+	// Static constructor - now thread-safe
 	static Log()
 	{
-		InitStreamWriter();
+		// Register for automatic disposal when the application domain unloads
+		AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+		AppDomain.CurrentDomain.DomainUnload += OnDomainUnload;
+	}
 
-		// Start dedicated logging thread
-		_logThread = new Thread(LogWorkerThread)
+	/// <summary>
+	/// Thread-safe initialization method
+	/// </summary>
+	private static void EnsureInitialized()
+	{
+		if (_initialized)
+			return;
+
+		lock (_initLock)
 		{
-			IsBackground = true,
-			Name = "PickUpAndHaul Debug Logger"
-		};
-		_logThread.Start();
+			if (_initialized)
+				return;
 
-		// Set up unhandled exception logging
-		AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-		TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+			try
+			{
+				InitStreamWriter();
 
-		// Set up job system monitoring
-		SetupJobSystemMonitoring();
+				// Start dedicated logging thread
+				_logThread = new Thread(LogWorkerThread)
+				{
+					IsBackground = true,
+					Name = "PickUpAndHaul Debug Logger"
+				};
+				_logThread.Start();
 
-		_initialized = true;
+				// Set up unhandled exception logging
+				AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+				TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+				// Set up job system monitoring
+				SetupJobSystemMonitoring();
+
+				_initialized = true;
+			}
+			catch (Exception ex)
+			{
+				Verse.Log.Warning($"Failed to initialize debug logger: {ex.Message}");
+				// Don't set _initialized to true if initialization fails
+			}
+		}
+	}
+
+	private static void OnProcessExit(object sender, EventArgs e)
+	{
+		Dispose();
+	}
+
+	private static void OnDomainUnload(object sender, EventArgs e)
+	{
+		Dispose();
 	}
 
 	private static void SetupJobSystemMonitoring()
@@ -106,6 +145,8 @@ internal static class Log
 	/// </summary>
 	public static void InterceptRimWorldError(string errorMessage, string stackTrace = null)
 	{
+		EnsureInitialized(); // Ensure initialized before intercepting errors
+		
 		try
 		{
 			var context = new List<string>();
@@ -135,6 +176,7 @@ internal static class Log
 	[Conditional("DEBUG")]
 	public static void Message(string x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
 	{
+		EnsureInitialized(); // Ensure initialized before calling Message
 		if (Settings.EnableDebugLogging)
 			QueueLogEntry($"[DEBUG] {x}", memberName, sourceFilePath, sourceLineNumber);
 	}
@@ -144,6 +186,7 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
+		EnsureInitialized(); // Ensure initialized before calling Warning
 		Verse.Log.Warning($"[WARNING] {x}");
 		QueueLogEntry($"[WARNING] {x}", memberName, sourceFilePath, sourceLineNumber);
 	}
@@ -153,6 +196,7 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
+		EnsureInitialized(); // Ensure initialized before calling Error
 		Verse.Log.Error($"[ERROR] {x}");
 		QueueLogEntry($"[ERROR] {x}", memberName, sourceFilePath, sourceLineNumber);
 
@@ -165,6 +209,7 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
+		EnsureInitialized(); // Ensure initialized before calling Error
 		var errorMessage = string.IsNullOrEmpty(context) ? ex.ToString() : $"{context}: {ex}";
 		Verse.Log.Error($"[ERROR] {errorMessage}");
 		QueueLogEntry($"[ERROR] {errorMessage}", memberName, sourceFilePath, sourceLineNumber);
@@ -187,6 +232,7 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
+		EnsureInitialized(); // Ensure initialized before calling JobError
 		var context = new List<string>();
 
 		if (pawn != null)
@@ -229,6 +275,7 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
+		EnsureInitialized(); // Ensure initialized before calling ModCompatibilityError
 		var context = new List<string>();
 
 		if (!string.IsNullOrEmpty(modName))
@@ -281,6 +328,7 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
+		EnsureInitialized(); // Ensure initialized before calling ModInteractionError
 		var context = new List<string>();
 
 		if (!string.IsNullOrEmpty(interactionType))
@@ -337,6 +385,7 @@ internal static class Log
 		[CallerFilePath] string sourceFilePath = "",
 		[CallerLineNumber] int sourceLineNumber = 0)
 	{
+		EnsureInitialized(); // Ensure initialized before calling JobExecution
 		if (!Settings.EnableDebugLogging)
 			return;
 
@@ -429,12 +478,7 @@ internal static class Log
 
 	private static void QueueLogEntry(string message, string memberName, string sourceFilePath, int sourceLineNumber)
 	{
-		if (!_initialized)
-		{
-			// Fallback to direct writing if not initialized
-			WriteToFileDirect(message, memberName, sourceFilePath, sourceLineNumber);
-			return;
-		}
+		EnsureInitialized(); // Ensure initialized before calling QueueLogEntry
 
 		try
 		{
@@ -506,6 +550,14 @@ internal static class Log
 					InitStreamWriter();
 				}
 
+				// Double-check that stream writer was successfully initialized
+				if (_sw == null)
+				{
+					// Fallback to Verse.Log if we can't initialize the file
+					Verse.Log.Warning($"Failed to initialize debug log file, falling back to Verse.Log: {message}");
+					return;
+				}
+
 				var fileName = Path.GetFileName(sourceFilePath);
 				var timestamp = DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
 				var logEntry = $"[{timestamp}] [PUAHForked] [{memberName}] [{fileName}:{sourceLineNumber}] {message}";
@@ -550,49 +602,63 @@ internal static class Log
 
 	public static void Dispose()
 	{
-		try
+		// Thread-safe disposal - only dispose once
+		if (!_initialized)
+			return;
+
+		lock (_initLock)
 		{
-			// Remove event handlers
-			AppDomain.CurrentDomain.UnhandledException -= OnUnhandledException;
-			TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+			if (!_initialized)
+				return;
 
-			// Signal shutdown
-			_shutdownRequested = true;
-			_logEvent.Set();
-
-			// Wait for thread to finish
-			if (_logThread != null && _logThread.IsAlive)
+			try
 			{
-				_logThread.Join(2000); // Wait up to 2 seconds
-			}
+				// Remove event handlers
+				AppDomain.CurrentDomain.UnhandledException -= OnUnhandledException;
+				TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+				AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
+				AppDomain.CurrentDomain.DomainUnload -= OnDomainUnload;
 
-			// Process any remaining entries
-			var remainingEntries = new List<LogEntry>();
-			lock (_queueLock)
-			{
-				while (_logQueue.Count > 0)
+				// Signal shutdown
+				_shutdownRequested = true;
+				_logEvent.Set();
+
+				// Wait for thread to finish
+				if (_logThread != null && _logThread.IsAlive)
 				{
-					remainingEntries.Add(_logQueue.Dequeue());
+					_logThread.Join(2000); // Wait up to 2 seconds
 				}
-			}
 
-			foreach (var entry in remainingEntries)
+				// Process any remaining entries
+				var remainingEntries = new List<LogEntry>();
+				lock (_queueLock)
+				{
+					while (_logQueue.Count > 0)
+					{
+						remainingEntries.Add(_logQueue.Dequeue());
+					}
+				}
+
+				foreach (var entry in remainingEntries)
+				{
+					WriteToFileDirect(entry.Message, entry.MemberName, entry.SourceFilePath, entry.SourceLineNumber);
+				}
+
+				_sw?.Dispose();
+				_sw = null;
+				_initialized = false;
+			}
+			catch (Exception ex)
 			{
-				WriteToFileDirect(entry.Message, entry.MemberName, entry.SourceFilePath, entry.SourceLineNumber);
+				Verse.Log.Warning($"Failed to dispose debug log file: {ex.Message}");
 			}
-
-			_sw?.Dispose();
-			_sw = null;
-			_initialized = false;
-		}
-		catch (Exception ex)
-		{
-			Verse.Log.Warning($"Failed to dispose debug log file: {ex.Message}");
 		}
 	}
 
 	public static void ClearDebugLogFile()
 	{
+		EnsureInitialized(); // Ensure initialized before clearing
+		
 		try
 		{
 			lock (_fileLock)
@@ -639,6 +705,8 @@ internal static class Log
 	/// </summary>
 	public static string GetJobErrorStats()
 	{
+		EnsureInitialized(); // Ensure initialized before getting stats
+		
 		try
 		{
 			lock (_jobErrorLock)
@@ -658,6 +726,8 @@ internal static class Log
 	/// </summary>
 	public static void ResetJobErrorStats()
 	{
+		EnsureInitialized(); // Ensure initialized before resetting stats
+		
 		try
 		{
 			lock (_jobErrorLock)
@@ -678,6 +748,8 @@ internal static class Log
 	/// </summary>
 	public static void LogErrorReport(string context = "")
 	{
+		EnsureInitialized(); // Ensure initialized before logging error report
+		
 		try
 		{
 			var stats = GetJobErrorStats();
