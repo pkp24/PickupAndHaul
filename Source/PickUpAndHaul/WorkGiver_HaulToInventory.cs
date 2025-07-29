@@ -287,8 +287,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			if (carryCapacity <= 0)
 			{
 				var lastCount = job.countQueue.Pop() + carryCapacity;
-				job.countQueue.Add(lastCount);
-				Log.Message($"Nevermind, last count is {lastCount}");
+				// Ensure we don't add zero or negative counts to the queue
+				if (lastCount > 0)
+				{
+					job.countQueue.Add(lastCount);
+					Log.Message($"Nevermind, last count is {lastCount}");
+				}
+				else
+				{
+					// If the adjusted count would be zero or negative, remove the last item from targetQueueA as well
+					if (job.targetQueueA.Count > 0)
+					{
+						var removedThing = job.targetQueueA[job.targetQueueA.Count - 1];
+						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+						Log.Message($"Capacity exceeded, removing {removedThing} from queue (would have count {lastCount})");
+					}
+				}
 				break;
 			}
 		}
@@ -583,9 +597,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					{
 						// Fix for incorrect item count reduction: ensure count doesn't go negative
 						var adjustedCount = Math.Max(0, count - capacityOver);
-						job.countQueue.Add(adjustedCount);
-						Log.Message($"Repeated storage detected, allocating partial {adjustedCount} and aborting further allocation.");
-						return adjustedCount > 0;
+						if (adjustedCount > 0)
+						{
+							job.countQueue.Add(adjustedCount);
+							Log.Message($"Repeated storage detected, allocating partial {adjustedCount} and aborting further allocation.");
+							return true;
+						}
+						else
+						{
+							// Remove from targetQueueA since we can't allocate any count
+							if (itemAddedToQueue && job.targetQueueA.Count > 0)
+							{
+								job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+							}
+							Log.Message($"Repeated storage detected but no capacity remaining, removing from queue.");
+							return false;
+						}
 					}
 
 					if (innerInteractableThingOwner is null)
@@ -615,9 +642,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				{
 					// Fix for incorrect item count reduction: ensure count doesn't go negative
 					var adjustedCount = Math.Max(0, count - capacityOver);
-					job.countQueue.Add(adjustedCount);
-					Log.Message($"Nowhere else to store, allocated {nextThing}:{adjustedCount}");
-					return adjustedCount > 0;
+					if (adjustedCount > 0)
+					{
+						job.countQueue.Add(adjustedCount);
+						Log.Message($"Nowhere else to store, allocated {nextThing}:{adjustedCount}");
+						return true;
+					}
+					else
+					{
+						// Remove from targetQueueA since we can't allocate any count
+						if (itemAddedToQueue && job.targetQueueA.Count > 0)
+						{
+							job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+						}
+						Log.Message($"Nowhere else to store and no capacity remaining, removing {nextThing} from queue.");
+						return false;
+					}
 				}
 			}
 			job.countQueue.Add(count);
