@@ -286,22 +286,30 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			if (carryCapacity <= 0)
 			{
-				var lastCount = job.countQueue.Pop() + carryCapacity;
-				// Ensure we don't add zero or negative counts to the queue
-				if (lastCount > 0)
+				// Ensure we have items in both queues before attempting to adjust
+				if (job.countQueue.Count > 0 && job.targetQueueA.Count > 0)
 				{
-					job.countQueue.Add(lastCount);
-					Log.Message($"Nevermind, last count is {lastCount}");
+					var lastCount = job.countQueue.Pop() + carryCapacity;
+					
+					// If the adjusted count is positive, add it back to the queue
+					if (lastCount > 0)
+					{
+						job.countQueue.Add(lastCount);
+						Log.Message($"Adjusted last count to {lastCount}");
+					}
+					else
+					{
+						// If the adjusted count is zero or negative, remove the corresponding item from targetQueueA
+						// This ensures the queues stay synchronized
+						var removedThing = job.targetQueueA[job.targetQueueA.Count - 1];
+						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+						Log.Message($"Capacity exceeded, removing {removedThing} from queue (adjusted count was {lastCount})");
+					}
 				}
 				else
 				{
-					// If the adjusted count would be zero or negative, remove the last item from targetQueueA as well
-					if (job.targetQueueA.Count > 0)
-					{
-						var removedThing = job.targetQueueA[job.targetQueueA.Count - 1];
-						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-						Log.Message($"Capacity exceeded, removing {removedThing} from queue (would have count {lastCount})");
-					}
+					// If queues are empty or mismatched, log a warning
+					Log.Warning($"Queue synchronization issue: countQueue.Count={job.countQueue.Count}, targetQueueA.Count={job.targetQueueA.Count}");
 				}
 				break;
 			}
