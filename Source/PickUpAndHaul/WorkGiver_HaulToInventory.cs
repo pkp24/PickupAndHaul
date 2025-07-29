@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using PickUpAndHaul.Cache;
 
 namespace PickUpAndHaul;
@@ -556,9 +556,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
+			// Fix for infinite loop: when capacity is exactly met, break out
 			if (capacityOver == 0)
 			{
-				// no more job was 0 errors
 				job.countQueue.Add(count);
 				Log.Message($"{nextThing}:{count} allocated (capacityOver was 0)");
 				return true;
@@ -567,22 +567,28 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
 			if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner))
 			{
-				// If we got the same spot back, give up to avoid infinite loops; accept partial allocation
-				if (innerInteractableThingOwner is null && nextStoreCell == storeCell.cell)
+				// Fix for unreliable repeated storage detection: properly compare storage types
+				bool isRepeatedStorage = false;
+				if (innerInteractableThingOwner is null && storeCell.container is null)
 				{
-					count -= capacityOver;
-					job.countQueue.Add(count);
-					Log.Message($"Repeated store cell {nextStoreCell}, allocating partial {count} and aborting further allocation.");
-					ClearSkipCollections();
-					return false;
+					// Both are cell-based storage
+					isRepeatedStorage = nextStoreCell == storeCell.cell;
 				}
-				else if (innerInteractableThingOwner is not null && nextHaulDestination == storeCell.container)
+				else if (innerInteractableThingOwner is not null && storeCell.container is not null)
 				{
-					count -= capacityOver;
-					job.countQueue.Add(count);
-					Log.Message($"Repeated haul destination {nextHaulDestination}, allocating partial {count} and aborting further allocation.");
+					// Both are container-based storage
+					isRepeatedStorage = nextHaulDestination == storeCell.container;
+				}
+				// If storage types don't match, they're not the same storage
+
+				if (isRepeatedStorage)
+				{
+					// Fix for incorrect item count reduction: ensure count doesn't go negative
+					var adjustedCount = Math.Max(0, count - capacityOver);
+					job.countQueue.Add(adjustedCount);
+					Log.Message($"Repeated storage detected, allocating partial {adjustedCount} and aborting further allocation.");
 					ClearSkipCollections();
-					return false;
+					return adjustedCount > 0;
 				}
 
 				if (innerInteractableThingOwner is null)
@@ -610,10 +616,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 			else
 			{
-				count -= capacityOver;
-				job.countQueue.Add(count);
-				Log.Message($"Nowhere else to store, allocated {nextThing}:{count}");
-				return false;
+				// Fix for incorrect item count reduction: ensure count doesn't go negative
+				var adjustedCount = Math.Max(0, count - capacityOver);
+				job.countQueue.Add(adjustedCount);
+				Log.Message($"Nowhere else to store, allocated {nextThing}:{adjustedCount}");
+				return adjustedCount > 0;
 			}
 		}
 		job.countQueue.Add(count);
