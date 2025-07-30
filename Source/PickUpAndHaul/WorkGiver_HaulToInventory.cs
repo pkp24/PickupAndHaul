@@ -17,8 +17,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| !Settings.IsAllowedRace(pawn.RaceProps)
 		|| pawn.GetComp<CompHauledToInventory>() == null
 		|| pawn.IsQuestLodger()
-		|| OverAllowedGearCapacity(pawn)
-		|| (!forced && pawn.CurJob != null); // Prevent creating jobs when pawn already has a job unless forced
+		|| OverAllowedGearCapacity(pawn);
 
 	public static bool GoodThingToHaul(Thing t, Pawn pawn)
 		=> OkThingToHaul(t, pawn)
@@ -75,7 +74,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Validate that the thing is in the correct cache (same as JobOnThing)
 		ValidateThingInCache(pawn.Map, thing);
 		
-				// Check basic conditions that JobOnThing checks first
+		// Check basic conditions that JobOnThing checks first
 		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
 		{
 			return false;
