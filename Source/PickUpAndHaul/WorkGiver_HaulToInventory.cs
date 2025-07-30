@@ -627,10 +627,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			puahLocation = new PUAHReservationSystem.StorageLocation(storeCell.cell);
 		}
 
-		// Try to reserve using our system
-		bool reserved = PUAHReservationSystem.TryReserveStorage(pawn, nextThing, puahLocation, job, map);
+		// Track reservation states separately to prevent leaks
+		bool modReservationMade = false;
+		bool vanillaReservationMade = false;
+		bool itemAddedToQueue = false;
 		
-		if (!reserved)
+		// Try to reserve using our system first
+		modReservationMade = PUAHReservationSystem.TryReserveStorage(pawn, nextThing, puahLocation, job, map);
+		
+		if (!modReservationMade)
 		{
 			// Mark this spot so we don't consider it again this haul cycle
 			if (storeCell.container != null)
@@ -642,20 +647,20 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 		
 		// Also make vanilla reservation for compatibility
-		bool vanillaReservable;
 		if (storeCell.container != null)
 		{
-			vanillaReservable = TryReserveSafely(pawn, storeCell.container, job, 1, -1, null, false);
+			vanillaReservationMade = TryReserveSafely(pawn, storeCell.container, job, 1, -1, null, false);
 		}
 		else
 		{
-			vanillaReservable = TryReserveSafely(pawn, storeCell.cell, job, 1, -1, null, false);
+			vanillaReservationMade = TryReserveSafely(pawn, storeCell.cell, job, 1, -1, null, false);
 		}
 
-		if (!vanillaReservable)
+		if (!vanillaReservationMade)
 		{
 			// Release our reservation if vanilla fails
 			PUAHReservationSystem.ReleaseAllReservationsForJob(pawn, job, map);
+			modReservationMade = false; // Mark as released
 			
 			// Mark this spot so we don't consider it again
 			if (storeCell.container != null)
@@ -665,13 +670,18 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			return false;
 		}
- 
-		// Track reservation state properly to fix the reservation leak
-		bool itemAddedToQueue = false;
 		try
 		{
+			// Validate reservations are still valid before proceeding
+			if (!ValidateReservationsStillActive(pawn, storeCell, job, map))
+			{
+				Log.Warning($"Reservations became invalid for {nextThing} at {storeCell}, aborting allocation");
+				return false;
+			}
+			
+			// Add to queue and immediately mark as successful to prevent race conditions
 			job.targetQueueA.Add(nextThing);
-			itemAddedToQueue = true; // Mark that we successfully added to queue
+			itemAddedToQueue = true; // Set immediately after successful addition to prevent cleanup on success
 			
 			var count = nextThing.stackCount;
 			storeCellCapacity[storeCell].capacity -= count;
@@ -735,6 +745,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 							if (itemAddedToQueue && job.targetQueueA.Count > 0)
 							{
 								job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+								// Clean up reservations for the removed item
+								CleanupReservationsForRemovedItem(pawn, nextThing, storeCell, job, map);
 							}
 							Log.Message($"Repeated storage detected but no capacity remaining, removing from queue.");
 							return false;
@@ -780,6 +792,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						if (itemAddedToQueue && job.targetQueueA.Count > 0)
 						{
 							job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+							// Clean up reservations for the removed item
+							CleanupReservationsForRemovedItem(pawn, nextThing, storeCell, job, map);
 						}
 						Log.Message($"Nowhere else to store and no capacity remaining, removing {nextThing} from queue.");
 						return false;
@@ -798,11 +812,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 		finally
 		{
-			// Release reservation if we made one but failed to add item to queue
+			// Release reservations if we made them but failed to add item to queue
 			if (!itemAddedToQueue)
 			{
-				ReleaseReservationSafely(pawn, storeCell, job);
-				Log.Message($"Released orphaned reservation for {nextThing} at {storeCell}");
+				// Release mod-specific reservation if it was made
+				if (modReservationMade)
+				{
+					PUAHReservationSystem.ReleaseAllReservationsForJob(pawn, job, map);
+					Log.Message($"Released orphaned mod reservation for {nextThing} at {storeCell}");
+				}
+				
+				// Release vanilla reservation if it was made
+				if (vanillaReservationMade)
+				{
+					ReleaseReservationSafely(pawn, storeCell, job);
+					Log.Message($"Released orphaned vanilla reservation for {nextThing} at {storeCell}");
+				}
 			}
 		}
 	}
@@ -924,6 +949,57 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		catch (System.Exception ex)
 		{
 			Log.Warning($"Failed to release reservation for {storeTarget}: {ex.Message}");
+		}
+	}
+
+	/// <summary>
+	/// Clean up reservations when an item is removed from the job queue
+	/// </summary>
+	private static void CleanupReservationsForRemovedItem(Pawn pawn, Thing thing, StoreTarget storeTarget, Job job, Map map)
+	{
+		try
+		{
+			// Release mod-specific reservations
+			PUAHReservationSystem.ReleaseAllReservationsForJob(pawn, job, map);
+			
+			// Release vanilla reservation for the specific storage target
+			ReleaseReservationSafely(pawn, storeTarget, job);
+			
+			Log.Message($"Cleaned up reservations for removed item {thing} at {storeTarget}");
+		}
+		catch (System.Exception ex)
+		{
+			Log.Warning($"Failed to cleanup reservations for removed item {thing}: {ex.Message}");
+		}
+	}
+
+	/// <summary>
+	/// Validate that both mod and vanilla reservations are still active
+	/// </summary>
+	private static bool ValidateReservationsStillActive(Pawn pawn, StoreTarget storeTarget, Job job, Map map)
+	{
+		try
+		{
+			// Check vanilla reservation
+			bool vanillaValid = false;
+			if (storeTarget.container != null)
+			{
+				vanillaValid = map.reservationManager.ReservedBy(storeTarget.container, pawn, job);
+			}
+			else
+			{
+				vanillaValid = map.reservationManager.ReservedBy(storeTarget.cell, pawn, job);
+			}
+
+			// Note: We could also check mod reservations here if the PUAHReservationSystem
+			// provides a method to validate existing reservations
+			
+			return vanillaValid;
+		}
+		catch (System.Exception ex)
+		{
+			Log.Warning($"Failed to validate reservations: {ex.Message}");
+			return false;
 		}
 	}
 
