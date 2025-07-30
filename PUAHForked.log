@@ -1,0 +1,330 @@
+[21:11:56.467] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
+[21:11:56.470] [PUAHForked] [InitializePerformanceLogging] [Modbase.cs:31] [DEBUG] PickUpAndHaul performance logging initialized
+[21:11:56.470] [PUAHForked] [InitializeCacheSystem] [Modbase.cs:45] [DEBUG] PickUpAndHaul cache system initialized
+[21:12:02.663] [PUAHForked] [.cctor] [HarmonyPatches.cs:127] [DEBUG] PickUpAndHaul v1.6.0 welcomes you to RimWorld, debug logging is enabled.
+[21:12:02.672] [PUAHForked] [ClearPerformanceLog] [PerformanceLogger.cs:80] [DEBUG] Performance log cleared on startup
+[21:12:02.673] [PUAHForked] [.cctor] [PerformanceLogger.cs:54] [DEBUG] Performance logger initialized
+[21:12:09.530] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Techprint_MolecularAnalysis2540 to haulable cache for map 0
+[21:12:09.531] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added MedicineUltratech2506 to haulable cache for map 0
+[21:12:09.531] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Neurotrainer_Construction2508 to haulable cache for map 0
+
+(deleted 3472 consecutive entries)
+
+[21:12:09.658] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone127304 to haulable cache for map 0
+[21:12:09.658] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone127305 to haulable cache for map 0
+[21:12:09.658] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added ChunkLimestone127306 to haulable cache for map 0
+[21:12:10.027] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2854 to cache for map 0: (151, 0, 180)
+[21:12:10.027] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2855 to cache for map 0: (151, 0, 180)
+[21:12:10.027] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Steel2856 to cache for map 0: (151, 0, 180)
+
+(deleted 3146 consecutive entries)
+
+[21:12:10.121] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone127304 to cache for map 0: (103, 0, 178)
+[21:12:10.121] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone127305 to cache for map 0: (103, 0, 178)
+[21:12:10.121] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for ChunkLimestone127306 to cache for map 0: (116, 0, 179)
+[21:12:10.121] [PUAHForked] [InitializeStorageLocationCache] [CacheInitializer.cs:91] [DEBUG] Initialized storage location cache for 3478 items on map 0
+[21:12:10.121] [PUAHForked] [LoadGame_PostFix] [HarmonyPatches.cs:342] [DEBUG] PUAH caches initialized for loaded game
+[21:12:13.469] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ComponentSpacer80615 (forced: False)
+[21:12:13.470] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.470] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ComponentSpacer41859 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye81435 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye80087 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye80025 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Flake80280 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye81438 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye81462 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Cloth81469 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Flake80287 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye79987 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye79991 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye81499 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ComponentSpacer81529 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Plasteel82141 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Flake81463 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Uranium79443 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye79963 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye81573 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Cloth70781 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Plasteel81466 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye79988 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Jade81565 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Uranium78750 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye81520 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ComponentSpacer57669 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Uranium81468 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Steel81303 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Uranium78795 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye79971 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ComponentIndustrial77913 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Flake80289 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Uranium78707 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye80015 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul WoodLog78840 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Cloth65874 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul MedicineUltratech77884 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye81486 (forced: False)
+[21:12:13.471] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ComponentSpacer80514 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye80125 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Flake80283 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul MedicineUltratech80617 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Cloth43926 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul MedicineUltratech81508 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul MedicineUltratech81572 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Steel80421 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Jade79240 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Cloth66174 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Jade81515 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye79978 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye79969 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye80165 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul WoodLog41029 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Plasteel71986 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Cloth68452 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Dye79977 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Cloth43912 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Plasteel71993 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul MedicineUltratech81612 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Uranium81605 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul MedicineUltratech79395 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul MedicineUltratech70194 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ComponentSpacer81500 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Jade81562 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Jade81559 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ComponentSpacer78737 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul MedicineUltratech70268 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Plasteel71992 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul Cloth68510 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:113] [DEBUG] Mila02 failed to find cached storage location
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:71] [DEBUG] Mila02 checking if can haul ChunkGranite126642 (forced: False)
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:93] [DEBUG] Mila02 condition checks - overGearCapacity: False, hasComp: True, isNotCorpse: True, willBeOverEncumbered: False, canPickUpAny: True
+[21:12:13.472] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:110] [DEBUG] Mila02 attempting to find storage location for inventory hauling
+[21:12:13.474] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:137] [DEBUG] Mila02 storage capacity at (147, 0, 168): 1
+[21:12:13.474] [PUAHForked] [HasJobOnThing] [WorkGiver_HaulToInventory.cs:148] [DEBUG] Mila02 can haul ChunkGranite126642 to inventory
+[21:12:13.475] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:196] [DEBUG] Mila02 creating job for ChunkGranite126642 (forced: False)
+[21:12:13.475] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:277] [DEBUG] -------------------------------------------------------------------
+[21:12:13.475] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:278] [DEBUG] ------------------------------------------------------------------
+[21:12:13.475] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:279] [DEBUG] Mila02 job found to haul: ChunkGranite126642 to (147, 0, 168):1, looking for more now
+[21:12:13.482] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:596] [DEBUG] New cell for unstackable ChunkLimestone126643 = (130, 0, 174)
+[21:12:13.482] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:628] [DEBUG] WorkGiver found storage for ChunkLimestone126643 at (130, 0, 174), building job queue (no reservations)
+[21:12:13.482] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:638] [DEBUG] Mila02 allocating ChunkLimestone126643:1, now (130, 0, 174):0
+[21:12:13.482] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:655] [DEBUG] Mila02 overdone (130, 0, 174) by 0
+[21:12:13.482] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:661] [DEBUG] ChunkLimestone126643:1 allocated (capacityOver was 0)
+[21:12:13.482] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:351] [DEBUG] Mila02 finished allocating items, breaking from search loop
+[21:12:13.482] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:381] [DEBUG] Looking for more like ChunkLimestone126643
+[21:12:13.483] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:596] [DEBUG] New cell for unstackable ChunkLimestone126658 = (130, 0, 174)
+[21:12:13.483] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:628] [DEBUG] WorkGiver found storage for ChunkLimestone126658 at (130, 0, 174), building job queue (no reservations)
+[21:12:13.483] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:638] [DEBUG] Mila02 allocating ChunkLimestone126658:1, now (130, 0, 174):0
+[21:12:13.483] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:655] [DEBUG] Mila02 overdone (130, 0, 174) by 0
+[21:12:13.483] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:661] [DEBUG] ChunkLimestone126658:1 allocated (capacityOver was 0)
+[21:12:13.483] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:404] [DEBUG] Mila02 SUCCESSFULLY created job with 2 items to haul
+[21:12:13.484] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:9] [DEBUG] Mila02 attempting reservations for job with 2 items in queueA, 3 items in queueB
+[21:12:13.484] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:19] [DEBUG] Mila02 attempting to reserve 3 storage locations in queueB
+[21:12:13.485] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:22] [DEBUG] Mila02 attempting to reserve storage (147, 0, 168)
+[21:12:13.485] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:30] [DEBUG] Mila02 FAILED to reserve storage (147, 0, 168)
+[21:12:13.485] [PUAHForked] [TryMakePreToilReservations] [JobDriver_HaulToInventory.cs:56] [DEBUG] Mila02 reservation FAILED, releasing 0 successful reservations
+[21:12:18.125] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.

@@ -277,7 +277,7 @@ internal static class HarmonyPatches
 				if (text.Contains("System.NullReferenceException") && stackTrace.Contains("AllowTool.WorkGiver_HaulUrgently"))
 				{
 						// Use direct Verse.Log calls to avoid recursion
-						Verse.Log.Warning("[PickUpAndHaul] AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged");
+						Verse.Log.Warning("AllowTool compatibility issue detected - null Thing passed to GridsUtility.Fogged");
 				}
 
 				// Forward to debug logger (initializes if needed)
@@ -286,7 +286,7 @@ internal static class HarmonyPatches
 		catch (Exception ex)
 		{
 				// Don't let our error interception cause more errors
-				Verse.Log.Warning($"[PickUpAndHaul] Failed to intercept RimWorld error: {ex.Message}");
+				Verse.Log.Warning($"Failed to intercept RimWorld error: {ex.Message}");
 		}
 		finally
 		{
