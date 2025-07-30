@@ -1,71 +1,85 @@
 ﻿using System.Linq;
+using System.Collections.Generic;
 
 namespace PickUpAndHaul;
 
 public class JobDriver_HaulToInventory : JobDriver
 {
-	public override bool TryMakePreToilReservations(bool errorOnFailed)
-	{
-		Log.Message($"{pawn} attempting reservations for job with {job.targetQueueA?.Count ?? 0} items in queueA, {job.targetQueueB?.Count ?? 0} items in queueB");
-		
-		// For hauling jobs, we only need to reserve storage locations (queueB) upfront
-		// Items (queueA) will be reserved individually when we actually go to pick them up
-		bool success = true;
-		var successfulReservations = new List<LocalTargetInfo>();
+        public override bool TryMakePreToilReservations(bool errorOnFailed)
+        {
+                Log.Message($"{pawn} attempting reservations for job with {job.targetQueueA?.Count ?? 0} items in queueA, {job.targetQueueB?.Count ?? 0} items in queueB");
 
-		// Only reserve storage locations in targetQueueB - these need to be held for the entire job
-		if (job.targetQueueB != null)
-		{
-			Log.Message($"{pawn} attempting to reserve {job.targetQueueB.Count} storage locations in queueB");
-			foreach (var target in job.targetQueueB)
-			{
-				Log.Message($"{pawn} attempting to reserve storage {target}");
-				if (pawn.Reserve(target, job, 1, -1, null, false))
-				{
-					Log.Message($"{pawn} successfully reserved storage {target}");
-					successfulReservations.Add(target);
-				}
-				else
-				{
-					Log.Message($"{pawn} FAILED to reserve storage {target}");
-					success = false;
-					break; // Stop trying to reserve more targets
-				}
-			}
-		}
+                bool success = true;
+                var successfulReservations = new List<LocalTargetInfo>();
 
-		// Only try to reserve targetB if all previous reservations succeeded
-		if (success && job.targetB != null)
-		{
-			Log.Message($"{pawn} attempting to reserve targetB: {job.targetB}");
-			if (pawn.Reserve(job.targetB, job, 1, -1, null, false))
-			{
-				Log.Message($"{pawn} successfully reserved targetB: {job.targetB}");
-				successfulReservations.Add(job.targetB);
-			}
-			else
-			{
-				Log.Message($"{pawn} FAILED to reserve targetB: {job.targetB}");
-				success = false;
-			}
-		}
+                if (job.targetQueueB != null && job.targetQueueA != null)
+                {
+                        int count = System.Math.Min(job.targetQueueA.Count, job.targetQueueB.Count);
+                        for (int i = 0; i < count; i++)
+                        {
+                                var storageTarget = job.targetQueueB[i];
+                                var thingTarget = job.targetQueueA[i].Thing;
+                                int itemCount = job.countQueue?.ElementAtOrDefault(i) ?? thingTarget.stackCount;
 
-		// If any reservation failed, release all successful reservations to prevent leaks
-		if (!success)
-		{
-			Log.Message($"{pawn} reservation FAILED, releasing {successfulReservations.Count} successful reservations");
-			foreach (var target in successfulReservations)
-			{
-				pawn.Map.reservationManager.Release(target, pawn, job);
-			}
-		}
-		else
-		{
-			Log.Message($"{pawn} ALL storage reservations SUCCESSFUL (items will be reserved when picked up)");
-		}
+                                // convert to PUAH location
+                                PUAHReservationSystem.StorageLocation puahLoc = storageTarget.HasThing
+                                        ? new PUAHReservationSystem.StorageLocation(storageTarget.Thing)
+                                        : new PUAHReservationSystem.StorageLocation(storageTarget.Cell);
 
-		return success;
-	}
+                                Log.Message($"{pawn} attempting to reserve storage {storageTarget} for {thingTarget} x{itemCount}");
+
+                                if (!PUAHReservationSystem.TryReservePartialStorage(pawn, thingTarget, itemCount, puahLoc, job, pawn.Map))
+                                {
+                                        Log.Message($"{pawn} FAILED PUAH reservation {storageTarget}");
+                                        success = false;
+                                        break;
+                                }
+
+                                if (pawn.Reserve(storageTarget, job, 1, -1, null, false))
+                                {
+                                        Log.Message($"{pawn} successfully reserved storage {storageTarget}");
+                                        successfulReservations.Add(storageTarget);
+                                }
+                                else
+                                {
+                                        Log.Message($"{pawn} FAILED vanilla reserve {storageTarget}");
+                                        success = false;
+                                        break;
+                                }
+                        }
+                }
+
+                if (success && job.targetB != null)
+                {
+                        Log.Message($"{pawn} attempting to reserve targetB: {job.targetB}");
+                        if (pawn.Reserve(job.targetB, job, 1, -1, null, false))
+                        {
+                                Log.Message($"{pawn} successfully reserved targetB: {job.targetB}");
+                                successfulReservations.Add(job.targetB);
+                        }
+                        else
+                        {
+                                Log.Message($"{pawn} FAILED to reserve targetB: {job.targetB}");
+                                success = false;
+                        }
+                }
+
+                if (!success)
+                {
+                        Log.Message($"{pawn} reservation FAILED, releasing {successfulReservations.Count} successful reservations");
+                        foreach (var target in successfulReservations)
+                        {
+                                pawn.Map.reservationManager.Release(target, pawn, job);
+                        }
+                        PUAHReservationSystem.ReleaseAllReservationsForJob(pawn, job, pawn.Map);
+                }
+                else
+                {
+                        Log.Message($"{pawn} ALL storage reservations SUCCESSFUL (items will be reserved when picked up)");
+                }
+
+                return success;
+        }
 
 	//get next, goto, take, check for more. Branches off to "all over the place"
 	public override IEnumerable<Toil> MakeNewToils()
