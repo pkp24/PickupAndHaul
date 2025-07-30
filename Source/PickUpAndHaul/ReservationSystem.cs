@@ -244,15 +244,18 @@ namespace PickUpAndHaul
                 // Clean up expired reservations first
                 reservation.CleanupExpiredReservations();
                 
-                // Check if we have capacity
+                // Check if we have capacity - allow partial reservations
                 var capacity = GetAvailableCapacity(location, thing, map, reservation);
-                if (capacity < thing.stackCount)
+                if (capacity <= 0)
                 {
                     return false;
                 }
                 
+                // Reserve what we can (up to the full stack count)
+                var countToReserve = Math.Min(capacity, thing.stackCount);
+                
                 // Add the reservation
-                return reservation.TryAddReservation(pawn, thing, thing.stackCount, job);
+                return reservation.TryAddReservation(pawn, thing, countToReserve, job);
             }
         }
 
@@ -278,7 +281,7 @@ namespace PickUpAndHaul
                 // Clean up expired reservations first
                 reservation.CleanupExpiredReservations();
                 
-                // Check if we have capacity
+                // Check if we have capacity - use the reservation object we already have to avoid redundant cleanup
                 var capacity = GetAvailableCapacity(location, thing, map, reservation);
                 if (capacity < count)
                 {
@@ -406,6 +409,7 @@ namespace PickUpAndHaul
                     var reservations = GetMapReservations(map);
                     if (reservations.TryGetValue(location, out reservation))
                     {
+                        // Only cleanup if we don't already have a reservation object (to avoid redundant calls)
                         reservation.CleanupExpiredReservations();
                         reservedCount = reservation.GetReservedCountForThingDef(thing.def);
                     }
@@ -413,6 +417,7 @@ namespace PickUpAndHaul
             }
             else
             {
+                // Use the provided reservation object without cleanup (caller should handle cleanup)
                 reservedCount = reservation.GetReservedCountForThingDef(thing.def);
             }
             
@@ -557,6 +562,23 @@ namespace PickUpAndHaul
             lock (_reservationLock)
             {
                 _storageReservations.Remove(map.uniqueID);
+            }
+        }
+
+        /// <summary>
+        /// Get the actual reserved count for a specific thing type at a location
+        /// </summary>
+        public static int GetReservedCount(StorageLocation location, ThingDef thingDef, Map map)
+        {
+            lock (_reservationLock)
+            {
+                var reservations = GetMapReservations(map);
+                if (reservations.TryGetValue(location, out var reservation))
+                {
+                    reservation.CleanupExpiredReservations();
+                    return reservation.GetReservedCountForThingDef(thingDef);
+                }
+                return 0;
             }
         }
 
