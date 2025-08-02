@@ -3,7 +3,6 @@ public class PawnUnloadChecker
 {
 	public static void CheckIfPawnShouldUnloadInventory(Pawn pawn, bool forced = false)
 	{
-		Log.Message($"called for pawn {pawn} (forced: {forced}, Drafted: {pawn?.Drafted}, Downed: {pawn?.Downed}, Dead: {pawn?.Dead}, CurrentJob: {pawn?.jobs?.curJob?.def?.defName ?? "null"})");
 		var job = JobMaker.MakeJob(PickUpAndHaulJobDefOf.UnloadYourHauledInventory, pawn);
 		var itemsTakenToInventory = pawn?.GetComp<CompHauledToInventory>();
 
@@ -13,7 +12,6 @@ public class PawnUnloadChecker
 		}
 
 		var carriedThing = itemsTakenToInventory.GetHashSet();
-		Log.Message($"{pawn} carriedThing count: {carriedThing?.Count ?? -1}");
 
 		if (pawn.Faction != Faction.OfPlayerSilentFail || !Settings.IsAllowedRace(pawn.RaceProps)
 			|| carriedThing == null || carriedThing.Count == 0
@@ -46,7 +44,7 @@ public class PawnUnloadChecker
 
 		if (Find.TickManager.TicksGame % 50 == 0 && inventoryContainer.Count < carriedThing.Count)
 		{
-			Verse.Log.Warning(pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
+			Verse.Log.Warning("[PickUpAndHaul] " + pawn + " inventory was found out of sync with haul index. Pawn will drop their inventory.");
 			carriedThing.Clear();
 			pawn.inventory.UnloadEverything = true;
 		}

@@ -1,5 +1,0 @@
----
-description: Do not prepend logs with things like "[PUAH DEBUG] HasJobOnThing: ", as the DebugLog.cs already takes care of that.
-globs:
-alwaysApply: true
----

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 
 namespace PickUpAndHaul;
 
@@ -75,14 +74,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		initAction = () =>
 		{
 			var thing = job.GetTarget(TargetIndex.A).Thing;
-			// If the thing no longer matches what's in the pawn's inventory, skip
 			if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
 			{
 				carriedThings.Remove(thing);
 				pawn.jobs.curDriver.JumpToToil(wait);
 				return;
 			}
-			// If the pawn can't manipulate or the thing cannot be stored, drop it
 			if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
 			{
 				Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
@@ -92,38 +89,30 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			}
 			else
 			{
-				// Transfer from inventory to carry tracker using our reserved count
-				pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer, _countToDrop, out thing);
-				// Update job.count so the JobDriver knows how many were transferred
+				pawn.inventory.innerContainer.TryTransferToContainer(thing, pawn.carryTracker.innerContainer,
+					_countToDrop, out thing);
 				job.count = _countToDrop;
 
-				// Detect invalid transfer counts and do not fudge them to one
+				// no more job was 0 errors
 				if (job.count <= 0)
 				{
-					Log.Error($"Unload job count {job.count} for {thing?.def?.defName ?? "null"} is invalid; dropping item and ending job.");
-					// Drop the entire stack near the pawn to prevent it from getting stuck
-					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, thing.stackCount, out _);
-					EndJobWith(JobCondition.Incompletable);
-					carriedThings.Remove(thing);
-					return;
+					Log.Warning($"Unload job count was {job.count}, setting to 1 for thing {thing?.def?.defName ?? "null"}");
+					job.count = 1;
+					_countToDrop = 1; // Fix Bug 1: Update _countToDrop to match job.count
 				}
 
-				// Replace the current target with the transferred thing and remove from our set
 				job.SetTarget(TargetIndex.A, thing);
 				carriedThings.Remove(thing);
 			}
 
-			// Update Combat Extended inventory capacity if needed
 			if (ModCompatibilityCheck.CombatExtendedIsActive)
 			{
 				CompatHelper.UpdateInventory(pawn);
 			}
 
-			// Ensure the thing is not forbidden so hauling jobs can interact with it
 			thing.SetForbidden(false, false);
 		}
 	};
-
 
 	private Toil FindTargetOrDrop(HashSet<Thing> carriedThings) => new()
 	{
@@ -131,7 +120,6 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		{
 			var unloadableThing = FirstUnloadableThing(pawn, carriedThings);
 
-			// If there are no unloadable things, finish if also nothing else to unload
 			if (unloadableThing.Count == 0)
 			{
 				if (carriedThings.Count == 0)
@@ -141,72 +129,42 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				return;
 			}
 
-			var currentPriority = StoragePriority.Unstored; // Items in inventory are unstored
-			// Attempt to find a storage location with available capacity using our reservation system
-			if (PUAHReservationSystem.TryFindBestStorageWithReservation(unloadableThing.Thing, pawn, pawn.Map,
-					currentPriority, pawn.Faction, out var storageLocation, out var availableCapacity))
+			var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
+			if (CacheManager.TryGetCachedStorageLocation(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
+					pawn.Faction, out var cell, out var destination, out var _, null))
 			{
 				job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-				// Choose cell vs container for the B target
-				if (storageLocation.IsContainer)
+				if (cell == IntVec3.Invalid)
 				{
-					job.SetTarget(TargetIndex.B, storageLocation.Container);
+					job.SetTarget(TargetIndex.B, destination as Thing);
 				}
 				else
 				{
-					job.SetTarget(TargetIndex.B, storageLocation.Cell);
+					job.SetTarget(TargetIndex.B, cell);
 				}
 
-				Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing} with capacity {availableCapacity}");
-
-				// If there's no room, drop the whole stack and end
-				if (availableCapacity <= 0)
-				{
-					Log.Message($"{pawn} found no capacity at {job.targetB}, dropping {unloadableThing.Thing}");
-					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-						unloadableThing.Thing.stackCount, out _);
-					EndJobWith(JobCondition.Incompletable);
-					return;
-				}
-
-				// Determine how much we can actually unload based on available capacity
-				var countToReserve = Math.Min(unloadableThing.Thing.stackCount, availableCapacity);
-				_countToDrop = countToReserve;
-
-				// Reserve partial storage via our system
-				bool reserved = PUAHReservationSystem.TryReservePartialStorage(pawn, unloadableThing.Thing,
-						countToReserve, storageLocation, job, pawn.Map);
-				if (!reserved)
-				{
-					Log.Message($"{pawn} failed PUAH reservation for {job.targetB}, dropping {unloadableThing.Thing}");
-					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-						unloadableThing.Thing.stackCount, out _);
-					EndJobWith(JobCondition.Incompletable);
-					return;
-				}
-
-				// Also make a vanilla reservation for compatibility; release our reservation if it fails
+				Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
 				if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
 				{
-					PUAHReservationSystem.ReleaseAllReservationsForJob(pawn, job, pawn.Map);
-					Log.Message($"{pawn} failed vanilla reservation for {job.targetB}, dropping {unloadableThing.Thing}");
+					Log.Message(
+						$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
 					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 						unloadableThing.Thing.stackCount, out _);
 					EndJobWith(JobCondition.Incompletable);
 					return;
 				}
+				_countToDrop = unloadableThing.Thing.stackCount;
 			}
 			else
 			{
-				// If no storage can be found, drop the item and mark success to avoid reattempting
-				Log.Message($"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
+				Log.Message(
+					$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
 				pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 					unloadableThing.Thing.stackCount, out _);
 				EndJobWith(JobCondition.Succeeded);
 			}
 		}
 	};
-
 
 	private static ThingCount FirstUnloadableThing(Pawn pawn, HashSet<Thing> carriedThings)
 	{

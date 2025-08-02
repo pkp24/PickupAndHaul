@@ -225,22 +225,6 @@ namespace PickUpAndHaul.Cache
         }
 
         /// <summary>
-        /// Invalidate a specific storage location cache entry
-        /// </summary>
-        public static void InvalidateStorageLocationCache(Map map, Thing thing)
-        {
-            if (map == null || thing == null) return;
-            
-            var cache = GetStorageLocationCache(map);
-            cache.Remove(thing);
-            
-            if (Settings.EnableDebugLogging)
-            {
-                Log.Message($"Invalidated storage location cache for {thing}");
-            }
-        }
-
-        /// <summary>
         /// Clear all caches for a specific map (called when map is destroyed)
         /// </summary>
         public static void ClearMapCaches(Map map)

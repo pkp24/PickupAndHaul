@@ -39,9 +39,6 @@ namespace PickUpAndHaul.Cache
             // Clean up stale storage location cache entries
             CacheManager.CleanupStorageLocationCache(map);
             
-            // Invalidate storage locations that are full
-            CacheManager.InvalidateFullStorageLocations(map);
-            
             // Log cache statistics periodically for debugging
             if (Settings.EnableDebugLogging && _tickCounter % 5000 == 0) // Every ~80 seconds
             {
