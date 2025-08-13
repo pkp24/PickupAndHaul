@@ -21,6 +21,9 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	/// <returns></returns>
 	public override IEnumerable<Toil> MakeNewToils()
 	{
+		// Mark pawn as unloading for the duration of this job
+		pawn.TryGetComp<CompHauledToInventory>()?.SetUnloading(true);
+
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
 			_unloadDuration = 20;
@@ -56,6 +59,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 		yield return Toils_Jump.Jump(begin);
 	}
 
+	private void EndUnloadJob(JobCondition condition)
+	{
+		pawn.TryGetComp<CompHauledToInventory>()?.SetUnloading(false);
+		EndJobWith(condition);
+	}
+
 	private bool TargetIsCell() => !TargetB.HasThing;
 
 	private Toil ReleaseReservation() => new()
@@ -84,7 +93,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			{
 				Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
 				pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
-				EndJobWith(JobCondition.Succeeded);
+				EndUnloadJob(JobCondition.Succeeded);
 				carriedThings.Remove(thing);
 			}
 			else
@@ -102,6 +111,8 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 
 				job.SetTarget(TargetIndex.A, thing);
+				// mark as recently unloaded so the WorkGiver won't immediately re-target this stack
+				pawn.TryGetComp<CompHauledToInventory>()?.MarkRecentlyUnloaded(thing, 300);
 				carriedThings.Remove(thing);
 			}
 
@@ -150,7 +161,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 						$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
 					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 						unloadableThing.Thing.stackCount, out _);
-					EndJobWith(JobCondition.Incompletable);
+					EndUnloadJob(JobCondition.Incompletable);
 					return;
 				}
 				else
@@ -169,7 +180,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
 				pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
 					unloadableThing.Thing.stackCount, out _);
-				EndJobWith(JobCondition.Succeeded);
+				EndUnloadJob(JobCondition.Succeeded);
 			}
 		}
 	};

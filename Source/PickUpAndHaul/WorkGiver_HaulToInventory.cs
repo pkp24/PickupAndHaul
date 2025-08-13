@@ -18,7 +18,11 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		|| !Settings.IsAllowedRace(pawn.RaceProps)
 		|| pawn.GetComp<CompHauledToInventory>() == null
 		|| pawn.IsQuestLodger()
-		|| OverAllowedGearCapacity(pawn);
+		|| OverAllowedGearCapacity(pawn)
+		// Do not start a new PickUpAndHaul pickup job while the pawn already has
+		// items flagged for PUAH unloading or is actively unloading.
+		|| (pawn.GetComp<CompHauledToInventory>()?.GetHashSet()?.Count > 0)
+		|| (pawn.GetComp<CompHauledToInventory>()?.IsUnloading() ?? false);
 
 	public static bool GoodThingToHaul(Thing t, Pawn pawn)
 		=> OkThingToHaul(t, pawn)
@@ -28,7 +32,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	public static bool OkThingToHaul(Thing t, Pawn pawn)
 		=> t.Spawned
 		&& pawn.CanReserve(t)
-		&& !t.IsForbidden(pawn);
+		&& !t.IsForbidden(pawn)
+		&& !(pawn.GetComp<CompHauledToInventory>()?.IsRecentlyUnloaded(t) ?? false);
 
 	public static bool IsNotCorpseOrAllowed(Thing t) => Settings.AllowCorpses || t is not Corpse;
 
@@ -74,6 +79,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		
 		// Validate that the thing is in the correct cache (same as JobOnThing)
 		ValidateThingInCache(pawn.Map, thing);
+		
+		// If the pawn already has PUAH items in inventory, do not offer new PUAH jobs
+		// so the pawn can unload first.
+		var comp = pawn.GetComp<CompHauledToInventory>();
+		var carriedByPuah = comp?.GetHashSet();
+		if ((carriedByPuah != null && carriedByPuah.Count > 0) || (comp?.IsUnloading() ?? false))
+		{
+			return false;
+		}
 		
 				// Check basic conditions that JobOnThing checks first
 		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
@@ -180,6 +194,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		
 		// Validate that the thing is in the correct cache
 		ValidateThingInCache(pawn.Map, thing);
+		
+		// If the pawn already has PUAH items in inventory, don't start a new pickup job.
+		// This prevents chaining pickups before unloading.
+		var comp = pawn.GetComp<CompHauledToInventory>();
+		var carriedByPuah = comp?.GetHashSet();
+		if ((carriedByPuah != null && carriedByPuah.Count > 0) || (comp?.IsUnloading() ?? false))
+		{
+			return null;
+		}
 		
 		if (!OkThingToHaul(thing, pawn) || !HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, thing, forced))
 		{

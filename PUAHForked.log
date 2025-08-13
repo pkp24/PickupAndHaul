@@ -1,0 +1,252 @@
+[15:22:37.873] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
+[15:22:37.879] [PUAHForked] [InitializePerformanceLogging] [Modbase.cs:31] [DEBUG] PickUpAndHaul performance logging initialized
+[15:22:37.879] [PUAHForked] [InitializeCacheSystem] [Modbase.cs:45] [DEBUG] PickUpAndHaul cache system initialized
+[15:22:41.724] [PUAHForked] [.cctor] [HarmonyPatches.cs:134] [DEBUG] PickUpAndHaul v1.6.0 welcomes you to RimWorld, debug logging is enabled.
+[15:22:41.728] [PUAHForked] [ClearPerformanceLog] [PerformanceLogger.cs:80] [DEBUG] Performance log cleared on startup
+[15:22:41.729] [PUAHForked] [.cctor] [PerformanceLogger.cs:54] [DEBUG] Performance logger initialized
+[15:22:45.516] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127570 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127571 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127572 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127573 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127574 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127575 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127576 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127577 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127578 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127579 to haulable cache for map 0
+[15:22:45.517] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127580 to haulable cache for map 0
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127570 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127571 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127572 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127573 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127574 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127575 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127576 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127577 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127578 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127579 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127580 to cache for map 0: (129, 0, 178)
+[15:22:45.831] [PUAHForked] [InitializeStorageLocationCache] [CacheInitializer.cs:91] [DEBUG] Initialized storage location cache for 11 items on map 0
+[15:22:45.831] [PUAHForked] [LoadGame_PostFix] [HarmonyPatches.cs:355] [DEBUG] PUAH caches initialized for loaded game
+[15:22:52.616] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:252] [DEBUG] -------------------------------------------------------------------
+[15:22:52.616] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:253] [DEBUG] ------------------------------------------------------------------
+[15:22:52.616] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:254] [DEBUG] Mila01 job found to haul: Uranium127570 to (129, 0, 178):75, looking for more now
+[15:22:52.620] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:626] [DEBUG] Mila01 allocating Uranium127570:75, now (129, 0, 178):0
+[15:22:52.620] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:643] [DEBUG] Mila01 overdone (129, 0, 178) by 0
+[15:22:52.620] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:649] [DEBUG] Uranium127570:75 allocated (capacityOver was 0)
+[15:22:52.620] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:318] [DEBUG] Inventory allocated, will carry Uranium127570:48
+[15:22:52.620] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:341] [DEBUG] Looking for more like Uranium127570
+[15:22:52.620] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:568] [DEBUG] New cell for unstackable Uranium127571 = (129, 0, 178)
+[15:22:52.620] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:626] [DEBUG] Mila01 allocating Uranium127571:75, now (129, 0, 178):0
+[15:22:52.620] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:643] [DEBUG] Mila01 overdone (129, 0, 178) by 0
+[15:22:52.620] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:649] [DEBUG] Uranium127571:75 allocated (capacityOver was 0)
+[15:22:52.621] [PUAHForked] [ValidateJobCount] [WorkGiver_HaulToInventory.cs:167] [WARNING] Main job count was -1 for Uranium127570, setting to 1
+[15:22:54.459] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:112] [DEBUG] Mila01 is hauling to inventory Uranium127570:28
+[15:22:54.530] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Uranium127570 from haulable cache for map 0
+[15:22:56.276] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127570 to haulable cache for map 0
+[15:22:56.377] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127581 to cache for map 0: (129, 0, 178)
+[15:22:56.377] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:146] [DEBUG] Mila01 found destination (129, 0, 178) for thing Uranium127581
+[15:22:56.658] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127581 to haulable cache for map 0
+[15:22:56.725] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:252] [DEBUG] -------------------------------------------------------------------
+[15:22:56.725] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:253] [DEBUG] ------------------------------------------------------------------
+[15:22:56.725] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:254] [DEBUG] Mila01 job found to haul: Uranium127581 to (129, 0, 178):47, looking for more now
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:626] [DEBUG] Mila01 allocating Uranium127581:28, now (129, 0, 178):19
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:738] [DEBUG] Uranium127581:28 allocated
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:626] [DEBUG] Mila01 allocating Uranium127572:75, now (129, 0, 178):-56
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:643] [DEBUG] Mila01 overdone (129, 0, 178) by 56
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:677] [DEBUG] Repeated storage detected, allocating partial 19 and aborting further allocation.
+[15:22:56.725] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:318] [DEBUG] Inventory allocated, will carry Uranium127572:76
+[15:22:56.725] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:341] [DEBUG] Looking for more like Uranium127572
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:568] [DEBUG] New cell for unstackable Uranium127571 = (129, 0, 178)
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:626] [DEBUG] Mila01 allocating Uranium127571:75, now (129, 0, 178):-28
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:643] [DEBUG] Mila01 overdone (129, 0, 178) by 28
+[15:22:56.725] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:677] [DEBUG] Repeated storage detected, allocating partial 47 and aborting further allocation.
+[15:22:56.725] [PUAHForked] [ValidateJobCount] [WorkGiver_HaulToInventory.cs:167] [WARNING] Main job count was -1 for Uranium127581, setting to 1
+[15:22:56.725] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:112] [DEBUG] Mila01 is hauling to inventory Uranium127581:28
+[15:22:56.725] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Uranium127581 from haulable cache for map 0
+[15:23:25.941] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
+[15:24:36.365] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
+[15:24:36.368] [PUAHForked] [InitializePerformanceLogging] [Modbase.cs:31] [DEBUG] PickUpAndHaul performance logging initialized
+[15:24:36.368] [PUAHForked] [InitializeCacheSystem] [Modbase.cs:45] [DEBUG] PickUpAndHaul cache system initialized
+[15:24:39.951] [PUAHForked] [.cctor] [HarmonyPatches.cs:124] [DEBUG] PickUpAndHaul v1.6.0 welcomes you to RimWorld, debug logging is enabled.
+[15:24:39.957] [PUAHForked] [ClearPerformanceLog] [PerformanceLogger.cs:80] [DEBUG] Performance log cleared on startup
+[15:24:39.958] [PUAHForked] [.cctor] [PerformanceLogger.cs:54] [DEBUG] Performance logger initialized
+[15:24:43.800] [PUAHForked] [InterceptRimWorldError] [DebugLog.cs:0] [RIMWORLD_ERROR] Could not find class PartialReservationSystem.PRS_MapComponent while resolving node li. Trying to use Verse.MapComponent instead. Full node: <li Class="PartialReservationSystem.PRS_MapComponent" /> | Context: Stack:   at System.Environment.get_StackTrace () [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at PickUpAndHaul.HarmonyPatches.Log_Error_Prefix (System.String text) [0x00000] in <d5cfe6e3dab14196bb97038b4cb0c398>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Log.Error_Patch1 (System.String ) [0x00000] in <b994eb69d2df47fdb01add71b9ac29d2>:0 
+  at Verse.ScribeExtractor.SaveableFromNode[T] (System.Xml.XmlNode subNode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.Boolean saveDestroyedThings, System.String label, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.String label, System.Boolean saveDestroyedThings, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.String label, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Map.ExposeComponents () [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Map.ExposeData_Patch1 (Verse.Map ) [0x00000] in <b994eb69d2df47fdb01add71b9ac29d2>:0 
+  at Verse.ScribeExtractor.SaveableFromNode[T] (System.Xml.XmlNode subNode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.Boolean saveDestroyedThings, System.String label, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.String label, System.Boolean saveDestroyedThings, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.String label, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Game.LoadGame_Patch1 (Verse.Game ) [0x00000] in <b994eb69d2df47fdb01add71b9ac29d2>:0 
+  at Verse.SavedGameLoaderNow.LoadGameFromSaveFileNow (System.String fileName) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Root_Play+<>c.<Start>b__1_1 () [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.LongEventHandler.RunEventFromAnotherThread (System.Action action) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.LongEventHandler+<>c.<UpdateCurrentAsynchronousEvent>b__28_0 () [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at System.Threading.ThreadHelper.ThreadStart_Context (System.Object state) [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at System.Threading.ExecutionContext.RunInternal (System.Threading.ExecutionContext executionContext, System.Threading.ContextCallback callback, System.Object state, System.Boolean preserveSyncCtx) [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at System.Threading.ExecutionContext.Run (System.Threading.ExecutionContext executionContext, System.Threading.ContextCallback callback, System.Object state, System.Boolean preserveSyncCtx) [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at System.Threading.ExecutionContext.Run (System.Threading.ExecutionContext executionContext, System.Threading.ContextCallback callback, System.Object state) [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at System.Threading.ThreadHelper.ThreadStart () [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+[15:24:43.802] [PUAHForked] [InterceptRimWorldError] [DebugLog.cs:0] [RIMWORLD_ERROR] SaveableFromNode exception: System.ArgumentException: Can't load abstract class Verse.MapComponent
+[Ref E4C14B11]
+  at Verse.ScribeExtractor.SaveableFromNode[T] (System.Xml.XmlNode subNode, System.Object[] ctorArgs) [0x00143] in <cb53cd4422904947932d33f561ad8d15>:0 
+Subnode:
+<li Class="PartialReservationSystem.PRS_MapComponent" /> | Context: Stack:   at System.Environment.get_StackTrace () [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at PickUpAndHaul.HarmonyPatches.Log_Error_Prefix (System.String text) [0x00000] in <d5cfe6e3dab14196bb97038b4cb0c398>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Log.Error_Patch1 (System.String ) [0x00000] in <b994eb69d2df47fdb01add71b9ac29d2>:0 
+  at Verse.ScribeExtractor.SaveableFromNode[T] (System.Xml.XmlNode subNode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.Boolean saveDestroyedThings, System.String label, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.String label, System.Boolean saveDestroyedThings, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.String label, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Map.ExposeComponents () [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Map.ExposeData_Patch1 (Verse.Map ) [0x00000] in <b994eb69d2df47fdb01add71b9ac29d2>:0 
+  at Verse.ScribeExtractor.SaveableFromNode[T] (System.Xml.XmlNode subNode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.Boolean saveDestroyedThings, System.String label, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.String label, System.Boolean saveDestroyedThings, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Scribe_Collections.Look[T] (System.Collections.Generic.List`1[T]& list, System.String label, Verse.LookMode lookMode, System.Object[] ctorArgs) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at MonoMod.Utils.DynamicMethodDefinition.Verse.Game.LoadGame_Patch1 (Verse.Game ) [0x00000] in <b994eb69d2df47fdb01add71b9ac29d2>:0 
+  at Verse.SavedGameLoaderNow.LoadGameFromSaveFileNow (System.String fileName) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.Root_Play+<>c.<Start>b__1_1 () [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.LongEventHandler.RunEventFromAnotherThread (System.Action action) [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at Verse.LongEventHandler+<>c.<UpdateCurrentAsynchronousEvent>b__28_0 () [0x00000] in <cb53cd4422904947932d33f561ad8d15>:0 
+  at System.Threading.ThreadHelper.ThreadStart_Context (System.Object state) [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at System.Threading.ExecutionContext.RunInternal (System.Threading.ExecutionContext executionContext, System.Threading.ContextCallback callback, System.Object state, System.Boolean preserveSyncCtx) [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at System.Threading.ExecutionContext.Run (System.Threading.ExecutionContext executionContext, System.Threading.ContextCallback callback, System.Object state, System.Boolean preserveSyncCtx) [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at System.Threading.ExecutionContext.Run (System.Threading.ExecutionContext executionContext, System.Threading.ContextCallback callback, System.Object state) [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+  at System.Threading.ThreadHelper.ThreadStart () [0x00000] in <51fded79cd284d4d911c5949aff4cb21>:0 
+[15:24:43.884] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127570 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127571 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127572 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127573 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127574 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127575 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127576 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127577 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127578 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127579 to haulable cache for map 0
+[15:24:43.885] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127580 to haulable cache for map 0
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127570 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127571 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127572 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127573 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127574 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127575 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127576 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127577 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127578 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127579 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127580 to cache for map 0: (129, 0, 178)
+[15:24:44.000] [PUAHForked] [InitializeStorageLocationCache] [CacheInitializer.cs:91] [DEBUG] Initialized storage location cache for 11 items on map 0
+[15:24:44.000] [PUAHForked] [LoadGame_PostFix] [HarmonyPatches.cs:339] [DEBUG] PUAH caches initialized for loaded game
+[15:24:49.773] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:251] [DEBUG] -------------------------------------------------------------------
+[15:24:49.773] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:252] [DEBUG] ------------------------------------------------------------------
+[15:24:49.773] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:253] [DEBUG] Mila01 job found to haul: Uranium127570 to (129, 0, 178):75, looking for more now
+[15:24:49.776] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:625] [DEBUG] Mila01 allocating Uranium127570:75, now (129, 0, 178):0
+[15:24:49.776] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:642] [DEBUG] Mila01 overdone (129, 0, 178) by 0
+[15:24:49.776] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:648] [DEBUG] Uranium127570:75 allocated (capacityOver was 0)
+[15:24:49.776] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:317] [DEBUG] Inventory allocated, will carry Uranium127570:48
+[15:24:49.776] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:340] [DEBUG] Looking for more like Uranium127570
+[15:24:49.776] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:567] [DEBUG] New cell for unstackable Uranium127571 = (129, 0, 178)
+[15:24:49.776] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:625] [DEBUG] Mila01 allocating Uranium127571:75, now (129, 0, 178):0
+[15:24:49.776] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:642] [DEBUG] Mila01 overdone (129, 0, 178) by 0
+[15:24:49.776] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:648] [DEBUG] Uranium127571:75 allocated (capacityOver was 0)
+[15:24:49.777] [PUAHForked] [ValidateJobCount] [WorkGiver_HaulToInventory.cs:166] [WARNING] Main job count was -1 for Uranium127570, setting to 1
+[15:24:51.769] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:112] [DEBUG] Mila01 is hauling to inventory Uranium127570:28
+[15:24:51.836] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Uranium127570 from haulable cache for map 0
+[15:24:53.585] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127570 to haulable cache for map 0
+[15:24:53.685] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127581 to cache for map 0: (129, 0, 178)
+[15:24:53.685] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:146] [DEBUG] Mila01 found destination (129, 0, 178) for thing Uranium127581
+[15:24:53.967] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127581 to haulable cache for map 0
+[15:24:54.033] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:251] [DEBUG] -------------------------------------------------------------------
+[15:24:54.033] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:252] [DEBUG] ------------------------------------------------------------------
+[15:24:54.033] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:253] [DEBUG] Mila01 job found to haul: Uranium127581 to (129, 0, 178):47, looking for more now
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:625] [DEBUG] Mila01 allocating Uranium127581:28, now (129, 0, 178):19
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:737] [DEBUG] Uranium127581:28 allocated
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:625] [DEBUG] Mila01 allocating Uranium127572:75, now (129, 0, 178):-56
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:642] [DEBUG] Mila01 overdone (129, 0, 178) by 56
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:676] [DEBUG] Repeated storage detected, allocating partial 19 and aborting further allocation.
+[15:24:54.033] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:317] [DEBUG] Inventory allocated, will carry Uranium127572:76
+[15:24:54.033] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:340] [DEBUG] Looking for more like Uranium127572
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:567] [DEBUG] New cell for unstackable Uranium127571 = (129, 0, 178)
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:625] [DEBUG] Mila01 allocating Uranium127571:75, now (129, 0, 178):-28
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:642] [DEBUG] Mila01 overdone (129, 0, 178) by 28
+[15:24:54.033] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:676] [DEBUG] Repeated storage detected, allocating partial 47 and aborting further allocation.
+[15:24:54.033] [PUAHForked] [ValidateJobCount] [WorkGiver_HaulToInventory.cs:166] [WARNING] Main job count was -1 for Uranium127581, setting to 1
+[15:24:54.033] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:112] [DEBUG] Mila01 is hauling to inventory Uranium127581:28
+[15:24:54.033] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Uranium127581 from haulable cache for map 0
+[15:24:56.133] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:112] [DEBUG] Mila01 is hauling to inventory Uranium127572:0
+[15:25:03.483] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
+[15:44:10.948] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
+[15:44:10.953] [PUAHForked] [InitializePerformanceLogging] [Modbase.cs:31] [DEBUG] PickUpAndHaul performance logging initialized
+[15:44:10.953] [PUAHForked] [InitializeCacheSystem] [Modbase.cs:45] [DEBUG] PickUpAndHaul cache system initialized
+[15:44:14.683] [PUAHForked] [.cctor] [HarmonyPatches.cs:134] [DEBUG] PickUpAndHaul v1.6.0 welcomes you to RimWorld, debug logging is enabled.
+[15:44:14.687] [PUAHForked] [ClearPerformanceLog] [PerformanceLogger.cs:80] [DEBUG] Performance log cleared on startup
+[15:44:14.687] [PUAHForked] [.cctor] [PerformanceLogger.cs:54] [DEBUG] Performance logger initialized
+[15:44:18.811] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127570 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127571 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127572 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127573 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127574 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127575 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127576 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127577 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127578 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127579 to haulable cache for map 0
+[15:44:18.812] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127580 to haulable cache for map 0
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127570 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127571 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127572 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127573 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127574 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127575 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127576 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127577 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127578 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127579 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127580 to cache for map 0: (129, 0, 178)
+[15:44:19.118] [PUAHForked] [InitializeStorageLocationCache] [CacheInitializer.cs:91] [DEBUG] Initialized storage location cache for 11 items on map 0
+[15:44:19.118] [PUAHForked] [LoadGame_PostFix] [HarmonyPatches.cs:355] [DEBUG] PUAH caches initialized for loaded game
+[15:44:24.175] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:272] [DEBUG] -------------------------------------------------------------------
+[15:44:24.175] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:273] [DEBUG] ------------------------------------------------------------------
+[15:44:24.175] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:274] [DEBUG] Mila01 job found to haul: Uranium127570 to (129, 0, 178):75, looking for more now
+[15:44:24.179] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:646] [DEBUG] Mila01 allocating Uranium127570:75, now (129, 0, 178):0
+[15:44:24.179] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:663] [DEBUG] Mila01 overdone (129, 0, 178) by 0
+[15:44:24.179] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:669] [DEBUG] Uranium127570:75 allocated (capacityOver was 0)
+[15:44:24.179] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:338] [DEBUG] Inventory allocated, will carry Uranium127570:48
+[15:44:24.179] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:361] [DEBUG] Looking for more like Uranium127570
+[15:44:24.180] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:588] [DEBUG] New cell for unstackable Uranium127571 = (129, 0, 178)
+[15:44:24.180] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:646] [DEBUG] Mila01 allocating Uranium127571:75, now (129, 0, 178):0
+[15:44:24.180] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:663] [DEBUG] Mila01 overdone (129, 0, 178) by 0
+[15:44:24.180] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:669] [DEBUG] Uranium127571:75 allocated (capacityOver was 0)
+[15:44:24.180] [PUAHForked] [ValidateJobCount] [WorkGiver_HaulToInventory.cs:179] [WARNING] Main job count was -1 for Uranium127570, setting to 1
+[15:44:25.584] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:112] [DEBUG] Mila01 is hauling to inventory Uranium127570:28
+[15:44:25.655] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Uranium127570 from haulable cache for map 0
+[15:44:27.401] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127570 to haulable cache for map 0
+[15:44:27.501] [PUAHForked] [AddToStorageLocationCache] [PUAHHaulCaches.cs:183] [DEBUG] Added storage location for Uranium127581 to cache for map 0: (129, 0, 178)
+[15:44:27.501] [PUAHForked] [FindTargetOrDrop] [JobDriver_UnloadYourHauledInventory.cs:146] [DEBUG] Mila01 found destination (129, 0, 178) for thing Uranium127581
+[15:44:27.783] [PUAHForked] [AddToHaulableCache] [PUAHHaulCaches.cs:114] [DEBUG] Added Uranium127581 to haulable cache for map 0
+[15:44:27.849] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:272] [DEBUG] -------------------------------------------------------------------
+[15:44:27.849] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:273] [DEBUG] ------------------------------------------------------------------
+[15:44:27.849] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:274] [DEBUG] Mila01 job found to haul: Uranium127581 to (129, 0, 178):47, looking for more now
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:646] [DEBUG] Mila01 allocating Uranium127581:28, now (129, 0, 178):19
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:758] [DEBUG] Uranium127581:28 allocated
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:646] [DEBUG] Mila01 allocating Uranium127572:75, now (129, 0, 178):-56
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:663] [DEBUG] Mila01 overdone (129, 0, 178) by 56
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:697] [DEBUG] Repeated storage detected, allocating partial 19 and aborting further allocation.
+[15:44:27.849] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:338] [DEBUG] Inventory allocated, will carry Uranium127572:76
+[15:44:27.849] [PUAHForked] [JobOnThing] [WorkGiver_HaulToInventory.cs:361] [DEBUG] Looking for more like Uranium127572
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:588] [DEBUG] New cell for unstackable Uranium127571 = (129, 0, 178)
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:646] [DEBUG] Mila01 allocating Uranium127571:75, now (129, 0, 178):-28
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:663] [DEBUG] Mila01 overdone (129, 0, 178) by 28
+[15:44:27.849] [PUAHForked] [AllocateThingAtCell] [WorkGiver_HaulToInventory.cs:697] [DEBUG] Repeated storage detected, allocating partial 47 and aborting further allocation.
+[15:44:27.849] [PUAHForked] [ValidateJobCount] [WorkGiver_HaulToInventory.cs:179] [WARNING] Main job count was -1 for Uranium127581, setting to 1
+[15:44:27.849] [PUAHForked] [MakeNewToils] [JobDriver_HaulToInventory.cs:112] [DEBUG] Mila01 is hauling to inventory Uranium127581:28
+[15:44:27.849] [PUAHForked] [RemoveFromHaulableCache] [PUAHHaulCaches.cs:130] [DEBUG] Removed Uranium127581 from haulable cache for map 0
+[15:44:37.891] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.
