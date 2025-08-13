@@ -1,16 +1,20 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using PartialReservationSystem;
+using Verse;
+using Verse.AI;
 
-namespace PickUpAndHaul;
+namespace PartialReservationSystem
+{
 
 internal static class Log
 {
-	private static readonly string DEBUG_LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PickUpAndHaulForked.log");
+	private static readonly string DEBUG_LOG_FILE_PATH = Path.Combine(GenFilePaths.SaveDataFolderPath, "PartialReservationSystem.log");
 	private static readonly object _fileLock = new();
 	private static readonly object _queueLock = new();
 	private static readonly Queue<LogEntry> _logQueue = new();
@@ -64,7 +68,7 @@ internal static class Log
 				_logThread = new Thread(LogWorkerThread)
 				{
 					IsBackground = true,
-					Name = "PickUpAndHaul Debug Logger"
+					Name = "PartialReservationSystem Debug Logger"
 				};
 				_logThread.Start();
 
@@ -106,7 +110,7 @@ internal static class Log
 			// Monitor for job-related errors by intercepting common job failure points
 			// This will help catch errors that occur in RimWorld's job system
 			// Note: Don't call Message() here to avoid circular dependency during initialization
-			Verse.Log.Message("PickUpAndHaul: Job system monitoring initialized");
+			Verse.Log.Message("PartialReservationSystem: Job system monitoring initialized");
 
 			// Set up additional monitoring for cross-mod compatibility
 			SetupCrossModMonitoring();
@@ -123,7 +127,7 @@ internal static class Log
 		{
 			// Monitor for mod interaction errors
 			// Note: Don't call Message() here to avoid circular dependency during initialization
-			Verse.Log.Message("PickUpAndHaul: Cross-mod monitoring initialized");
+			Verse.Log.Message("PartialReservationSystem: Cross-mod monitoring initialized");
 
 			// Log loaded mods for debugging compatibility issues
 			var loadedMods = LoadedModManager.RunningModsListForReading
@@ -131,13 +135,10 @@ internal static class Log
 				.Select(m => m.PackageId)
 				.ToList();
 
-			Verse.Log.Message($"PickUpAndHaul: Loaded mods: {string.Join(", ", loadedMods)}");
+			Verse.Log.Message($"PartialReservationSystem: Loaded mods: {string.Join(", ", loadedMods)}");
 
-            // Set up RimWorld error interception
-            SetupRimWorldErrorInterception();
-
-            // Initialize PRS debug file too to keep both logs fresh when both systems are present
-            try { PartialReservationSystem.Log.ClearDebugLogFile(); } catch { }
+			// Set up RimWorld error interception
+			SetupRimWorldErrorInterception();
 		}
 		catch (Exception ex)
 		{
@@ -151,7 +152,7 @@ internal static class Log
 		{
 			// Monitor for RimWorld errors that might be related to our mod
 			// Note: Don't call Message() here to avoid circular dependency during initialization
-			Verse.Log.Message("PickUpAndHaul: RimWorld error interception initialized");
+			Verse.Log.Message("PartialReservationSystem: RimWorld error interception initialized");
 
 			// We'll use Harmony to patch Verse.Log.Error to capture relevant errors
 			// This will be set up in the HarmonyPatches.cs file
@@ -210,6 +211,40 @@ internal static class Log
 		
 		if (Settings.EnableDebugLogging)
 			QueueLogEntry($"[DEBUG] {x}", memberName, sourceFilePath, sourceLineNumber);
+	}
+
+	/// <summary>
+	/// Log debug messages - only logged when debug logging is enabled
+	/// </summary>
+	[Conditional("DEBUG")]
+	public static void Debug(string x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+	{
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
+		if (Settings.EnableDebugLogging)
+		{
+			Verse.Log.Message($"[DEBUG] {x}");
+			QueueLogEntry($"[DEBUG] {x}", memberName, sourceFilePath, sourceLineNumber);
+		}
+	}
+
+	/// <summary>
+	/// Log informational messages - always logged regardless of debug settings
+	/// </summary>
+	public static void Info(string x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+	{
+		// If not initialized and not currently initializing, try to initialize
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+		
+		Verse.Log.Message($"[INFO] {x}");
+		QueueLogEntry($"[INFO] {x}", memberName, sourceFilePath, sourceLineNumber);
 	}
 
 	public static void Warning(string x,
@@ -348,9 +383,9 @@ internal static class Log
 				var stackFrames = ex.StackTrace.Split('\n');
 				foreach (var frame in stackFrames.Take(5)) // Check first 5 frames
 				{
-					if (frame.Contains("PickUpAndHaul", StringComparison.OrdinalIgnoreCase))
+					if (frame.Contains("PartialReservationSystem", StringComparison.OrdinalIgnoreCase))
 					{
-						context.Add("Stack: Contains PickUpAndHaul");
+						context.Add("Stack: Contains PartialReservationSystem");
 						break;
 					}
 				}
@@ -400,15 +435,16 @@ internal static class Log
 		// Add current mod load order context
 		try
 		{
-			var currentMod = LoadedModManager.GetMod(typeof(Modbase));
-			if (currentMod != null)
+			// Determine our own package id via About.xml packageId
+			try
 			{
-				// Find our mod in the running mods list
+				var ourModPkgId = "pkp.PartialReservationSystem";
+				var mods = LoadedModManager.RunningModsListForReading;
 				var modIndex = -1;
-				for (var i = 0; i < LoadedModManager.RunningModsListForReading.Count; i++)
+				for (var i = 0; i < mods.Count; i++)
 				{
-					var mod = LoadedModManager.RunningModsListForReading[i];
-					if (mod.PackageId == currentMod.Content.PackageId)
+					var m = mods[i];
+					if (string.Equals(m?.PackageId, ourModPkgId, StringComparison.OrdinalIgnoreCase))
 					{
 						modIndex = i;
 						break;
@@ -419,6 +455,7 @@ internal static class Log
 					context.Add($"Our Mod Load Order: {modIndex}");
 				}
 			}
+			catch { /* ignore */ }
 		}
 		catch
 		{
@@ -645,7 +682,7 @@ internal static class Log
 
 				var fileName = Path.GetFileName(sourceFilePath);
 				var timestamp = DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
-				var logEntry = $"[{timestamp}] [PUAHForked] [{memberName}] [{fileName}:{sourceLineNumber}] {message}";
+				var logEntry = $"[{timestamp}] [PRS] [{memberName}] [{fileName}:{sourceLineNumber}] {message}";
 				_sw.WriteLine(logEntry);
 				_sw.Flush();
 			}
@@ -675,7 +712,7 @@ internal static class Log
 
 			// Write initialization message
 			var timestamp = DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
-			var initMessage = $"[{timestamp}] [PUAHForked] [InitStreamWriter] [DebugLog.cs:0] PickUpAndHaul Debug Logger initialized.";
+			var initMessage = $"[{timestamp}] [PRS] [InitStreamWriter] [DebugLog.cs:0] PartialReservationSystem Debug Logger initialized.";
 			_sw.WriteLine(initMessage);
 			_sw.Flush();
 		}
@@ -771,16 +808,16 @@ internal static class Log
 				InitStreamWriter();
 
 				var timestamp = DateTime.Now.ToString("HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
-				var logEntry = $"[{timestamp}] [PUAHForked] [ClearDebugLogFile] [DebugLog.cs:0] Debug log file cleared.";
+				var logEntry = $"[{timestamp}] [PRS] [ClearDebugLogFile] [DebugLog.cs:0] Debug log file cleared.";
 
 				// Check if stream writer was successfully initialized
-#pragma warning disable CA1508 //ignore the warning
+				#pragma warning disable CA1508 //ignore the warning
 				if (_sw != null)
 				{
 					_sw.WriteLine(logEntry);
 					_sw.Flush();
 				}
-#pragma warning restore CA1508
+				#pragma warning restore CA1508
 			}
 		}
 		catch (Exception ex)
@@ -871,4 +908,36 @@ internal static class Log
 		public int SourceLineNumber { get; set; }
 		public DateTime Timestamp { get; set; }
 	}
+	// Alias class to provide DebugLog interface expected by the codebase
+	internal static class DebugLog
+	{
+		[Conditional("DEBUG")]
+		public static void Debug(string x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+		{
+			Log.Message(x, memberName, sourceFilePath, sourceLineNumber);
+		}
+
+		public static void Info(string x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+		{
+			Log.Info(x, memberName, sourceFilePath, sourceLineNumber);
+		}
+
+		public static void Warning(string x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+		{
+			Log.Warning(x, memberName, sourceFilePath, sourceLineNumber);
+		}
+
+		public static void Error(string x, [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+		{
+			Log.Error(x, memberName, sourceFilePath, sourceLineNumber);
+		}
+
+		public static void Error(Exception ex, string context = "", [CallerMemberName] string memberName = "", [CallerFilePath] string sourceFilePath = "", [CallerLineNumber] int sourceLineNumber = 0)
+		{
+			Log.Error(ex, context, memberName, sourceFilePath, sourceLineNumber);
+		}
+	}
 }
+}
+
+

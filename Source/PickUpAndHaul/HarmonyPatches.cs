@@ -68,6 +68,16 @@ internal static class HarmonyPatches
 		harmony.Patch(original: AccessTools.Method(typeof(Game), nameof(Game.LoadGame)),
 			postfix: new HarmonyMethod(typeof(HarmonyPatches), nameof(LoadGame_PostFix)));
 
+		// PRS: PatchAll for embedded PRS namespace
+		try
+		{
+			PartialReservationSystem.PRSMod_Integrator.Initialize();
+		}
+		catch (Exception ex)
+		{
+			Log.Error($"Failed to patch PRS: {ex.Message}");
+		}
+
 		// Add patch to prevent null reference exceptions in HaulAIUtility.PawnCanAutomaticallyHaulFast
 		harmony.Patch(original: AccessTools.Method(typeof(HaulAIUtility), nameof(HaulAIUtility.PawnCanAutomaticallyHaulFast)),
 			prefix: new HarmonyMethod(typeof(HarmonyPatches), nameof(PawnCanAutomaticallyHaulFast_Prefix)));
@@ -320,6 +330,12 @@ internal static class HarmonyPatches
 		{
 			// Ensure the cache updater is added to the map
 			CacheUpdaterHelper.EnsureCacheUpdater(__instance);
+
+			// Ensure PRS cleanup component is added to the map
+			if (__instance.GetComponent<PartialReservationSystem.PRS_MapComponent>() == null)
+			{
+				__instance.components.Add(new PartialReservationSystem.PRS_MapComponent(__instance));
+			}
 		}
 		catch (Exception ex)
 		{

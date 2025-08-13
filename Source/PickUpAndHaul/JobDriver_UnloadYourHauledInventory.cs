@@ -153,6 +153,14 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					EndJobWith(JobCondition.Incompletable);
 					return;
 				}
+				else
+				{
+					// Record a partial destination reservation in PRS so other pawns can share the destination
+					var destLoc = job.targetB.HasThing
+						? new PartialReservationSystem.PRSReservationSystem.StorageLocation(job.targetB.Thing)
+						: new PartialReservationSystem.PRSReservationSystem.StorageLocation(job.targetB.Cell);
+					PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(pawn, unloadableThing.Thing, unloadableThing.Thing.stackCount, destLoc, job, pawn.Map);
+				}
 				_countToDrop = unloadableThing.Thing.stackCount;
 			}
 			else

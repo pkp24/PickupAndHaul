@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using PickUpAndHaul.Cache;
 using System.Threading;
+using PartialReservationSystem;
 
 namespace PickUpAndHaul;
 
@@ -113,7 +114,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
 		var capacityStoreCell = storeTarget.container is null 
-			? CapacityAt(thing, storeTarget.cell, pawn.Map)
+			? PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(storeTarget.cell), thing, pawn.Map)
 			: nonSlotGroupThingOwner.GetCountCanAccept(thing);
 
 		if (capacityStoreCell == 0)
@@ -237,7 +238,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		//credit to Dingo
 		var capacityStoreCell
-			= storeTarget.container is null ? CapacityAt(thing, storeTarget.cell, map)
+			= storeTarget.container is null ? PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(storeTarget.cell), thing, map)
 			: nonSlotGroupThingOwner.GetCountCanAccept(thing);
 
 		if (capacityStoreCell == 0)
@@ -693,7 +694,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						storeCell = new(nextStoreCell);
 						job.targetQueueB.Add(nextStoreCell);
 
-						var capacity = CapacityAt(nextThing, nextStoreCell, map) - capacityOver;
+						var capacity = PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(nextStoreCell), nextThing, map) - capacityOver;
 						storeCellCapacity[storeCell] = new(nextThing, capacity);
 
 						Log.Message($"New cell {nextStoreCell}:{capacity}, allocated extra {capacityOver}");
