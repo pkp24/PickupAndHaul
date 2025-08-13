@@ -616,164 +616,192 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		// Ensure the chosen storage spot (cell or container) is actually reservable; otherwise look for an alternative.
 		// This prevents all pawns targeting the same cell and spamming reservation-failure errors.
-		bool reservable;
-		if (storeCell.container != null)
-		{
-			reservable = TryReserveSafely(pawn, storeCell.container, job, 1, -1, null, false);
-		}
-		else
-		{
-			reservable = TryReserveSafely(pawn, storeCell.cell, job, 1, -1, null, false);
-		}
+		var initialBCount = job.targetQueueB?.Count ?? 0;
+		bool reserved = false;
+		StoreTarget reservedTarget = default;
+		bool itemQueued = false;
+		bool countQueued = false;
+		int relocationHops = 0;
+		const int maxRelocationHops = 8;
 
-		if (!reservable)
-		{
-			// Mark this spot so we don't consider it again this haul cycle and bail out – caller will try another.
-			if (storeCell.container != null)
-				skipContext.AddSkipThing(storeCell.container);
-			else
-				skipContext.AddSkipCell(storeCell.cell);
-
-			return false;
-		}
- 
-		// Track reservation state properly to fix the reservation leak
-		bool itemAddedToQueue = false;
 		try
 		{
+			// Try to reserve the initial target
+			reserved = storeCell.container != null
+				? TryReserveSafely(pawn, storeCell.container, job, 1, -1, null, false)
+				: TryReserveSafely(pawn, storeCell.cell, job, 1, -1, null, false);
+			if (!reserved)
+			{
+				if (storeCell.container != null)
+					skipContext.AddSkipThing(storeCell.container);
+				else
+					skipContext.AddSkipCell(storeCell.cell);
+				return false;
+			}
+			reservedTarget = storeCell;
+
 			job.targetQueueA.Add(nextThing);
-			itemAddedToQueue = true; // Mark that we successfully added to queue
-			
+			itemQueued = true;
+
 			var count = nextThing.stackCount;
 			storeCellCapacity[storeCell].capacity -= count;
 			Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}");
 
 			while (storeCellCapacity[storeCell].capacity <= 0)
 			{
+				if (++relocationHops > maxRelocationHops)
+				{
+					var capacityOverHop = -storeCellCapacity[storeCell].capacity;
+					storeCellCapacity.Remove(storeCell);
+					if (storeCell.container != null) skipContext.AddSkipThing(storeCell.container); else skipContext.AddSkipCell(storeCell.cell);
+					var adjustedHop = Math.Max(0, count - capacityOverHop);
+					if (adjustedHop > 0)
+					{
+						job.countQueue.Add(adjustedHop);
+						countQueued = true;
+						Log.Message($"Relocation hop limit reached; partially allocating {adjustedHop} and stopping for {nextThing}");
+						return true;
+					}
+					else
+					{
+						Log.Message($"Relocation hop limit reached; no capacity left for {nextThing}");
+						return false;
+					}
+				}
+
 				var capacityOver = -storeCellCapacity[storeCell].capacity;
 				storeCellCapacity.Remove(storeCell);
-
-				// Prevent cycling on the same exhausted cell/container again
-				if (storeCell.container != null)
-				{
-					skipContext.AddSkipThing(storeCell.container);
-				}
-				else
-				{
-					skipContext.AddSkipCell(storeCell.cell);
-				}
-
+				if (storeCell.container != null) { skipContext.AddSkipThing(storeCell.container); } else { skipContext.AddSkipCell(storeCell.cell); }
 				Log.Message($"{pawn} overdone {storeCell} by {capacityOver}");
 
-				// Fix for infinite loop: when capacity is exactly met, break out
 				if (capacityOver == 0)
 				{
 					job.countQueue.Add(count);
-					Log.Message($"{nextThing}:{count} allocated (capacityOver was 0)");
+					countQueued = true;
+					Log.Message($"{nextThing}:{count} allocated (capacity exactly matched)");
 					return true;
+				}
+
+				// Release previous reservation before moving to the next storage target
+				if (reserved)
+				{
+					ReleaseReservationSafely(pawn, reservedTarget, job);
+					reserved = false;
+					reservedTarget = default;
 				}
 
 				var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
 				if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner, this))
 				{
-					// Fix for unreliable repeated storage detection: properly compare storage types
 					bool isRepeatedStorage = false;
-					if (innerInteractableThingOwner is null && storeCell.container is null)
-					{
-						// Both are cell-based storage
-						isRepeatedStorage = nextStoreCell == storeCell.cell;
-					}
-					else if (innerInteractableThingOwner is not null && storeCell.container is not null)
-					{
-						// Both are container-based storage
-						isRepeatedStorage = nextHaulDestination == storeCell.container;
-					}
-					// If storage types don't match, they're not the same storage
+					if (innerInteractableThingOwner is null && storeCell.container is null) isRepeatedStorage = nextStoreCell == storeCell.cell;
+					else if (innerInteractableThingOwner is not null && storeCell.container is not null) isRepeatedStorage = nextHaulDestination == storeCell.container;
 
 					if (isRepeatedStorage)
 					{
-						// Fix for incorrect item count reduction: ensure count doesn't go negative
 						var adjustedCount = Math.Max(0, count - capacityOver);
 						if (adjustedCount > 0)
 						{
 							job.countQueue.Add(adjustedCount);
-							Log.Message($"Repeated storage detected, allocating partial {adjustedCount} and aborting further allocation.");
+							countQueued = true;
+							Log.Message($"Same storage returned again; allocated partial {adjustedCount} for {nextThing} and stopping relocation.");
 							return true;
 						}
 						else
 						{
-							// Remove from targetQueueA since we can't allocate any count
-							if (itemAddedToQueue && job.targetQueueA.Count > 0)
-							{
-								job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-							}
-							Log.Message($"Repeated storage detected but no capacity remaining, removing from queue.");
+							Log.Message($"Same storage returned again but no capacity remaining; removing {nextThing} from queue.");
 							return false;
 						}
 					}
 
 					if (innerInteractableThingOwner is null)
 					{
-						storeCell = new(nextStoreCell);
+						var candidate = new StoreTarget(nextStoreCell);
+						var reservedNew = TryReserveSafely(pawn, candidate.cell, job, 1, -1, null, false);
+						if (!reservedNew)
+						{
+							skipContext.AddSkipCell(candidate.cell);
+							continue;
+						}
+
+						reserved = true;
+						reservedTarget = candidate;
+						storeCell = candidate;
 						job.targetQueueB.Add(nextStoreCell);
-
 						var capacity = PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(nextStoreCell), nextThing, map) - capacityOver;
-						storeCellCapacity[storeCell] = new(nextThing, capacity);
-
-						Log.Message($"New cell {nextStoreCell}:{capacity}, allocated extra {capacityOver}");
+						storeCellCapacity[storeCell] = new(nextThing, Math.Max(0, capacity));
+						Log.Message($"New cell {nextStoreCell}:{storeCellCapacity[storeCell].capacity}, allocated extra {capacityOver}");
 					}
 					else
 					{
 						var destinationAsThing = (Thing)nextHaulDestination;
-						storeCell = new(destinationAsThing);
+						var candidate = new StoreTarget(destinationAsThing);
+						var reservedNew = TryReserveSafely(pawn, candidate.container, job, 1, -1, null, false);
+						if (!reservedNew)
+						{
+							skipContext.AddSkipThing(candidate.container);
+							continue;
+						}
+
+						reserved = true;
+						reservedTarget = candidate;
+						storeCell = candidate;
 						job.targetQueueB.Add(destinationAsThing);
-
 						var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
-
-						storeCellCapacity[storeCell] = new(nextThing, capacity);
-
-						Log.Message($"New haulDestination {nextHaulDestination}:{capacity}, allocated extra {capacityOver}");
+						storeCellCapacity[storeCell] = new(nextThing, Math.Max(0, capacity));
+						Log.Message($"New haulDestination {nextHaulDestination}:{storeCellCapacity[storeCell].capacity}, allocated extra {capacityOver}");
 					}
 				}
 				else
 				{
-					// Fix for incorrect item count reduction: ensure count doesn't go negative
 					var adjustedCount = Math.Max(0, count - capacityOver);
 					if (adjustedCount > 0)
 					{
 						job.countQueue.Add(adjustedCount);
-						Log.Message($"Nowhere else to store, allocated {nextThing}:{adjustedCount}");
+						countQueued = true;
+						Log.Message($"No alternative storage found; partially allocating {adjustedCount} for {nextThing}");
 						return true;
 					}
 					else
 					{
-						// Remove from targetQueueA since we can't allocate any count
-						if (itemAddedToQueue && job.targetQueueA.Count > 0)
-						{
-							job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
-						}
-						Log.Message($"Nowhere else to store and no capacity remaining, removing {nextThing} from queue.");
+						Log.Message($"No alternative storage found and no capacity remaining for {nextThing}");
 						return false;
 					}
 				}
 			}
+
 			job.countQueue.Add(count);
+			countQueued = true;
 			Log.Message($"{nextThing}:{count} allocated");
 			return true;
 		}
 		catch (System.Exception ex)
 		{
-			// Log the exception but don't change reservation tracking
 			Log.Warning($"Exception during allocation for {nextThing} by {pawn}: {ex.Message}");
-			throw;
+			return false;
 		}
 		finally
 		{
-			// Release reservation if we made one but failed to add item to queue
-			if (!itemAddedToQueue)
+			if (!countQueued)
 			{
-				ReleaseReservationSafely(pawn, storeCell, job);
-				Log.Message($"Released orphaned reservation for {nextThing} at {storeCell}");
+				if (itemQueued && job.targetQueueA.Count > 0 && job.targetQueueA[job.targetQueueA.Count - 1] == nextThing)
+				{
+					job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+				}
+
+				if (job.targetQueueB != null)
+				{
+					while (job.targetQueueB.Count > initialBCount)
+					{
+						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+					}
+				}
+
+				if (reserved)
+				{
+					ReleaseReservationSafely(pawn, reservedTarget, job);
+					Log.Message($"Released reservation for {nextThing} at {reservedTarget}");
+				}
 			}
 		}
 	}
