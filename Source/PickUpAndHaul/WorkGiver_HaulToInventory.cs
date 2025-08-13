@@ -619,10 +619,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var initialBCount = job.targetQueueB?.Count ?? 0;
 		bool reserved = false;
 		StoreTarget reservedTarget = default;
+		// Track all reservations made inside this call so we can release stale ones
+		var reservedTargets = new List<StoreTarget>();
 		bool itemQueued = false;
 		bool countQueued = false;
 		int relocationHops = 0;
 		const int maxRelocationHops = 8;
+		// Flag that indicates we actually finished with a valid allocation and want to keep the final reservation
+		bool allocationSucceeded = false;
 
 		try
 		{
@@ -639,6 +643,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				return false;
 			}
 			reservedTarget = storeCell;
+			reservedTargets.Add(reservedTarget);
 
 			job.targetQueueA.Add(nextThing);
 			itemQueued = true;
@@ -660,6 +665,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						job.countQueue.Add(adjustedHop);
 						countQueued = true;
 						Log.Message($"Relocation hop limit reached; partially allocating {adjustedHop} and stopping for {nextThing}");
+						allocationSucceeded = true;
 						return true;
 					}
 					else
@@ -679,13 +685,24 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					job.countQueue.Add(count);
 					countQueued = true;
 					Log.Message($"{nextThing}:{count} allocated (capacity exactly matched)");
+					allocationSucceeded = true;
 					return true;
 				}
 
 				// Release previous reservation before moving to the next storage target
 				if (reserved)
 				{
-					ReleaseReservationSafely(pawn, reservedTarget, job);
+					var prevTarget = reservedTarget;
+					ReleaseReservationSafely(pawn, prevTarget, job);
+					// Remove from tracking list if present
+					for (int i = reservedTargets.Count - 1; i >= 0; i--)
+					{
+						if (reservedTargets[i].Equals(prevTarget))
+						{
+							reservedTargets.RemoveAt(i);
+							break;
+						}
+					}
 					reserved = false;
 					reservedTarget = default;
 				}
@@ -705,6 +722,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 							job.countQueue.Add(adjustedCount);
 							countQueued = true;
 							Log.Message($"Same storage returned again; allocated partial {adjustedCount} for {nextThing} and stopping relocation.");
+							allocationSucceeded = true;
 							return true;
 						}
 						else
@@ -726,6 +744,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 						reserved = true;
 						reservedTarget = candidate;
+						reservedTargets.Add(candidate);
 						storeCell = candidate;
 						job.targetQueueB.Add(nextStoreCell);
 						var capacity = PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(nextStoreCell), nextThing, map) - capacityOver;
@@ -745,6 +764,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 						reserved = true;
 						reservedTarget = candidate;
+						reservedTargets.Add(candidate);
 						storeCell = candidate;
 						job.targetQueueB.Add(destinationAsThing);
 						var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
@@ -760,6 +780,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						job.countQueue.Add(adjustedCount);
 						countQueued = true;
 						Log.Message($"No alternative storage found; partially allocating {adjustedCount} for {nextThing}");
+						allocationSucceeded = true;
 						return true;
 					}
 					else
@@ -773,22 +794,29 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			job.countQueue.Add(count);
 			countQueued = true;
 			Log.Message($"{nextThing}:{count} allocated");
+			allocationSucceeded = true;
 			return true;
 		}
 		catch (System.Exception ex)
 		{
 			Log.Warning($"Exception during allocation for {nextThing} by {pawn}: {ex.Message}");
+			// Ensure the finally block performs full cleanup
+			countQueued = false;
+			allocationSucceeded = false;
 			return false;
 		}
 		finally
 		{
-			if (!countQueued)
+			// Normalize targetQueueB and release any stray reservations
+			if (!allocationSucceeded)
 			{
+				// Roll back any work we queued for this item
 				if (itemQueued && job.targetQueueA.Count > 0 && job.targetQueueA[job.targetQueueA.Count - 1] == nextThing)
 				{
 					job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
 				}
 
+				// Remove any B targets appended by this method
 				if (job.targetQueueB != null)
 				{
 					while (job.targetQueueB.Count > initialBCount)
@@ -797,10 +825,47 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					}
 				}
 
-				if (reserved)
+				// Release all reservations made inside this call
+				for (int i = reservedTargets.Count - 1; i >= 0; i--)
 				{
-					ReleaseReservationSafely(pawn, reservedTarget, job);
-					Log.Message($"Released reservation for {nextThing} at {reservedTarget}");
+					ReleaseReservationSafely(pawn, reservedTargets[i], job);
+				}
+			}
+			else
+			{
+				// Keep only the final reservation (if any) and prune B to a single final target
+				if (job.targetQueueB != null)
+				{
+					while (job.targetQueueB.Count > initialBCount)
+					{
+						job.targetQueueB.RemoveAt(job.targetQueueB.Count - 1);
+					}
+
+					if (reserved)
+					{
+						// Re-append only the final reserved target
+						if (reservedTarget.container != null)
+						{
+							job.targetQueueB.Add(reservedTarget.container);
+						}
+						else
+						{
+							job.targetQueueB.Add(reservedTarget.cell);
+						}
+					}
+				}
+
+				// Release any reservations that aren't the final one we kept
+				if (reservedTargets.Count > 0)
+				{
+					for (int i = reservedTargets.Count - 1; i >= 0; i--)
+					{
+						var t = reservedTargets[i];
+						if (!reserved || !t.Equals(reservedTarget))
+						{
+							ReleaseReservationSafely(pawn, t, job);
+						}
+					}
 				}
 			}
 		}
