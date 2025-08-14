@@ -645,7 +645,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		// Ensure the chosen storage spot (cell or container) is actually reservable; otherwise look for an alternative.
 		// This prevents all pawns targeting the same cell and spamming reservation-failure errors.
-		var initialBCount = job.targetQueueB?.Count ?? 0;
+			var initialBCount = job.targetQueueB?.Count ?? 0;
+			var initialACount = job.targetQueueA?.Count ?? 0;
+			var initialCountCount = job.countQueue?.Count ?? 0;
 		bool reserved = false;
 		StoreTarget reservedTarget = default;
 		// Track all reservations made inside this call so we can release stale ones
@@ -805,6 +807,23 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					{
 						job.countQueue.Add(adjustedCount);
 						countQueued = true;
+						// Attempt to re-bind the original store target for the partial amount so B stays aligned
+						var prsLocPartial = storeCell.container != null
+							? new PartialReservationSystem.PRSReservationSystem.StorageLocation(storeCell.container)
+							: new PartialReservationSystem.PRSReservationSystem.StorageLocation(storeCell.cell, map);
+						var reservedPartial = storeCell.container != null
+							? TryReserveSafely(pawn, storeCell.container, job, 1, -1, null, false)
+							: TryReserveSafely(pawn, storeCell.cell, job, 1, -1, null, false);
+						if (reservedPartial)
+						{
+							reserved = true;
+							reservedTarget = storeCell;
+							reservedTargets.Add(reservedTarget);
+							if (PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(pawn, nextThing, adjustedCount, prsLocPartial, job, map))
+							{
+								PickUpAndHaul.Log.Message($"WG pre-reserved (fallback) {adjustedCount}x{nextThing.def.defName} at {(prsLocPartial.IsContainer ? prsLocPartial.Container.ToString() : prsLocPartial.Cell.ToString())}", pawn);
+							}
+						}
 						Log.Message($"No alternative storage found; partially allocating {adjustedCount} for {nextThing}", pawn);
 						allocationSucceeded = true;
 						return true;
@@ -844,10 +863,13 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			// Normalize targetQueueB and release any stray reservations
 			if (!allocationSucceeded)
 			{
-				// Roll back any work we queued for this item
-				if (itemQueued && job.targetQueueA.Count > 0 && job.targetQueueA[job.targetQueueA.Count - 1] == nextThing)
+				// Roll back targetQueueA to its initial length
+				if (job.targetQueueA != null)
 				{
-					job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+					while (job.targetQueueA.Count > initialACount)
+					{
+						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+					}
 				}
 
 				// Remove any B targets appended by this method
@@ -859,6 +881,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					}
 				}
 
+				// Roll back countQueue to its initial length
+				if (job.countQueue != null)
+				{
+					while (job.countQueue.Count > initialCountCount)
+					{
+						job.countQueue.RemoveAt(job.countQueue.Count - 1);
+					}
+				}
+
 				// Release all reservations made inside this call
 				for (int i = reservedTargets.Count - 1; i >= 0; i--)
 				{
@@ -867,6 +898,34 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			}
 			else
 			{
+				// On success, enforce that exactly one A and one count were added.
+				if (job.targetQueueA != null && job.countQueue != null)
+				{
+					var addedA = job.targetQueueA.Count - initialACount;
+					var addedC = job.countQueue.Count - initialCountCount;
+					while (addedA > 1)
+					{
+						job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+						addedA--;
+					}
+					while (addedC > 1)
+					{
+						job.countQueue.RemoveAt(job.countQueue.Count - 1);
+						addedC--;
+					}
+					if (addedA != addedC)
+					{
+						if (addedA > addedC && job.targetQueueA.Count > 0)
+						{
+							job.targetQueueA.RemoveAt(job.targetQueueA.Count - 1);
+						}
+						else if (addedC > addedA && job.countQueue.Count > 0)
+						{
+							job.countQueue.RemoveAt(job.countQueue.Count - 1);
+						}
+					}
+				}
+
 				// Keep only the final reservation (if any) and prune B to a single final target
 				if (job.targetQueueB != null)
 				{
@@ -885,6 +944,18 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						else
 						{
 							job.targetQueueB.Add(reservedTarget.cell);
+						}
+					}
+					else
+					{
+						// Fallback to append the current storeCell to keep B aligned even if we couldn't hold a reservation
+						if (storeCell.container != null)
+						{
+							job.targetQueueB.Add(storeCell.container);
+						}
+						else if (storeCell.cell != default)
+						{
+							job.targetQueueB.Add(storeCell.cell);
 						}
 					}
 				}
