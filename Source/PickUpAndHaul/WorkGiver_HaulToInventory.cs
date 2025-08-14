@@ -44,15 +44,17 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			.Where(t => t != null && t.Spawned && !t.Destroyed) // Additional safety filter
 			.ToList();
 		
-		Comparer.rootCell = pawn.Position;
-		cachedHaulables.Sort(Comparer);
+		cachedHaulables.Sort(new ThingPositionComparer(pawn.Position));
 		return cachedHaulables;
 	}
 
-	private static ThingPositionComparer Comparer { get; } = new();
 	public class ThingPositionComparer : IComparer<Thing>
 	{
-		public IntVec3 rootCell;
+		public readonly IntVec3 rootCell;
+		public ThingPositionComparer(IntVec3 rootCell)
+		{
+			this.rootCell = rootCell;
+		}
 		public int Compare(Thing x, Thing y)
 		{
 			// Handle null cases
@@ -133,7 +135,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		if (capacityStoreCell == 0)
 		{
-			// JobOnThing will try HaulToStorageJob when no capacity - check if that would succeed
+			// Double-check across all valid storage if there is any PRS-available capacity left for this thing.
+			// If none (all reserved/pending), do NOT offer a PUAH job to avoid over-pickup by another pawn.
+			int totalAvailable = 0;
+			var priority = StoreUtility.CurrentStoragePriorityOf(thing);
+			foreach (var loc in PRSReservationSystem.GetAllValidStorageLocations(thing, pawn, pawn.Map, priority, pawn.Faction))
+			{
+				var cap = PRSReservationSystem.GetAvailableCapacity(loc, thing, pawn.Map);
+				totalAvailable += cap;
+				if (totalAvailable > 0) break;
+			}
+			if (totalAvailable <= 0)
+			{
+				return false;
+			}
+
+			// Otherwise, let vanilla fallback HaulToStorage be considered.
 			return StoreUtility.TryFindBestBetterStorageFor(thing, pawn, pawn.Map, StoreUtility.CurrentStoragePriorityOf(thing), pawn.Faction, out _, out _, true);
 		}
 
@@ -302,8 +319,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Use the cache system for additional haulable items
 		var haulables = new List<Thing>(CacheManager.GetAccessibleHaulables(map)
 			.Where(t => t != null && t.Spawned && !t.Destroyed)); // Filter out null, unspawned, or destroyed things
-		Comparer.rootCell = thing.Position;
-		haulables.Sort(Comparer);
+		haulables.Sort(new ThingPositionComparer(thing.Position));
 
 		var nextThing = thing;
 		var lastThing = thing;
@@ -673,14 +689,22 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					storeCellCapacity.Remove(storeCell);
 					if (storeCell.container != null) skipContext.AddSkipThing(storeCell.container); else skipContext.AddSkipCell(storeCell.cell);
 					var adjustedHop = Math.Max(0, count - capacityOverHop);
-					if (adjustedHop > 0)
-					{
-						job.countQueue.Add(adjustedHop);
-						countQueued = true;
+						if (adjustedHop > 0)
+						{
+							job.countQueue.Add(adjustedHop);
+							countQueued = true;
+							// PRS: pre-reserve now at the planned destination to block other pawns before job driver runs
+							var prsLocHop = storeCell.container != null
+								? new PartialReservationSystem.PRSReservationSystem.StorageLocation(storeCell.container)
+								: new PartialReservationSystem.PRSReservationSystem.StorageLocation(storeCell.cell, map);
+							if (PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(pawn, nextThing, adjustedHop, prsLocHop, job, map))
+							{
+								PickUpAndHaul.Log.Message($"WG pre-reserved (hop) {adjustedHop}x{nextThing.def.defName} at {(prsLocHop.IsContainer ? prsLocHop.Container.ToString() : prsLocHop.Cell.ToString())}", pawn);
+							}
 							Log.Message($"Relocation hop limit reached; partially allocating {adjustedHop} and stopping for {nextThing}", pawn);
-						allocationSucceeded = true;
-						return true;
-					}
+							allocationSucceeded = true;
+							return true;
+						}
 					else
 					{
 							Log.Message($"Relocation hop limit reached; no capacity left for {nextThing}", pawn);
@@ -697,6 +721,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				{
 					job.countQueue.Add(count);
 					countQueued = true;
+					// PRS: pre-reserve now at the planned destination to block other pawns before job driver runs
+					var prsLocExact = storeCell.container != null
+						? new PartialReservationSystem.PRSReservationSystem.StorageLocation(storeCell.container)
+						: new PartialReservationSystem.PRSReservationSystem.StorageLocation(storeCell.cell, map);
+					if (PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(pawn, nextThing, count, prsLocExact, job, map))
+					{
+						PickUpAndHaul.Log.Message($"WG pre-reserved (exact) {count}x{nextThing.def.defName} at {(prsLocExact.IsContainer ? prsLocExact.Container.ToString() : prsLocExact.Cell.ToString())}", pawn);
+					}
 					Log.Message($"{nextThing}:{count} allocated (capacity exactly matched)", pawn);
 					allocationSucceeded = true;
 					return true;
@@ -787,6 +819,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 			job.countQueue.Add(count);
 			countQueued = true;
+			// PRS: pre-reserve now at the planned destination to block other pawns before job driver runs
+			var prsLocFinal = storeCell.container != null
+				? new PartialReservationSystem.PRSReservationSystem.StorageLocation(storeCell.container)
+				: new PartialReservationSystem.PRSReservationSystem.StorageLocation(storeCell.cell, map);
+			if (PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(pawn, nextThing, count, prsLocFinal, job, map))
+			{
+				PickUpAndHaul.Log.Message($"WG pre-reserved {count}x{nextThing.def.defName} at {(prsLocFinal.IsContainer ? prsLocFinal.Container.ToString() : prsLocFinal.Cell.ToString())}", pawn);
+			}
 			Log.Message($"{nextThing}:{count} allocated", pawn);
 			allocationSucceeded = true;
 			return true;
