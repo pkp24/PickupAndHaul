@@ -141,9 +141,15 @@ public class JobDriver_HaulToInventory : JobDriver
 					var map = actor.Map;
 					var fac = actor.Faction;
 					var priority = StoreUtility.CurrentStoragePriorityOf(thing);
+
+					// Take a stable snapshot of candidate locations to avoid race issues during iteration
+					var candidateLocations = PartialReservationSystem.PRSReservationSystem
+						.GetAllValidStorageLocations(thing, actor, map, priority, fac)
+						.ToList();
+
 					int totalAvailable = 0;
 					int checkedLocations = 0;
-					foreach (var loc in PartialReservationSystem.PRSReservationSystem.GetAllValidStorageLocations(thing, actor, map, priority, fac))
+					foreach (var loc in candidateLocations)
 					{
 						var cap = PartialReservationSystem.PRSReservationSystem.GetAvailableCapacity(loc, thing, map);
 						totalAvailable += cap;
@@ -159,7 +165,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 					// Pre-reserve the exact amount we will pick up so fallback jobs won't consume it
 					var toReserve = countToPickUp;
-					foreach (var loc in PartialReservationSystem.PRSReservationSystem.GetAllValidStorageLocations(thing, actor, map, priority, fac))
+					foreach (var loc in candidateLocations)
 					{
 						if (toReserve <= 0) break;
 						var cap = PartialReservationSystem.PRSReservationSystem.GetAvailableCapacity(loc, thing, map);
@@ -179,7 +185,29 @@ public class JobDriver_HaulToInventory : JobDriver
 						countToPickUp = Math.Max(0, reservedOk);
 					}
 				}
-				catch { /* If anything goes wrong, fallback to previous behavior */ }
+				catch (System.Exception ex)
+				{
+					// Fail safe: do NOT pick up anything if we couldn't confidently pre-reserve capacity
+					Log.Warning($"Pickup clamp/reserve failed for {thing}: {ex.Message}; preventing zero-count loops and over-pickup by clamping to 0.", actor);
+					countToPickUp = 0;
+				}
+
+				// If nothing can be picked up, avoid zero-count pickups and pointless unload jobs
+				if (countToPickUp <= 0)
+				{
+					Log.Message($"No reservable storage for {thing}; skipping pickup.", actor);
+					if (thing.Spawned)
+					{
+						var haul = HaulAIUtility.HaulToStorageJob(actor, thing, job.playerForced);
+						if (haul?.TryMakePreToilReservations(actor, false) ?? false)
+						{
+							actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
+							Log.Message($"Enqueued fallback HaulToStorageJob for {thing} (no pickup).", actor);
+						}
+					}
+					EndJobWith(JobCondition.Succeeded);
+					return;
+				}
 
 				if (countToPickUp > 0)
 				{
@@ -287,6 +315,15 @@ public class JobDriver_HaulToInventory : JobDriver
 				{
 					Log.Warning($"Pre-reserve for unload failed: {ex.Message}", actor);
 				}
+				// If there is nothing flagged as hauled-to-inventory, do not enqueue an unload job
+				var carriedSetNow = actor.TryGetComp<CompHauledToInventory>()?.GetHashSet();
+				if (carriedSetNow == null || carriedSetNow.Count == 0)
+				{
+					Log.Message($"No hauled inventory to unload; finishing job without creating unload.", actor);
+					EndJobWith(JobCondition.Succeeded);
+					return;
+				}
+
 				if (unloadJob.TryMakePreToilReservations(actor, false))
 				{
 					actor.jobs.jobQueue.EnqueueFirst(unloadJob, JobTag.Misc);
