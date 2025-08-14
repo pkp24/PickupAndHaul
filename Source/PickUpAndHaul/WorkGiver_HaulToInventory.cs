@@ -613,7 +613,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				if (innerInteractableThingOwner is null)
 				{
 					storeCell = new(nextStoreCell);
-					job.targetQueueB.Add(nextStoreCell);
 
 					storeCellCapacity[storeCell] = new(nextThing, CapacityAt(nextThing, nextStoreCell, map));
 
@@ -623,7 +622,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				{
 					var destinationAsThing = (Thing)haulDestination;
 					storeCell = new(destinationAsThing);
-					job.targetQueueB.Add(destinationAsThing);
 
 					storeCellCapacity[storeCell] = new(nextThing, innerInteractableThingOwner.GetCountCanAccept(nextThing));
 
@@ -676,9 +674,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			reservedTarget = storeCell;
 			reservedTargets.Add(reservedTarget);
 
-			job.targetQueueA.Add(nextThing);
-			itemQueued = true;
-
 			var count = nextThing.stackCount;
 			storeCellCapacity[storeCell].capacity -= count;
 			Log.Message($"{pawn} allocating {nextThing}:{count}, now {storeCell}:{storeCellCapacity[storeCell].capacity}", pawn);
@@ -693,6 +688,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					var adjustedHop = Math.Max(0, count - capacityOverHop);
 						if (adjustedHop > 0)
 						{
+							// Commit exactly one A/count pair
+							job.targetQueueA.Add(nextThing);
+							itemQueued = true;
 							job.countQueue.Add(adjustedHop);
 							countQueued = true;
 							// PRS: pre-reserve now at the planned destination to block other pawns before job driver runs
@@ -721,6 +719,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 				if (capacityOver == 0)
 				{
+					// Commit exactly one A/count pair
+					job.targetQueueA.Add(nextThing);
+					itemQueued = true;
 					job.countQueue.Add(count);
 					countQueued = true;
 					// PRS: pre-reserve now at the planned destination to block other pawns before job driver runs
@@ -762,8 +763,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				{
 					if (innerInteractableThingOwner is null)
 					{
-					var candidate = new StoreTarget(nextStoreCell);
-						var reservedNew = TryReserveSafely(pawn, candidate.cell, job, 1, -1, null, false);
+						var candidate = new StoreTarget(nextStoreCell);
+							var reservedNew = TryReserveSafely(pawn, candidate.cell, job, 1, -1, null, false);
 						if (!reservedNew)
 						{
 							skipContext.AddSkipCell(candidate.cell);
@@ -774,7 +775,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						reservedTarget = candidate;
 						reservedTargets.Add(candidate);
 						storeCell = candidate;
-						job.targetQueueB.Add(nextStoreCell);
 						var capacity = PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(nextStoreCell, map), nextThing, map) - capacityOver;
 						storeCellCapacity[storeCell] = new(nextThing, Math.Max(0, capacity));
 						Log.Message($"New cell {nextStoreCell}:{storeCellCapacity[storeCell].capacity}, allocated extra {capacityOver}", pawn);
@@ -794,7 +794,6 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						reservedTarget = candidate;
 						reservedTargets.Add(candidate);
 						storeCell = candidate;
-						job.targetQueueB.Add(destinationAsThing);
 						var capacity = innerInteractableThingOwner.GetCountCanAccept(nextThing) - capacityOver;
 						storeCellCapacity[storeCell] = new(nextThing, Math.Max(0, capacity));
 						Log.Message($"New haulDestination {nextHaulDestination}:{storeCellCapacity[storeCell].capacity}, allocated extra {capacityOver}", pawn);
@@ -805,6 +804,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					var adjustedCount = Math.Max(0, count - capacityOver);
 					if (adjustedCount > 0)
 					{
+						// Commit exactly one A/count pair (fallback)
+						job.targetQueueA.Add(nextThing);
+						itemQueued = true;
 						job.countQueue.Add(adjustedCount);
 						countQueued = true;
 						// Attempt to re-bind the original store target for the partial amount so B stays aligned
@@ -836,6 +838,9 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 				}
 			}
 
+			// Commit exactly one A/count pair (final)
+			job.targetQueueA.Add(nextThing);
+			itemQueued = true;
 			job.countQueue.Add(count);
 			countQueued = true;
 			// PRS: pre-reserve now at the planned destination to block other pawns before job driver runs
@@ -850,14 +855,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 			allocationSucceeded = true;
 			return true;
 		}
-		catch (System.Exception ex)
-		{
-			Log.Warning($"Exception during allocation for {nextThing} by {pawn}: {ex.Message}", pawn);
-			// Ensure the finally block performs full cleanup
-			countQueued = false;
-			allocationSucceeded = false;
-			return false;
-		}
+		// Intentionally do not catch broad exceptions here to avoid masking critical issues.
 		finally
 		{
 			// Normalize targetQueueB and release any stray reservations
@@ -1033,6 +1031,18 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 	{
 		if (target == null || pawn == null || job == null) return false;
 
+		bool IsValidTarget(object t)
+		{
+			if (t is Thing thingTarget)
+			{
+				return thingTarget != null && !thingTarget.Destroyed && thingTarget.Spawned;
+			}
+			// IntVec3 has no destroyed state; assume validity if map exists
+			return true;
+		}
+
+		if (!IsValidTarget(target)) return false;
+
 		// First check if we can reserve
 		bool canReserve = target is Thing thing 
 			? pawn.CanReserve(thing, maxPawns, stackCount, layer, ignoreOtherReservations)
@@ -1045,6 +1055,8 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		{
 			try
 			{
+				// Re-validate before attempting to reserve
+				if (!IsValidTarget(target)) return false;
 				bool reserved = target is Thing thingTarget
 					? pawn.Reserve(thingTarget, job, maxPawns, stackCount, layer, ignoreOtherReservations)
 					: pawn.Reserve((IntVec3)target, job, maxPawns, stackCount, layer, ignoreOtherReservations);
