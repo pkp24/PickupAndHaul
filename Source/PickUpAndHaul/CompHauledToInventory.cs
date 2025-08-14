@@ -11,7 +11,7 @@ public class CompHauledToInventory : ThingComp
 
 	public HashSet<Thing> GetHashSet()
 	{
-		takenToInventory.RemoveWhere(x => x == null);
+		takenToInventory.RemoveWhere(x => x == null || x.Destroyed);
 		return takenToInventory;
 	}
 
@@ -30,10 +30,19 @@ public class CompHauledToInventory : ThingComp
 	{
 		if (thing == null) return false;
 		var now = Find.TickManager.TicksGame;
-		// prune expired entries opportunistically
-		var expired = recentlyUnloadedUntilTick.Where(kv => kv.Value <= now).Select(kv => kv.Key).ToList();
-		for (var i = 0; i < expired.Count; i++) recentlyUnloadedUntilTick.Remove(expired[i]);
+		PruneExpiredAndDestroyed(now);
 		return recentlyUnloadedUntilTick.TryGetValue(thing, out var until) && until > now;
+	}
+
+	private void PruneExpiredAndDestroyed(int? nowOpt = null)
+	{
+		if (recentlyUnloadedUntilTick == null || recentlyUnloadedUntilTick.Count == 0) return;
+		var now = nowOpt ?? Find.TickManager.TicksGame;
+		var toRemove = recentlyUnloadedUntilTick
+			.Where(kv => kv.Key == null || kv.Key.Destroyed || kv.Value <= now)
+			.Select(kv => kv.Key)
+			.ToList();
+		for (var i = 0; i < toRemove.Count; i++) recentlyUnloadedUntilTick.Remove(toRemove[i]);
 	}
 
 	public override void PostExposeData()
@@ -41,5 +50,17 @@ public class CompHauledToInventory : ThingComp
 		base.PostExposeData();
 		Scribe_Collections.Look(ref takenToInventory, "ThingsHauledToInventory", LookMode.Reference);
 		Scribe_Values.Look(ref isUnloading, "PUAH_IsUnloading", false);
+		Scribe_Collections.Look(ref recentlyUnloadedUntilTick, "PUAH_RecentlyUnloadedUntilTick", LookMode.Reference, LookMode.Value);
+		if (Scribe.mode == LoadSaveMode.PostLoadInit)
+		{
+			recentlyUnloadedUntilTick ??= new Dictionary<Thing, int>();
+			PruneExpiredAndDestroyed();
+		}
+	}
+
+	public override void CompTickRare()
+	{
+		base.CompTickRare();
+		PruneExpiredAndDestroyed();
 	}
 }
