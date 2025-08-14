@@ -110,11 +110,18 @@ public class JobDriver_HaulToInventory : JobDriver
 				var actor = pawn;
 				var thing = actor.CurJob.GetTarget(TargetIndex.A).Thing;
 
-				// no more job was 0 errors
+				// Guard against invalid or missing target/count
+				if (thing == null)
+				{
+					Log.Warning($"HaulToInventory: TargetIndex.A Thing was null for {actor}; aborting job.");
+					EndJobWith(JobCondition.Incompletable);
+					return;
+				}
 				if (job.count <= 0)
 				{
-					Log.Warning($"Job count was {job.count}, setting to 1 for thing {thing}");
-					job.count = 1;
+					Log.Warning($"HaulToInventory: Invalid job.count={job.count} for {actor} on {thing}; aborting job.");
+					EndJobWith(JobCondition.Incompletable);
+					return;
 				}
 
 				Toils_Haul.ErrorCheckForCarry(actor, thing);

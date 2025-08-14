@@ -352,6 +352,14 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		if (nextThing == null)
 		{
+			// If we failed to allocate anything for inventory hauling, fall back to a direct haul job
+			if (job.targetQueueA.NullOrEmpty() || job.countQueue.NullOrEmpty())
+			{
+				Log.Message($"No allocations queued for {thing}; falling back to HaulToStorageJob");
+				return HaulAIUtility.HaulToStorageJob(pawn, thing, forced);
+			}
+			// Otherwise, finalize job counts and proceed
+			ValidateJobCount(job, thing);
 			return job;
 		}
 
@@ -363,6 +371,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		if (carryCapacity == 0)
 		{
 			Log.Message("Can't carry more, nevermind!");
+			ValidateJobCount(job, thing);
 			return job;
 		}
 		Log.Message($"Looking for more like {nextThing}");
