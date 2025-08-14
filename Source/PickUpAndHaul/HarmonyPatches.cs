@@ -308,6 +308,9 @@ internal static class HarmonyPatches
 	{
 		try
 		{
+			// Clear the mod debug log at the start of a new game session
+			Log.ClearDebugLogFile();
+
 			// Register the periodic performance tracker when a new game starts
 			__instance.components.Add(new Performance.PeriodicPerformanceTracker(__instance));
 			Log.Message("PeriodicPerformanceTracker registered for new game");
@@ -350,6 +353,9 @@ internal static class HarmonyPatches
 	{
 		try
 		{
+			// Clear the mod debug log when loading a saved game
+			Log.ClearDebugLogFile();
+
 			// Initialize caches for all existing maps when loading a game
 			CacheInitializer.InitializeAllCaches();
 			Log.Message("PUAH caches initialized for loaded game");
