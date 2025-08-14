@@ -23,7 +23,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	{
 		// Mark pawn as unloading for the duration of this job
 		pawn.TryGetComp<CompHauledToInventory>()?.SetUnloading(true);
-		Log.Message($"Begin UnloadYourHauledInventory for {pawn}, items={pawn.TryGetComp<CompHauledToInventory>()?.GetHashSet()?.Count ?? 0}");
+		Log.Message($"Begin UnloadYourHauledInventory for {pawn}, items={pawn.TryGetComp<CompHauledToInventory>()?.GetHashSet()?.Count ?? 0}", pawn);
 
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
@@ -86,14 +86,14 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			var thing = job.GetTarget(TargetIndex.A).Thing;
 			if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
 			{
-				Log.Message($"Skip pull: not in inventory or null for A={job.GetTarget(TargetIndex.A)}");
+				Log.Message($"Skip pull: not in inventory or null for A={job.GetTarget(TargetIndex.A)}", pawn);
 				carriedThings.Remove(thing);
 				pawn.jobs.curDriver.JumpToToil(wait);
 				return;
 			}
 			if (!pawn.health.capacities.CapableOf(PawnCapacityDefOf.Manipulation) || !thing.def.EverStorable(false))
 			{
-				Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}");
+				Log.Message($"Pawn {pawn} incapable of hauling, dropping {thing}", pawn, job, thing);
 				pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, _countToDrop, out thing);
 				EndUnloadJob(JobCondition.Succeeded);
 				carriedThings.Remove(thing);
@@ -107,7 +107,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				// no more job was 0 errors
 				if (job.count <= 0)
 				{
-					Log.Warning($"Unload job count was {job.count}, setting to 1 for thing {thing?.def?.defName ?? "null"}");
+					Log.Warning($"Unload job count was {job.count}, setting to 1 for thing {thing?.def?.defName ?? "null"}", pawn, job, thing);
 					job.count = 1;
 					_countToDrop = 1; // Fix Bug 1: Update _countToDrop to match job.count
 				}
@@ -116,7 +116,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				// mark as recently unloaded so the WorkGiver won't immediately re-target this stack
 				pawn.TryGetComp<CompHauledToInventory>()?.MarkRecentlyUnloaded(thing, 300);
 				carriedThings.Remove(thing);
-				Log.Message($"Pulled from inventory to carryTracker: {thing} count={job.count}");
+				Log.Message($"Pulled from inventory to carryTracker: {thing} count={job.count}", pawn, job, thing);
 			}
 
 			if (ModCompatibilityCheck.CombatExtendedIsActive)
@@ -142,7 +142,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 				return;
 			}
-			Log.Message($"FindTargetOrDrop: next unload={unloadableThing.Thing} count={unloadableThing.Count}");
+			Log.Message($"FindTargetOrDrop: next unload={unloadableThing.Thing} count={unloadableThing.Count}", pawn, job, unloadableThing.Thing);
 
 			// Currently in pawn's inventory, so it's unstored
 			var currentPriority = StoragePriority.Unstored;
@@ -193,8 +193,8 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					destTarget = chosenLoc.Cell;
 					reserved = map.reservationManager.Reserve(pawn, job, destTarget);
 				}
-				Log.Message($"Try reserve unload dest {destTarget}: reserved={reserved}, available={available}, reservedByThisJob={reservedByThisJob}");
-				PickUpAndHaul.Log.Message($"Unload pick dest={destTarget} available={available} reservedByThisJob={reservedByThisJob}");
+				Log.Message($"Try reserve unload dest {destTarget}: reserved={reserved}, available={available}, reservedByThisJob={reservedByThisJob}", pawn, job, thing);
+				PickUpAndHaul.Log.Message($"Unload pick dest={destTarget} available={available} reservedByThisJob={reservedByThisJob}", pawn, job, thing);
 
 				if (!reserved)
 				{
@@ -225,12 +225,12 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 					}
 					_countToDrop = countToUnload;
 					job.SetTarget(TargetIndex.B, destTarget);
-					Log.Message($"{pawn} found destination {job.targetB} for thing {thing} (count={_countToDrop})");
-					PickUpAndHaul.Log.Message($"Unload will place {countToUnload} at {destTarget}; thing={thing} remainingAfter={(thing.stackCount - countToUnload)}");
+					Log.Message($"{pawn} found destination {job.targetB} for thing {thing} (count={_countToDrop})", pawn, job, thing);
+					PickUpAndHaul.Log.Message($"Unload will place {countToUnload} at {destTarget}; thing={thing} remainingAfter={(thing.stackCount - countToUnload)}", pawn, job, thing);
 				}
 				else
 				{
-					Log.Message($"{pawn} failed reserving any destination for {thing}, dropping near");
+					Log.Message($"{pawn} failed reserving any destination for {thing}, dropping near", pawn, job, thing);
 					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, thing.stackCount, out _);
 					EndUnloadJob(JobCondition.Incompletable);
 					return;
@@ -238,7 +238,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			}
 			else
 			{
-				Log.Message($"Pawn {pawn} unable to find hauling destination, dropping {thing}");
+				Log.Message($"Pawn {pawn} unable to find hauling destination, dropping {thing}", pawn, job, thing);
 				pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, thing.stackCount, out _);
 				EndUnloadJob(JobCondition.Succeeded);
 			}

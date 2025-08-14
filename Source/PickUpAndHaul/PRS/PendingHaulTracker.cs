@@ -106,10 +106,10 @@ namespace PartialReservationSystem
                 var pending = new PendingHaul(pawn, sourceThing.def, haulAmount, job);
                 locationPending.Add(pending);
                 
-                if (Settings.EnableDebugLogging)
-                {
-                    Log.Message($"[PRS] Recorded pending haul: {pawn.LabelShort} -> {destination} for {sourceThing.def.defName} x{haulAmount}");
-                }
+				if (Settings.EnableDebugLogging)
+				{
+					Log.Message($"[PRS] Recorded pending haul: {pawn.LabelShort} -> {destination} for {sourceThing.def.defName} x{haulAmount}", pawn, job, sourceThing);
+				}
             }
         }
         
@@ -141,10 +141,10 @@ namespace PartialReservationSystem
                     mapPending.Remove(loc);
                 }
                 
-                if (Settings.EnableDebugLogging)
-                {
-                    Log.Message($"[PRS] Cleared pending hauls for {pawn.LabelShort}");
-                }
+				if (Settings.EnableDebugLogging)
+				{
+					Log.Message($"[PRS] Cleared pending hauls for {pawn.LabelShort}", pawn);
+				}
             }
         }
         

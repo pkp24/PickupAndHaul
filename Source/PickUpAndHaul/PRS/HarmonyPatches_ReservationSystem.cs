@@ -173,7 +173,7 @@ namespace PartialReservationSystem
                 var destLock = GetDestLock(effectiveDest);
                 if (Settings.EnableDebugLogging)
                 {
-                    Log.Message($"[DEST-KEY] CanReserve effectiveDest={effectiveDest} hash={effectiveDest.GetHashCode()} [THREAD id={System.Threading.Thread.CurrentThread.ManagedThreadId} ticks={Find.TickManager.TicksGame}]");
+                    Log.Message($"[DEST-KEY] CanReserve effectiveDest={effectiveDest} hash={effectiveDest.GetHashCode()} [THREAD id={System.Threading.Thread.CurrentThread.ManagedThreadId} ticks={Find.TickManager.TicksGame}]", claimant, job, target.Thing);
                 }
                 lock (destLock)
                 {
@@ -194,7 +194,7 @@ namespace PartialReservationSystem
                 if (Settings.EnableDebugLogging)
                 {
                     var locStr = location.IsContainer ? location.Container?.ToString() ?? "null" : location.Cell.ToString();
-                    Log.Message($"pawn={claimant?.LabelShort ?? "null"} target={locStr} PRS_cap={cap} pawnHas={PRSReservationSystem.PawnHasReservation(claimant, location, map)}");
+                    Log.Message($"pawn={claimant?.LabelShort ?? "null"} target={locStr} PRS_cap={cap} pawnHas={PRSReservationSystem.PawnHasReservation(claimant, location, map)}", claimant, job, target.Thing);
                 }
                 // If this pawn already holds PRS reservation here, allow immediately.
                 if (PRSReservationSystem.PawnHasReservation(claimant, location, map))
@@ -332,10 +332,10 @@ namespace PartialReservationSystem
             int alreadyReservedByPawnJobForDef = 0;
 
             var destLock = GetDestLock(effectiveDest);
-            if (Settings.EnableDebugLogging)
-            {
-                Log.Message($"[LOCK] Reserve acquiring for effectiveDest={effectiveDest} hash={effectiveDest.GetHashCode()} [THREAD id={System.Threading.Thread.CurrentThread.ManagedThreadId} ticks={Find.TickManager.TicksGame}]");
-            }
+                if (Settings.EnableDebugLogging)
+                {
+                    Log.Message($"[LOCK] Reserve acquiring for effectiveDest={effectiveDest} hash={effectiveDest.GetHashCode()} [THREAD id={System.Threading.Thread.CurrentThread.ManagedThreadId} ticks={Find.TickManager.TicksGame}]", claimant, job, target.Thing);
+                }
             lock (destLock)
             {
                 // new – one canonical bucket for this map+location
@@ -384,13 +384,13 @@ namespace PartialReservationSystem
                 // Final amount to record this call, computed strictly from values derived under this same lock
                 int toReserve = System.Math.Max(0, System.Math.Min(remainingIntended, available));
 
-                if (Settings.EnableDebugLogging)
-                {
-                    var locStrDbg = location.IsContainer ? location.Container?.ToString() ?? "null" : location.Cell.ToString();
-                    var destStr = effectiveDest.IsContainer ? effectiveDest.Container?.ToString() ?? "null" : effectiveDest.Cell.ToString();
-                    int reservedBefore = reservation.GetReservedCountForThingDef(sourceThing.def);
-                    Log.Message($"pawn={claimant?.LabelShort ?? "null"} target={locStrDbg} dest={destStr} thing={sourceThing.def.defName} intended={intendedCount} alreadyByPawnJob={alreadyReservedByPawnJobForDef} availableAtDest={available} toReserve={toReserve} reservedBefore={reservedBefore}");
-                }
+                    if (Settings.EnableDebugLogging)
+                    {
+                        var locStrDbg = location.IsContainer ? location.Container?.ToString() ?? "null" : location.Cell.ToString();
+                        var destStr = effectiveDest.IsContainer ? effectiveDest.Container?.ToString() ?? "null" : effectiveDest.Cell.ToString();
+                        int reservedBefore = reservation.GetReservedCountForThingDef(sourceThing.def);
+                        Log.Message($"pawn={claimant?.LabelShort ?? "null"} target={locStrDbg} dest={destStr} thing={sourceThing.def.defName} intended={intendedCount} alreadyByPawnJob={alreadyReservedByPawnJobForDef} availableAtDest={available} toReserve={toReserve} reservedBefore={reservedBefore}", claimant, job, sourceThing);
+                    }
 
                 if (toReserve > 0)
                 {
@@ -424,7 +424,7 @@ namespace PartialReservationSystem
 
                         if (finalToReserve > 0)
                         {
-                            Log.Warning($"[PRS DEBUG] BEFORE ADD  pawn={claimant.LabelShort} dest={effectiveDest} alreadyByPawn={alreadyReservedByPawnJobForDef} totalBefore={reservation.GetReservedCountForThingDef(sourceThing.def)}");
+                            Log.Warning($"[PRS DEBUG] BEFORE ADD  pawn={claimant.LabelShort} dest={effectiveDest} alreadyByPawn={alreadyReservedByPawnJobForDef} totalBefore={reservation.GetReservedCountForThingDef(sourceThing.def)}", claimant, job, sourceThing);
                             var added = reservation.TryAddReservation(claimant, sourceThing, finalToReserve, job);
                             if (Settings.EnableDebugLogging)
                             {
@@ -432,7 +432,7 @@ namespace PartialReservationSystem
                                 int reservedAfter = reservation.GetReservedCountForThingDef(sourceThing.def);
                                 Log.Message(added
                                     ? $"Recorded partial reservation at {locStr} for {sourceThing.def.defName} x{finalToReserve} (reservedAfter={reservedAfter})"
-                                    : $"Failed to record partial reservation at {locStr} for {sourceThing.def.defName} x{finalToReserve}");
+                                    : $"Failed to record partial reservation at {locStr} for {sourceThing.def.defName} x{finalToReserve}", claimant, job, sourceThing);
                             }
                         }
                     }

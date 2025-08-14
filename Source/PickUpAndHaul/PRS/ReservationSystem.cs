@@ -347,11 +347,11 @@ namespace PartialReservationSystem
 					{
 						_totalReservedCount -= entry.Count;
 						entries.Remove(entry);
-						Log.Warning($"[PRS DEBUG] CLEANUP removed {entry.Count}x{entry.Thing?.def?.defName} "
-							+ $"dest={kvp.Key} byPawn={pawn?.LabelShort ?? "null"} "
-							+ $"reason: pawnAlive={(pawn != null && !pawn.Dead)} "
-							+ $"jobMatch={(entry.Job == pawn?.CurJob)} "
-							+ $"thingSpawned={(entry.Thing?.Spawned ?? false)}");
+					Log.Warning($"[PRS DEBUG] CLEANUP removed {entry.Count}x{entry.Thing?.def?.defName} "
+						+ $"dest={kvp.Key} byPawn={pawn?.LabelShort ?? "null"} "
+						+ $"reason: pawnAlive={(pawn != null && !pawn.Dead)} "
+						+ $"jobMatch={(entry.Job == pawn?.CurJob)} "
+						+ $"thingSpawned={(entry.Thing?.Spawned ?? false)}", pawn, entry.Job, entry.Thing);
 					}
 					
 					if (entries.Count == 0)
@@ -646,7 +646,7 @@ namespace PartialReservationSystem
 
 					if (probe == null && probeDef == null)
 					{
-						Log.Message($"No probe and no def for {location}. Returning 0.");
+                    Log.Message($"No probe and no def for {location}. Returning 0.");
 						return 0;
 					}
 				}
@@ -680,7 +680,7 @@ namespace PartialReservationSystem
 
 				if (!slotAllows)
 				{
-					Log.Message($"[{locStr}] def={probeDef?.defName ?? "null"} slotAllows=false -> 0");
+                    Log.Message($"[{locStr}] def={probeDef?.defName ?? "null"} slotAllows=false -> 0");
 					return 0;
 				}
 
@@ -709,7 +709,7 @@ namespace PartialReservationSystem
 					slotAllows = slotGroup.Settings.filter.Allows(probeDef);
 					if (!slotAllows)
 					{
-						Log.Message($"[{locStr}] def={probeDef?.defName ?? "null"} slotAllows=false -> 0");
+                        Log.Message($"[{locStr}] def={probeDef?.defName ?? "null"} slotAllows=false -> 0");
 						return 0;
 					}
 				}
@@ -878,7 +878,7 @@ namespace PartialReservationSystem
 				
 				// Add detailed logging for reservation debugging
 				var locationStr = location.IsContainer ? $"Container:{location.Container}" : $"Cell:{location.Cell}";
-				Log.Message($"PRSReservationSystem found storage for {thing} at {locationStr} with capacity {bestCapacity} (NO RESERVATION MADE - will be reserved by JobDriver)");
+			Log.Message($"PRSReservationSystem found storage for {thing} at {locationStr} with capacity {bestCapacity} (NO RESERVATION MADE - will be reserved by JobDriver)");
 				
 				return true;
 			}

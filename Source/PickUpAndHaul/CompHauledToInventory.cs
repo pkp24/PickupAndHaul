@@ -50,7 +50,9 @@ public class CompHauledToInventory : ThingComp
 		base.PostExposeData();
 		Scribe_Collections.Look(ref takenToInventory, "ThingsHauledToInventory", LookMode.Reference);
 		Scribe_Values.Look(ref isUnloading, "PUAH_IsUnloading", false);
-		Scribe_Collections.Look(ref recentlyUnloadedUntilTick, "PUAH_RecentlyUnloadedUntilTick", LookMode.Reference, LookMode.Value);
+		List<Thing> recentlyUnloadedKeys = Scribe.mode == LoadSaveMode.LoadingVars ? new List<Thing>() : null;
+		List<int> recentlyUnloadedValues = Scribe.mode == LoadSaveMode.LoadingVars ? new List<int>() : null;
+		Scribe_Collections.Look(ref recentlyUnloadedUntilTick, "PUAH_RecentlyUnloadedUntilTick", LookMode.Reference, LookMode.Value, ref recentlyUnloadedKeys, ref recentlyUnloadedValues);
 		if (Scribe.mode == LoadSaveMode.PostLoadInit)
 		{
 			recentlyUnloadedUntilTick ??= new Dictionary<Thing, int>();

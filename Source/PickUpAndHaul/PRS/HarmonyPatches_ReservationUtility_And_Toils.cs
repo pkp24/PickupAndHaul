@@ -66,7 +66,7 @@ namespace PartialReservationSystem
             Log.Message(
                 $"[PRS] PrePickupClamp probe actor={pawn.LabelShort} job={job.def.defName} " +
                 $"src={srcThing.def?.defName} count={srcThing.stackCount} dest={destLocation} " +
-                $"remaining={remaining} reservedByPawn={alreadyByPawn}");
+                $"remaining={remaining} reservedByPawn={alreadyByPawn}", pawn, job, srcThing);
             if (remaining <= 0 && alreadyByPawn <= 0) return;
 
             int haulAmount = PRSReservationSystem.CalculateHaulAmount(pawn, srcThing);

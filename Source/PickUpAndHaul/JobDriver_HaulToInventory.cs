@@ -11,23 +11,23 @@ public class JobDriver_HaulToInventory : JobDriver
 		// when another pawn already owns the reservation.
 		bool success = true;
 		var successfulReservations = new List<LocalTargetInfo>();
-		Log.Message($"Begin TryMakePreToilReservations; A={job.targetQueueA?.Count ?? 0}, B={job.targetQueueB?.Count ?? 0}, targetBValid={job.targetB.IsValid}");
+		Log.Message($"Begin TryMakePreToilReservations; A={job.targetQueueA?.Count ?? 0}, B={job.targetQueueB?.Count ?? 0}, targetBValid={job.targetB.IsValid}", pawn);
 
 		// Reserve all targets in targetQueueA
 		if (job.targetQueueA != null)
 		{
 			foreach (var target in job.targetQueueA)
 			{
-				Log.Message($"Reserve A: {target}");
+				Log.Message($"Reserve A: {target}", pawn);
 				if (pawn.Reserve(target, job, 1, -1, null, false))
 				{
 					successfulReservations.Add(target);
-					Log.Message($"Reserved A OK: {target}");
+					Log.Message($"Reserved A OK: {target}", pawn);
 				}
 				else
 				{
 					success = false;
-					Log.Message($"Reserve A FAILED: {target}");
+					Log.Message($"Reserve A FAILED: {target}", pawn);
 					break; // Stop trying to reserve more targets
 				}
 			}
@@ -38,16 +38,16 @@ public class JobDriver_HaulToInventory : JobDriver
 		{
 			foreach (var target in job.targetQueueB)
 			{
-				Log.Message($"Reserve B: {target}");
+				Log.Message($"Reserve B: {target}", pawn);
 				if (pawn.Reserve(target, job, 1, -1, null, false))
 				{
 					successfulReservations.Add(target);
-					Log.Message($"Reserved B OK: {target}");
+					Log.Message($"Reserved B OK: {target}", pawn);
 				}
 				else
 				{
 					success = false;
-					Log.Message($"Reserve B FAILED: {target}");
+					Log.Message($"Reserve B FAILED: {target}", pawn);
 					break; // Stop trying to reserve more targets
 				}
 			}
@@ -56,30 +56,30 @@ public class JobDriver_HaulToInventory : JobDriver
 		// Only try to reserve targetB if all previous reservations succeeded
 		if (success && job.targetB != null)
 		{
-			Log.Message($"Reserve single targetB: {job.targetB}");
+			Log.Message($"Reserve single targetB: {job.targetB}", pawn);
 			if (pawn.Reserve(job.targetB, job, 1, -1, null, false))
 			{
 				successfulReservations.Add(job.targetB);
-				Log.Message($"Reserved targetB OK: {job.targetB}");
+				Log.Message($"Reserved targetB OK: {job.targetB}", pawn);
 			}
 			else
 			{
 				success = false;
-				Log.Message($"Reserve targetB FAILED: {job.targetB}");
+				Log.Message($"Reserve targetB FAILED: {job.targetB}", pawn);
 			}
 		}
 
 		// If any reservation failed, release all successful reservations to prevent leaks
 		if (!success)
 		{
-			Log.Message($"Releasing {successfulReservations.Count} successful reservations due to earlier failure");
+			Log.Message($"Releasing {successfulReservations.Count} successful reservations due to earlier failure", pawn);
 			foreach (var target in successfulReservations)
 			{
 				pawn.Map.reservationManager.Release(target, pawn, job);
 			}
 		}
 
-		Log.Message($"End TryMakePreToilReservations success={success}");
+		Log.Message($"End TryMakePreToilReservations success={success}", pawn);
 		return success;
 	}
 
@@ -97,7 +97,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 		var gotoThing = new Toil
 		{
-			initAction = () => { Log.Message($"Goto A start: {TargetThingA}"); pawn.pather.StartPath(TargetThingA, PathEndMode.ClosestTouch); },
+			initAction = () => { Log.Message($"Goto A start: {TargetThingA}", pawn); pawn.pather.StartPath(TargetThingA, PathEndMode.ClosestTouch); },
 			defaultCompleteMode = ToilCompleteMode.PatherArrival
 		};
 		gotoThing.FailOnDespawnedNullOrForbidden(TargetIndex.A);
@@ -113,13 +113,13 @@ public class JobDriver_HaulToInventory : JobDriver
 				// Guard against invalid or missing target/count
 				if (thing == null)
 				{
-					Log.Warning($"HaulToInventory: TargetIndex.A Thing was null for {actor}; aborting job.");
+					Log.Warning($"HaulToInventory: TargetIndex.A Thing was null for {actor}; aborting job.", actor);
 					EndJobWith(JobCondition.Incompletable);
 					return;
 				}
 				if (job.count <= 0)
 				{
-					Log.Warning($"HaulToInventory: Invalid job.count={job.count} for {actor} on {thing}; aborting job.");
+					Log.Warning($"HaulToInventory: Invalid job.count={job.count} for {actor} on {thing}; aborting job.", actor);
 					EndJobWith(JobCondition.Incompletable);
 					return;
 				}
@@ -128,7 +128,7 @@ public class JobDriver_HaulToInventory : JobDriver
 
 				//get max we can pick up
 				var countToPickUp = Mathf.Min(job.count, MassUtility.CountToPickUpUntilOverEncumbered(actor, thing));
-				Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}");
+				Log.Message($"{actor} is hauling to inventory {thing}:{countToPickUp}", actor);
 
 				if (ModCompatibilityCheck.CombatExtendedIsActive)
 				{
@@ -150,10 +150,10 @@ public class JobDriver_HaulToInventory : JobDriver
 						checkedLocations++;
 						if (totalAvailable >= countToPickUp) break;
 					}
-					Log.Message($"Pickup clamp scan: locationsChecked={checkedLocations}, totalAvailable={totalAvailable}, planned={countToPickUp}");
+					Log.Message($"Pickup clamp scan: locationsChecked={checkedLocations}, totalAvailable={totalAvailable}, planned={countToPickUp}", actor);
 					if (totalAvailable < countToPickUp)
 					{
-						Log.Message($"Clamping pickup for {thing} to available storage: {totalAvailable} (was {countToPickUp})");
+						Log.Message($"Clamping pickup for {thing} to available storage: {totalAvailable} (was {countToPickUp})", actor);
 						countToPickUp = Math.Max(0, totalAvailable);
 					}
 
@@ -167,7 +167,7 @@ public class JobDriver_HaulToInventory : JobDriver
 						var reserveCount = Math.Min(toReserve, cap);
 						if (reserveCount > 0 && PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(actor, thing, reserveCount, loc, job, map))
 						{
-							Log.Message($"PreReserve at pickup: {reserveCount}x{thing.def.defName} at {(loc.IsContainer ? loc.Container.ToString() : loc.Cell.ToString())}");
+							Log.Message($"PreReserve at pickup: {reserveCount}x{thing.def.defName} at {(loc.IsContainer ? loc.Container.ToString() : loc.Cell.ToString())}", actor);
 							toReserve -= reserveCount;
 						}
 					}
@@ -175,7 +175,7 @@ public class JobDriver_HaulToInventory : JobDriver
 					{
 						// Could not lock all; reduce pickup further to what we actually locked in
 						var reservedOk = countToPickUp - toReserve;
-						Log.Message($"PreReserve shortfall: reducing pickup from {countToPickUp} to {reservedOk}");
+						Log.Message($"PreReserve shortfall: reducing pickup from {countToPickUp} to {reservedOk}", actor);
 						countToPickUp = Math.Max(0, reservedOk);
 					}
 				}
@@ -187,7 +187,7 @@ public class JobDriver_HaulToInventory : JobDriver
 					var shouldMerge = takenToInventory.GetHashSet().Any(x => x.def == thing.def);
 					actor.inventory.GetDirectlyHeldThings().TryAdd(splitThing, shouldMerge);
 					takenToInventory.RegisterHauledItem(splitThing);
-					Log.Message($"Added to inventory: {splitThing} now inventoryCount={actor.inventory.innerContainer.Count}");
+					Log.Message($"Added to inventory: {splitThing} now inventoryCount={actor.inventory.innerContainer.Count}", actor);
 
 					if (ModCompatibilityCheck.CombatExtendedIsActive)
 					{
@@ -203,7 +203,7 @@ public class JobDriver_HaulToInventory : JobDriver
 					if (haul?.TryMakePreToilReservations(actor, false) ?? false)
 					{
 						actor.jobs.jobQueue.EnqueueFirst(haul, JobTag.Misc);
-						Log.Message($"Enqueued fallback HaulToStorageJob for remaining {thing}");
+						Log.Message($"Enqueued fallback HaulToStorageJob for remaining {thing}", actor);
 					}
 					actor.jobs.curDriver.JumpToToil(wait);
 				}
@@ -229,7 +229,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				//WorkGiver_HaulToInventory found more work nearby
 				if (haulMoreThing != null)
 				{
-					Log.Message($"{pawn} hauling again : {haulMoreThing}");
+					Log.Message($"{pawn} hauling again : {haulMoreThing}", pawn);
 					if (haulMoreJob.TryMakePreToilReservations(pawn, false))
 					{
 						pawn.jobs.jobQueue.EnqueueFirst(haulMoreJob, JobTag.Misc);
@@ -276,8 +276,8 @@ public class JobDriver_HaulToInventory : JobDriver
 								if (reserveCount > 0 && PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(actor, invThing, reserveCount, loc, unloadJob, map))
 								{
 									remaining -= reserveCount;
-									Log.Message($"Pre-reserved unload: {reserveCount}x{invThing.def.defName} at {(loc.IsContainer ? loc.Container.ToString() : loc.Cell.ToString())} remaining={remaining}");
-									PickUpAndHaul.Log.Message($"PreReserveUnload: thing={invThing} reserve={reserveCount} at {(loc.IsContainer ? loc.Container.ToString() : loc.Cell.ToString())} rem={remaining}");
+									Log.Message($"Pre-reserved unload: {reserveCount}x{invThing.def.defName} at {(loc.IsContainer ? loc.Container.ToString() : loc.Cell.ToString())} remaining={remaining}", actor);
+									PickUpAndHaul.Log.Message($"PreReserveUnload: thing={invThing} reserve={reserveCount} at {(loc.IsContainer ? loc.Container.ToString() : loc.Cell.ToString())} rem={remaining}", actor);
 								}
 							}
 						}
@@ -285,7 +285,7 @@ public class JobDriver_HaulToInventory : JobDriver
 				}
 				catch (System.Exception ex)
 				{
-					Log.Warning($"Pre-reserve for unload failed: {ex.Message}");
+					Log.Warning($"Pre-reserve for unload failed: {ex.Message}", actor);
 				}
 				if (unloadJob.TryMakePreToilReservations(actor, false))
 				{

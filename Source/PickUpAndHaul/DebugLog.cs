@@ -212,6 +212,24 @@ internal static class Log
 			QueueLogEntry($"[DEBUG] {x}", memberName, sourceFilePath, sourceLineNumber);
 	}
 
+	[Conditional("DEBUG")]
+	public static void Message(string x, Pawn pawn, Job job = null, Thing target = null,
+		[CallerMemberName] string memberName = "",
+		[CallerFilePath] string sourceFilePath = "",
+		[CallerLineNumber] int sourceLineNumber = 0)
+	{
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+
+		if (!Settings.EnableDebugLogging)
+			return;
+
+		var withCtx = AppendContext(x, pawn, job, target);
+		QueueLogEntry($"[DEBUG] {withCtx}", memberName, sourceFilePath, sourceLineNumber);
+	}
+
 	public static void Warning(string x,
 		[CallerMemberName] string memberName = "",
 		[CallerFilePath] string sourceFilePath = "",
@@ -225,6 +243,21 @@ internal static class Log
 		
 		Verse.Log.Warning($"[WARNING] {x}");
 		QueueLogEntry($"[WARNING] {x}", memberName, sourceFilePath, sourceLineNumber);
+	}
+
+	public static void Warning(string x, Pawn pawn, Job job = null, Thing target = null,
+		[CallerMemberName] string memberName = "",
+		[CallerFilePath] string sourceFilePath = "",
+		[CallerLineNumber] int sourceLineNumber = 0)
+	{
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+
+		var withCtx = AppendContext(x, pawn, job, target);
+		Verse.Log.Warning($"[WARNING] {withCtx}");
+		QueueLogEntry($"[WARNING] {withCtx}", memberName, sourceFilePath, sourceLineNumber);
 	}
 
 	public static void Error(string x,
@@ -243,6 +276,23 @@ internal static class Log
 
 		// Track job-related errors
 		TrackJobError(x, memberName);
+	}
+
+	public static void Error(string x, Pawn pawn, Job job = null, Thing target = null,
+		[CallerMemberName] string memberName = "",
+		[CallerFilePath] string sourceFilePath = "",
+		[CallerLineNumber] int sourceLineNumber = 0)
+	{
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+
+		var withCtx = AppendContext(x, pawn, job, target);
+		Verse.Log.Error($"[ERROR] {withCtx}");
+		QueueLogEntry($"[ERROR] {withCtx}", memberName, sourceFilePath, sourceLineNumber);
+
+		TrackJobError(withCtx, memberName);
 	}
 
 	public static void Error(Exception ex, string context = "",
@@ -268,6 +318,29 @@ internal static class Log
 
 		// Track job-related errors
 		TrackJobError(errorMessage, memberName);
+	}
+
+	public static void Error(Exception ex, Pawn pawn, Job job = null, Thing target = null, string context = "",
+		[CallerMemberName] string memberName = "",
+		[CallerFilePath] string sourceFilePath = "",
+		[CallerLineNumber] int sourceLineNumber = 0)
+	{
+		if (!_initialized && !_initializing)
+		{
+			EnsureInitialized();
+		}
+
+		var baseMessage = string.IsNullOrEmpty(context) ? ex.ToString() : $"{context}: {ex}";
+		var withCtx = AppendContext(baseMessage, pawn, job, target);
+		Verse.Log.Error($"[ERROR] {withCtx}");
+		QueueLogEntry($"[ERROR] {withCtx}", memberName, sourceFilePath, sourceLineNumber);
+
+		if (ex.StackTrace != null)
+		{
+			QueueLogEntry($"[STACK_TRACE] {ex.StackTrace}", memberName, sourceFilePath, sourceLineNumber);
+		}
+
+		TrackJobError(withCtx, memberName);
 	}
 
 	/// <summary>
@@ -656,6 +729,29 @@ internal static class Log
 			Verse.Log.Warning($"Failed to write to debug log file: {ex.Message}");
 			Verse.Log.Warning($"Original message was: {message}");
 		}
+	}
+
+	private static string AppendContext(string message, Pawn pawn, Job job, Thing target)
+	{
+		var context = new List<string>();
+		if (pawn != null)
+		{
+			context.Add($"Pawn: {pawn.LabelShortCap} ({pawn.ThingID})");
+			try { context.Add($"Pos: {pawn.Position}"); } catch { }
+			try { context.Add($"Faction: {pawn.Faction?.Name ?? "None"}"); } catch { }
+		}
+		if (job != null)
+		{
+			context.Add($"Job: {job.def?.defName ?? "Unknown"}");
+		}
+		if (target != null)
+		{
+			context.Add($"Target: {target.def?.defName ?? "Unknown"} ({target.ThingID})");
+			try { context.Add($"TargetPos: {target.Position}"); } catch { }
+		}
+		if (context.Count == 0)
+			return message;
+		return $"{message} | {string.Join(" | ", context)}";
 	}
 
 	private static void InitStreamWriter()
