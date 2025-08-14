@@ -230,6 +230,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		// Use cached storage location if available
 		if (CacheManager.TryGetCachedStorageLocation(thing, pawn, map, currentPriority, pawn.Faction, out var targetCell, out var haulDestination, out nonSlotGroupThingOwner, this))
 		{
+			Log.Message($"Cached storage for {thing}: haulDest={(haulDestination as Thing)?.ToString() ?? "cell"} targetCell={targetCell}");
 			if (haulDestination is ISlotGroupParent)
 			{
 				//since we've gone through all the effort of getting the loc, might as well use it.
@@ -263,6 +264,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		var capacityStoreCell
 			= storeTarget.container is null ? PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(storeTarget.cell), thing, map)
 			: nonSlotGroupThingOwner.GetCountCanAccept(thing);
+		Log.Message($"Initial capacity for {thing} at {storeTarget}: {capacityStoreCell}");
 
 		if (capacityStoreCell == 0)
 		{
@@ -324,6 +326,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		bool Validator(Thing t)
 			=> (!isUrgent || designationManager.DesignationOn(t)?.def == haulUrgentlyDesignation)
 			&& GoodThingToHaul(t, pawn) && HaulAIUtility.PawnCanAutomaticallyHaulFast(pawn, t, false); //forced is false, may differ from first thing
+		Log.Message($"Search radius for extras: {distanceToSearchMore} from {thing.Position}");
 
 		haulables.Remove(thing);
 
@@ -345,6 +348,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 		while ((nextThing = GetClosestAndRemove(lastThing.Position, map, haulables, PathEndMode.ClosestTouch,
 			TraverseParms.For(pawn), distanceToSearchMore, Validator)) != null);
+		Log.Message($"Multi-thing allocation stopped. nextThingLeftOverCount={nextThingLeftOverCount}, encumbrance={encumberance}");
 
 		if (nextThing == null)
 		{
@@ -707,34 +711,15 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 					reservedTarget = default;
 				}
 
+				// Invalidate cached storage for this thing to avoid repeating the same cell
+				CacheManager.InvalidateStorageLocationCache(map, nextThing);
+
 				var currentPriority = StoreUtility.CurrentStoragePriorityOf(nextThing);
 				if (CacheManager.TryGetCachedStorageLocation(nextThing, pawn, map, currentPriority, pawn.Faction, out var nextStoreCell, out var nextHaulDestination, out var innerInteractableThingOwner, this))
 				{
-					bool isRepeatedStorage = false;
-					if (innerInteractableThingOwner is null && storeCell.container is null) isRepeatedStorage = nextStoreCell == storeCell.cell;
-					else if (innerInteractableThingOwner is not null && storeCell.container is not null) isRepeatedStorage = nextHaulDestination == storeCell.container;
-
-					if (isRepeatedStorage)
-					{
-						var adjustedCount = Math.Max(0, count - capacityOver);
-						if (adjustedCount > 0)
-						{
-							job.countQueue.Add(adjustedCount);
-							countQueued = true;
-							Log.Message($"Same storage returned again; allocated partial {adjustedCount} for {nextThing} and stopping relocation.");
-							allocationSucceeded = true;
-							return true;
-						}
-						else
-						{
-							Log.Message($"Same storage returned again but no capacity remaining; removing {nextThing} from queue.");
-							return false;
-						}
-					}
-
 					if (innerInteractableThingOwner is null)
 					{
-						var candidate = new StoreTarget(nextStoreCell);
+					var candidate = new StoreTarget(nextStoreCell);
 						var reservedNew = TryReserveSafely(pawn, candidate.cell, job, 1, -1, null, false);
 						if (!reservedNew)
 						{

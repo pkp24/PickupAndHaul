@@ -23,6 +23,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 	{
 		// Mark pawn as unloading for the duration of this job
 		pawn.TryGetComp<CompHauledToInventory>()?.SetUnloading(true);
+		Log.Message($"Begin UnloadYourHauledInventory for {pawn}, items={pawn.TryGetComp<CompHauledToInventory>()?.GetHashSet()?.Count ?? 0}");
 
 		if (ModCompatibilityCheck.ExtendedStorageIsActive)
 		{
@@ -85,6 +86,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 			var thing = job.GetTarget(TargetIndex.A).Thing;
 			if (thing == null || !pawn.inventory.innerContainer.Contains(thing))
 			{
+				Log.Message($"Skip pull: not in inventory or null for A={job.GetTarget(TargetIndex.A)}");
 				carriedThings.Remove(thing);
 				pawn.jobs.curDriver.JumpToToil(wait);
 				return;
@@ -114,6 +116,7 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				// mark as recently unloaded so the WorkGiver won't immediately re-target this stack
 				pawn.TryGetComp<CompHauledToInventory>()?.MarkRecentlyUnloaded(thing, 300);
 				carriedThings.Remove(thing);
+				Log.Message($"Pulled from inventory to carryTracker: {thing} count={job.count}");
 			}
 
 			if (ModCompatibilityCheck.CombatExtendedIsActive)
@@ -139,47 +142,104 @@ public class JobDriver_UnloadYourHauledInventory : JobDriver
 				}
 				return;
 			}
+			Log.Message($"FindTargetOrDrop: next unload={unloadableThing.Thing} count={unloadableThing.Count}");
 
-			var currentPriority = StoragePriority.Unstored; // Currently in pawns inventory, so it's unstored
-			if (CacheManager.TryGetCachedStorageLocation(unloadableThing.Thing, pawn, pawn.Map, currentPriority,
-					pawn.Faction, out var cell, out var destination, out var _, null))
+			// Currently in pawn's inventory, so it's unstored
+			var currentPriority = StoragePriority.Unstored;
+			job.SetTarget(TargetIndex.A, unloadableThing.Thing);
+			var map = pawn.Map;
+			var fac = pawn.Faction;
+			var thing = unloadableThing.Thing;
+
+			// Prefer a destination where this job already has a PRS reservation
+			PartialReservationSystem.PRSReservationSystem.StorageLocation chosenLoc = default;
+			int available = 0;
+			int reservedByThisJob = 0;
+			foreach (var loc in PartialReservationSystem.PRSReservationSystem.GetAllValidStorageLocations(thing, pawn, map, currentPriority, fac))
 			{
-				job.SetTarget(TargetIndex.A, unloadableThing.Thing);
-				if (cell == IntVec3.Invalid)
+				reservedByThisJob = PartialReservationSystem.PRSReservationSystem.GetReservedCountForPawnJob(pawn, job, loc, thing.def, map);
+				if (reservedByThisJob > 0)
 				{
-					job.SetTarget(TargetIndex.B, destination as Thing);
+					chosenLoc = loc;
+					break;
+				}
+			}
+
+			// If no reserved location, pick a best one by capacity/priority
+			if (reservedByThisJob <= 0)
+			{
+				if (!PartialReservationSystem.PRSReservationSystem.TryFindBestStorageWithReservation(thing, pawn, map, currentPriority, fac, out chosenLoc, out available) || available <= 0)
+				{
+					foreach (var loc in PartialReservationSystem.PRSReservationSystem.GetAllValidStorageLocations(thing, pawn, map, currentPriority, fac))
+					{
+						var cap = PartialReservationSystem.PRSReservationSystem.GetAvailableCapacity(loc, thing, map);
+						if (cap > 0) { chosenLoc = loc; available = cap; break; }
+					}
+				}
+			}
+
+			if (available > 0)
+			{
+				// Try reserving the destination; if not reservable, try alternates
+				bool reserved = false;
+				LocalTargetInfo destTarget;
+				if (chosenLoc.IsContainer)
+				{
+					destTarget = chosenLoc.Container;
+					reserved = map.reservationManager.Reserve(pawn, job, destTarget);
 				}
 				else
 				{
-					job.SetTarget(TargetIndex.B, cell);
+					destTarget = chosenLoc.Cell;
+					reserved = map.reservationManager.Reserve(pawn, job, destTarget);
+				}
+				Log.Message($"Try reserve unload dest {destTarget}: reserved={reserved}, available={available}, reservedByThisJob={reservedByThisJob}");
+				PickUpAndHaul.Log.Message($"Unload pick dest={destTarget} available={available} reservedByThisJob={reservedByThisJob}");
+
+				if (!reserved)
+				{
+					foreach (var loc in PartialReservationSystem.PRSReservationSystem.GetAllValidStorageLocations(thing, pawn, map, currentPriority, fac))
+					{
+						var cap = PartialReservationSystem.PRSReservationSystem.GetAvailableCapacity(loc, thing, map);
+						if (cap <= 0) continue;
+						var altTarget = loc.IsContainer ? (LocalTargetInfo)loc.Container : (LocalTargetInfo)loc.Cell;
+						if (map.reservationManager.Reserve(pawn, job, altTarget))
+						{
+							chosenLoc = loc;
+							available = cap;
+							destTarget = altTarget;
+							reserved = true;
+							break;
+						}
+					}
 				}
 
-				Log.Message($"{pawn} found destination {job.targetB} for thing {unloadableThing.Thing}");
-				if (!pawn.Map.reservationManager.Reserve(pawn, job, job.targetB))
+				if (reserved)
 				{
-					Log.Message(
-						$"{pawn} failed reserving destination {job.targetB}, dropping {unloadableThing.Thing}");
-					pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-						unloadableThing.Thing.stackCount, out _);
+					// If we already have a PRS reservation for this job at this location, use it; otherwise reserve now.
+					var effectiveCapacity = reservedByThisJob > 0 ? reservedByThisJob : available;
+					var countToUnload = Math.Min(thing.stackCount, effectiveCapacity);
+					if (reservedByThisJob <= 0 && countToUnload > 0)
+					{
+						PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(pawn, thing, countToUnload, chosenLoc, job, map);
+					}
+					_countToDrop = countToUnload;
+					job.SetTarget(TargetIndex.B, destTarget);
+					Log.Message($"{pawn} found destination {job.targetB} for thing {thing} (count={_countToDrop})");
+					PickUpAndHaul.Log.Message($"Unload will place {countToUnload} at {destTarget}; thing={thing} remainingAfter={(thing.stackCount - countToUnload)}");
+				}
+				else
+				{
+					Log.Message($"{pawn} failed reserving any destination for {thing}, dropping near");
+					pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, thing.stackCount, out _);
 					EndUnloadJob(JobCondition.Incompletable);
 					return;
 				}
-				else
-				{
-					// Record a partial destination reservation in PRS so other pawns can share the destination
-					var destLoc = job.targetB.HasThing
-						? new PartialReservationSystem.PRSReservationSystem.StorageLocation(job.targetB.Thing)
-						: new PartialReservationSystem.PRSReservationSystem.StorageLocation(job.targetB.Cell);
-					PartialReservationSystem.PRSReservationSystem.TryReservePartialStorage(pawn, unloadableThing.Thing, unloadableThing.Thing.stackCount, destLoc, job, pawn.Map);
-				}
-				_countToDrop = unloadableThing.Thing.stackCount;
 			}
 			else
 			{
-				Log.Message(
-					$"Pawn {pawn} unable to find hauling destination, dropping {unloadableThing.Thing}");
-				pawn.inventory.innerContainer.TryDrop(unloadableThing.Thing, ThingPlaceMode.Near,
-					unloadableThing.Thing.stackCount, out _);
+				Log.Message($"Pawn {pawn} unable to find hauling destination, dropping {thing}");
+				pawn.inventory.innerContainer.TryDrop(thing, ThingPlaceMode.Near, thing.stackCount, out _);
 				EndUnloadJob(JobCondition.Succeeded);
 			}
 		}

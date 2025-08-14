@@ -45,6 +45,7 @@ namespace PartialReservationSystem
                 {
                     // No space available, cancel the job
                     Log.Message($"[PRS] HaulToStorageJob: Cancelling job for {p.LabelShort} hauling {t.def.defName} to {destLocation.Value} - no available capacity (pending hauls considered)");
+                    PickUpAndHaul.Log.Message($"PRS.Postfix HaulToStorageJob CANCEL: pawn={p.LabelShort} thing={t} dest={destLocation.Value}");
                     __result = null;
                     return;
                 }
@@ -55,6 +56,7 @@ namespace PartialReservationSystem
                 {
                     __result.count = Math.Min(availableCapacity, t.stackCount);
                     Log.Message($"[PRS] HaulToStorageJob: Adjusted job count for {p.LabelShort} hauling {t.def.defName} to {destLocation.Value} - count={__result.count} (was {haulAmount})");
+                    PickUpAndHaul.Log.Message($"PRS.Postfix HaulToStorageJob ADJUST: pawn={p.LabelShort} thing={t} dest={destLocation.Value} count={__result.count} was={haulAmount}");
                 }
             }
         }

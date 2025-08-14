@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
+using PickUpAndHaul; // for debug logging
 using RimWorld;
 using Verse;
 using Verse.AI;
@@ -306,12 +307,27 @@ namespace PartialReservationSystem
 					{
 						var job = pawn?.CurJob;
 
+						var currentJob = pawn?.CurJob;
+						bool isJobEnqueued = false;
+						try
+						{
+							var queue = pawn?.jobs?.jobQueue;
+							if (queue != null)
+							{
+								foreach (var q in queue)
+								{
+									if (q.job == entry.Job) { isJobEnqueued = true; break; }
+								}
+							}
+						}
+						catch { }
+
 						bool stillValid =
 							pawn != null &&
 							pawn.Spawned &&
 							!pawn.Dead &&
 							!pawn.Destroyed &&
-							job == entry.Job;                                // same job
+							(currentJob == entry.Job || isJobEnqueued);    // same job or queued for this pawn
 
 						// If pawn has the same job, keep reservation regardless of carrying status
 						// This protects pawns who are on their way to pick up items
@@ -468,12 +484,15 @@ namespace PartialReservationSystem
 				
 				// Check if we have capacity - use the reservation object we already have to avoid redundant cleanup
 				var capacity = GetAvailableCapacity(location, thing, map, reservation);
+				var pending = PendingHaulTracker.GetPendingAmount(location, thing.def, map);
+				var alreadyReservedByPawn = reservation.GetReservedCountForPawn(pawn, thing.def);
+				var netAvailable = Math.Max(0, capacity - pending);
 				
-				// Calculate the actual haul amount and limit by requested count
+				// Calculate the actual haul amount and limit by requested count and net available
 				int haulAmount = CalculateHaulAmount(pawn, thing);
-				int actualCount = Math.Min(count, haulAmount);
+				int actualCount = Math.Min(count, Math.Min(haulAmount, netAvailable));
 				
-				if (capacity < actualCount)
+				if (actualCount <= 0)
 				{
 					return false;
 				}
@@ -751,8 +770,9 @@ namespace PartialReservationSystem
 				available = perPickupLimit;
 			}
 		 
-			Log.Message($"loc={locStr} def={probeDef?.defName ?? probe?.def?.defName ?? "null"} totalCap={totalCapacity} current={currentCount} reserved={reservedCount} pending={pendingCount} available={available}{(usedParamBucket ? " [bucket=param]" : " [bucket=global]")}");
-			Log.Message($"loc={locStr} def={probeDef?.defName ?? probe?.def?.defName ?? "null"} available={available}");
+            Log.Message($"loc={locStr} def={probeDef?.defName ?? probe?.def?.defName ?? "null"} totalCap={totalCapacity} current={currentCount} reserved={reservedCount} pending={pendingCount} available={available}{(usedParamBucket ? " [bucket=param]" : " [bucket=global]")}");
+            // Also write to PUAH debug log file
+            PickUpAndHaul.Log.Message($"PRS.GetAvailableCapacity loc={locStr} def={probeDef?.defName ?? probe?.def?.defName ?? "null"} totalCap={totalCapacity} current={currentCount} reserved={reservedCount} pending={pendingCount} => available={available}{(usedParamBucket ? " [bucket=param]" : " [bucket=global]")}");
 			return available;
 		}
 
