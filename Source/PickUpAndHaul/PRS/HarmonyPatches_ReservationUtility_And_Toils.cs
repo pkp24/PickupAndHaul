@@ -42,14 +42,14 @@ namespace PartialReservationSystem
             {
                 maybeDest = job.targetB.HasThing
                     ? new PRSReservationSystem.StorageLocation(job.targetB.Thing)
-                    : new PRSReservationSystem.StorageLocation(job.targetB.Cell);
+                    : new PRSReservationSystem.StorageLocation(job.targetB.Cell, pawn.Map);
             }
             else if (job.targetQueueB != null && job.targetQueueB.Count > 0)
             {
                 var lt = job.targetQueueB[0];
                 maybeDest = lt.HasThing
                     ? new PRSReservationSystem.StorageLocation(lt.Thing)
-                    : new PRSReservationSystem.StorageLocation(lt.Cell);
+                    : new PRSReservationSystem.StorageLocation(lt.Cell, pawn.Map);
             }
             if (maybeDest == null) return;
 

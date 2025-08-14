@@ -32,7 +32,7 @@ namespace PartialReservationSystem
                 }
                 else if (__result.targetB.Cell.IsValid)
                 {
-                    destLocation = new PRSReservationSystem.StorageLocation(__result.targetB.Cell);
+                    destLocation = new PRSReservationSystem.StorageLocation(__result.targetB.Cell, p.Map);
                 }
 
                 if (!destLocation.HasValue)
@@ -71,7 +71,7 @@ namespace PartialReservationSystem
                     return;
 
                 // Check if the found cell has enough capacity considering pending hauls
-                var destLocation = new PRSReservationSystem.StorageLocation(foundCell);
+                var destLocation = new PRSReservationSystem.StorageLocation(foundCell, map);
                 int availableCapacity = PRSReservationSystem.GetAvailableCapacity(destLocation, t, map);
 
                 if (availableCapacity <= 0)

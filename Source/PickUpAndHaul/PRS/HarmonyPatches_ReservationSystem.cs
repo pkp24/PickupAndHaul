@@ -117,7 +117,7 @@ namespace PartialReservationSystem
                 else if (target.Cell.IsValid)
                 {
                     isStorageTarget = true;
-                    location = new PRSReservationSystem.StorageLocation(target.Cell);
+                    location = new PRSReservationSystem.StorageLocation(target.Cell, map);
                 }
                 else
                 {
@@ -158,14 +158,14 @@ namespace PartialReservationSystem
                     {
                         effectiveDest = job.targetB.HasThing
                             ? new PRSReservationSystem.StorageLocation(job.targetB.Thing)
-                            : new PRSReservationSystem.StorageLocation(job.targetB.Cell);
+                            : new PRSReservationSystem.StorageLocation(job.targetB.Cell, map);
                     }
                     else if (job.targetQueueB != null && job.targetQueueB.Count > 0)
                     {
                         var ltB = job.targetQueueB[0];
                         effectiveDest = ltB.HasThing
                             ? new PRSReservationSystem.StorageLocation(ltB.Thing)
-                            : new PRSReservationSystem.StorageLocation(ltB.Cell);
+                            : new PRSReservationSystem.StorageLocation(ltB.Cell, map);
                     }
                 }
 
@@ -238,18 +238,18 @@ namespace PartialReservationSystem
             {
                 location = job.targetB.HasThing
                     ? new PRSReservationSystem.StorageLocation(job.targetB.Thing)
-                    : new PRSReservationSystem.StorageLocation(job.targetB.Cell);
+                    : new PRSReservationSystem.StorageLocation(job.targetB.Cell, map);
             }
             else if (job.targetQueueB != null && job.targetQueueB.Count > 0)
             {
                 var ltB = job.targetQueueB[0];
                 location = ltB.HasThing
                     ? new PRSReservationSystem.StorageLocation(ltB.Thing)
-                    : new PRSReservationSystem.StorageLocation(ltB.Cell);
+                    : new PRSReservationSystem.StorageLocation(ltB.Cell, map);
             }
             else if (target.Cell.IsValid)
             {
-                location = new PRSReservationSystem.StorageLocation(target.Cell);
+                location = new PRSReservationSystem.StorageLocation(target.Cell, map);
             }
             else if (target.HasThing)
             {
@@ -459,7 +459,7 @@ namespace PartialReservationSystem
 
                 PRSReservationSystem.StorageLocation location;
                 if (target.Cell.IsValid)
-                    location = new PRSReservationSystem.StorageLocation(target.Cell);
+                    location = new PRSReservationSystem.StorageLocation(target.Cell, map);
                 else if (target.HasThing)
                     location = new PRSReservationSystem.StorageLocation(target.Thing);
                 else

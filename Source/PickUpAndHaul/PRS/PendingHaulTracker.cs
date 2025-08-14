@@ -64,14 +64,14 @@ namespace PartialReservationSystem
             {
                 destination = job.targetB.HasThing
                     ? new PRSReservationSystem.StorageLocation(job.targetB.Thing)
-                    : new PRSReservationSystem.StorageLocation(job.targetB.Cell);
+                    : new PRSReservationSystem.StorageLocation(job.targetB.Cell, map);
             }
             else if (job.targetQueueB != null && job.targetQueueB.Count > 0)
             {
                 var ltB = job.targetQueueB[0];
                 destination = ltB.HasThing
                     ? new PRSReservationSystem.StorageLocation(ltB.Thing)
-                    : new PRSReservationSystem.StorageLocation(ltB.Cell);
+                    : new PRSReservationSystem.StorageLocation(ltB.Cell, map);
             }
             else
             {

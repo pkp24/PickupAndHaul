@@ -101,7 +101,15 @@ namespace PartialReservationSystem
 			{
 				Cell = cell;
 				Container = null;
-				_mapId = Find.CurrentMap != null ? Find.CurrentMap.uniqueID : 0;
+				_mapId = 0;
+				_thingId = 0;
+			}
+
+			public StorageLocation(IntVec3 cell, Map map)
+			{
+				Cell = cell;
+				Container = null;
+				_mapId = map?.uniqueID ?? 0;
 				_thingId = 0;
 			}
 
@@ -810,7 +818,7 @@ namespace PartialReservationSystem
 						if (!StoreUtility.IsGoodStoreCell(cell, map, thing, pawn, faction))
 							continue;
 							
-						var storageLocation = new StorageLocation(cell);
+						var storageLocation = new StorageLocation(cell, map);
 						var capacity = GetAvailableCapacity(storageLocation, thing, map);
 						
 						if (capacity > 0)
@@ -906,7 +914,7 @@ namespace PartialReservationSystem
 						if (!StoreUtility.IsGoodStoreCell(cell, map, thing, pawn, faction))
 							continue;
 							
-						var storageLocation = new StorageLocation(cell);
+						var storageLocation = new StorageLocation(cell, map);
 						var capacity = GetAvailableCapacity(storageLocation, thing, map);
 						
 						if (capacity > 0)

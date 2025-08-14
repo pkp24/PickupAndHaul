@@ -128,7 +128,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 		}
 
 		var capacityStoreCell = storeTarget.container is null 
-			? PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(storeTarget.cell), thing, pawn.Map)
+			? PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(storeTarget.cell, pawn.Map), thing, pawn.Map)
 			: nonSlotGroupThingOwner.GetCountCanAccept(thing);
 
 		if (capacityStoreCell == 0)
@@ -262,7 +262,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 
 		//credit to Dingo
 		var capacityStoreCell
-			= storeTarget.container is null ? PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(storeTarget.cell), thing, map)
+			= storeTarget.container is null ? PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(storeTarget.cell, map), thing, map)
 			: nonSlotGroupThingOwner.GetCountCanAccept(thing);
 		Log.Message($"Initial capacity for {thing} at {storeTarget}: {capacityStoreCell}");
 
@@ -732,7 +732,7 @@ public class WorkGiver_HaulToInventory : WorkGiver_HaulGeneral
 						reservedTargets.Add(candidate);
 						storeCell = candidate;
 						job.targetQueueB.Add(nextStoreCell);
-						var capacity = PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(nextStoreCell), nextThing, map) - capacityOver;
+						var capacity = PRSReservationSystem.GetAvailableCapacity(new PRSReservationSystem.StorageLocation(nextStoreCell, map), nextThing, map) - capacityOver;
 						storeCellCapacity[storeCell] = new(nextThing, Math.Max(0, capacity));
 						Log.Message($"New cell {nextStoreCell}:{storeCellCapacity[storeCell].capacity}, allocated extra {capacityOver}");
 					}
