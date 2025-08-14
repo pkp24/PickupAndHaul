@@ -10,8 +10,8 @@ This document explains how Pick Up And Haul (PUAH) integrates the Partial Reserv
    - Respect live stack contents, PRS partial reservations, and pending hauls.
 2. Keep vanilla compatibility and mod interop
    - Always allow vanilla `ReservationManager` to proceed; record PRS reservations alongside.
-3. Clamp pickup to what the destination will accept
-   - Prevents “walk to full cell then adjust late” thrash.
+3. Clamp pickup to what the destination will accept, with a hard pre‑reserve guarantee
+   - We pre‑reserve the exact pickup amount across destinations before splitting the source stack, then reduce the pickup if we can’t lock all space.
 4. Work smoothly with PUAH’s multi‑pickup/inventory job flow
    - Properly reserve/relocate across multiple candidate storage targets.
 5. Auto‑cleanup
@@ -54,18 +54,22 @@ This value is used by:
 ---
 
 ## What Gets Reserved and When
-- On `ReservationManager.Reserve`, PUAH’s PRS patch records a partial destination reservation for the pawn/job/def. The amount is:
-  - `min(availableCapacity, intendedImmediatePickup)` where `intendedImmediatePickup` mirrors vanilla StartCarryThing semantics.
-- Reservations persist until drop‑off and are released when vanilla releases its reservation at drop‑off (handled by a `ReservationManager.Release` hook).
-- Multiple pawns can reserve the same destination up to capacity; PRS cooperates with vanilla reservations rather than blocking them.
+- Pre‑reserve at pickup (hard guarantee): before the pawn splits and takes from the source stack, we pre‑reserve the exact pickup amount across valid destinations and reduce the pickup if we can’t lock it all. This guarantees we don’t pick more than can be dropped later.
+- Optional pre‑reserve when queuing unload: after pickup and just before enqueueing the unload job, we also attempt to reserve capacity for each carried PUAH item. This further reduces races if other jobs try to target the same cells.
+- On `ReservationManager.Reserve` (vanilla), PRS records a partial destination reservation for the pawn/job/def alongside vanilla, so multiple pawns can share a destination up to capacity.
+- Reservation persistence: reservations are kept while the pawn is on the job or if that job is still queued for the pawn, and are released at drop‑off via `ReservationManager.Release` hooks.
 
 ---
 
 ## Clamping at Pickup
-Just before pickup, the PRS pickup clamp (`PRS_TryPrePickupClamp`) re‑probes remaining capacity in the canonical bucket and splits the source stack if needed so the pawn only picks what will fit. Example:
+We now clamp with a pre‑reserve guarantee at pickup time:
+- We scan PRS capacity across valid destinations, then pre‑reserve the exact pickup amount across those destinations.
+- If we can’t secure all of it immediately, we reduce the pickup down to the successfully reserved total before splitting the source stack.
+
+Example:
 - Destination capacity 75; currently 20 present.
-- Pawn A reserves 60 and picks 60; capacity becomes 5.
-- Pawn B subsequently reserves 5 and picks 5.
+- Pawn A pre‑reserves 60, picks 60; capacity becomes 5.
+- Pawn B later pre‑reserves 5, picks 5.
 - Both deliver; reservations release; no overfill, no race.
 
 ---
@@ -75,6 +79,7 @@ Just before pickup, the PRS pickup clamp (`PRS_TryPrePickupClamp`) re‑probes r
 - Uses PRS capacity when validating the primary storage target and when relocating to another target mid‑allocation:
   - `PRSReservationSystem.GetAvailableCapacity(new StorageLocation(cellOrContainer), thing, map)`
 - Attempts to reserve the destination before committing a queue entry; releases stale reservations if the allocation relocates.
+- Invalidates cached storage when a location is full to avoid re‑selecting the same cell repeatedly; then relocates to an alternative cell/container.
 - Avoids starting new PUAH pickup jobs for pawns that:
   - Already carry PUAH‑tracked items (must unload first), or
   - Are currently unloading, or
@@ -82,7 +87,8 @@ Just before pickup, the PRS pickup clamp (`PRS_TryPrePickupClamp`) re‑probes r
 
 ### JobDriver_UnloadYourHauledInventory
 - Marks the pawn as unloading for the duration of the job.
-- Upon selecting a drop destination (cell or container), records a partial PRS reservation so other pawns can still share that destination up to capacity.
+- Prefers a destination already reserved by this pawn/job in PRS; otherwise finds and reserves a valid alternative.
+- Only unloads up to the reserved/available amount at that destination; then iterates to find the next destination.
 - After pulling an item from inventory, marks it as “recently unloaded” (cooldown) to prevent immediate re‑targeting for opportunistic pickup.
 - Releases the vanilla reservation directly; PRS reservations are released via the `ReservationManager.Release` hook.
 
@@ -106,12 +112,23 @@ Just before pickup, the PRS pickup clamp (`PRS_TryPrePickupClamp`) re‑probes r
 - PUAH has its own debug logging toggle (`PickUpAndHaul.Settings`).
 - Logs are written to RimWorld’s console and to mod‑specific files when available.
 
+Key log lines to look for (in `PUAHForked.log`):
+- `PRS.GetAvailableCapacity ... totalCap=.. current=.. reserved=.. pending=.. => available=..` — capacity accounting per location.
+- `PRS.Postfix HaulToStorageJob ADJUST/CANCEL` — vanilla haul jobs adjusted or cancelled by PRS capacity.
+- `PreReserve at pickup: ...` and `PreReserve shortfall: ...` — hard guarantee at pickup time.
+- `PreReserveUnload: ...` — optional pre‑reserve while enqueueing unload.
+- `Unload will place N at ...` — stepwise unload schedule.
+
 ---
 
 ## Quick Reference: Key Call Sites
 - Capacity checks:
   - `WorkGiver_HaulToInventory` → `PRSReservationSystem.GetAvailableCapacity(...)`
   - `HarmonyPatches_HaulAI` (job creation and store cell search)
+- Pre‑reserve at pickup (hard guarantee):
+  - `JobDriver_HaulToInventory` pickup toil computes PRS capacity, reserves the exact pickup amount, then splits the source stack.
+- Optional pre‑reserve for unload:
+  - `JobDriver_HaulToInventory` when enqueueing unload.
 - Partial reservations & lifecycle:
   - `ReservationManager.Reserve/CanReserve/Release` prefixes/postfixes (in PRS patches)
   - `ReservationManager.Release` postfix releases PRS reservations at drop‑off
@@ -129,8 +146,6 @@ Just before pickup, the PRS pickup clamp (`PRS_TryPrePickupClamp`) re‑probes r
 
 ## Example Walkthrough (“60 and 15”)
 1. A storage cell has space for 75 of Uranium; currently 0 there.
-2. Pawn A is assigned a PUAH job. PRS capacity reports 75; A reserves 60 (based on immediate pickup) and picks 60.
-3. Pawn B sees 15 capacity remaining; reserves 15 and picks 15.
+2. Pawn A is assigned a PUAH job. PRS capacity reports 75; A pre‑reserves 60 (based on immediate pickup) and picks 60.
+3. Pawn B sees 15 capacity remaining; pre‑reserves 15 and picks 15.
 4. Both deliver; drop‑off releases PRS reservations; the cell ends with 75 exactly.
-
-This is the PUAH implementation of the “pawns hauled 60 and 15!” behavior described in the PRS docs, adapted to PUAH’s inventory pickup/unload loop and relocation logic.
