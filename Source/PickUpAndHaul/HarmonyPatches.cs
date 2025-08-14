@@ -420,7 +420,7 @@ internal static class HarmonyPatches
 		try
 		{
 			// Check if the thing is null or invalid
-            if (!HaulUtils.ThingIsValid(t))
+			if (t == null || !t.Spawned || t.Destroyed)
 			{
 				Log.JobError($"Prevented null reference in GridsUtility.Fogged - Thing was null or invalid", null, null, t);
 				__result = false;
@@ -446,20 +446,20 @@ internal static class HarmonyPatches
 	{
 		try
 		{
-            if (__result == null)
+			if (__result == null)
 			{
 				return;
 			}
 
 			// If it's a List<Thing>, remove in-place (avoids allocations and preserves expected type)
-            if (__result is List<Thing> list)
+			if (__result is List<Thing> list)
 			{
-                list.RemoveAll(t => !HaulUtils.ThingIsValid(t));
+				list.RemoveAll(t => t == null || !t.Spawned || t.Destroyed);
 				return; // done
 			}
 
 			// Fallback: create a new list with only valid entries and assign
-            var validThings = __result.Where(HaulUtils.ThingIsValid).ToList();
+			var validThings = __result.Where(t => t != null && t.Spawned && !t.Destroyed).ToList();
 			__result = validThings;
 		}
 		catch (Exception ex)
@@ -477,10 +477,30 @@ internal static class HarmonyPatches
 	{
 		try
 		{
-            if (t?.Map == null || t.Destroyed) return;
+			if (t?.Map == null || t.Destroyed) return;
 
-            // Classify and cache
-            PUAHHaulCaches.ClassifyAndAdd(t.Map, t);
+			// Check if the thing is too heavy for any pawn
+			bool isTooHeavy = true;
+			foreach (var pawn in t.Map.mapPawns.FreeColonistsSpawned)
+			{
+				if (pawn == null || pawn.Dead || pawn.Downed) continue;
+
+				if (CanPawnCarryThing(pawn, t))
+				{
+					isTooHeavy = false;
+					break;
+				}
+			}
+
+			// Add to appropriate cache
+			if (isTooHeavy)
+			{
+				PUAHHaulCaches.AddToTooHeavyCache(t.Map, t);
+			}
+			else
+			{
+				PUAHHaulCaches.AddToHaulableCache(t.Map, t);
+			}
 		}
 		catch (Exception ex)
 		{
@@ -498,10 +518,13 @@ internal static class HarmonyPatches
 	{
 		try
 		{
-            if (t?.Map == null) return;
+			if (t?.Map == null) return;
 
-            // Remove from all caches
-            PUAHHaulCaches.RemoveFromAllCaches(t.Map, t);
+			// Remove from all caches
+			PUAHHaulCaches.RemoveFromHaulableCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromTooHeavyCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromUnreachableCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromStorageLocationCache(t.Map, t);
 		}
 		catch (Exception ex)
 		{
@@ -519,10 +542,20 @@ internal static class HarmonyPatches
 	{
 		try
 		{
-            if (t?.Map == null || t.Destroyed) return;
+			if (t?.Map == null || t.Destroyed) return;
 
 			// Check if the thing is too heavy for any pawn
-            bool isTooHeavy = HaulUtils.IsTooHeavyForAnyPawn(t.Map, t);
+			bool isTooHeavy = true;
+			foreach (var pawn in t.Map.mapPawns.FreeColonistsSpawned)
+			{
+				if (pawn == null || pawn.Dead || pawn.Downed) continue;
+
+				if (CanPawnCarryThing(pawn, t))
+				{
+					isTooHeavy = false;
+					break;
+				}
+			}
 
 			// Add to appropriate cache
 			if (isTooHeavy)
@@ -550,10 +583,13 @@ internal static class HarmonyPatches
 	{
 		try
 		{
-            if (t?.Map == null) return;
+			if (t?.Map == null) return;
 
-            // Remove from all caches
-            PUAHHaulCaches.RemoveFromAllCaches(t.Map, t);
+			// Remove from all caches
+			PUAHHaulCaches.RemoveFromHaulableCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromTooHeavyCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromUnreachableCache(t.Map, t);
+			PUAHHaulCaches.RemoveFromStorageLocationCache(t.Map, t);
 		}
 		catch (Exception ex)
 		{
@@ -571,10 +607,13 @@ internal static class HarmonyPatches
 	{
 		try
 		{
-            if (__instance?.Map == null) return;
+			if (__instance?.Map == null) return;
 
-            // Remove from all caches
-            PUAHHaulCaches.RemoveFromAllCaches(__instance.Map, __instance);
+			// Remove from all caches
+			PUAHHaulCaches.RemoveFromHaulableCache(__instance.Map, __instance);
+			PUAHHaulCaches.RemoveFromTooHeavyCache(__instance.Map, __instance);
+			PUAHHaulCaches.RemoveFromUnreachableCache(__instance.Map, __instance);
+			PUAHHaulCaches.RemoveFromStorageLocationCache(__instance.Map, __instance);
 		}
 		catch (Exception ex)
 		{
@@ -617,7 +656,7 @@ internal static class HarmonyPatches
 	{
 		try
 		{
-            if (__instance?.Map == null) return;
+			if (__instance?.Map == null) return;
 
 			// Only reclassify if this was a free colonist (player-controlled)
 			if (__instance.Faction != Faction.OfPlayerSilentFail) return;
@@ -642,7 +681,7 @@ internal static class HarmonyPatches
 	{
 		try
 		{
-            if (__instance == null) return;
+			if (__instance == null) return;
 
 			// Check if the map is being destroyed (when Scribe.mode is Writing and the map is no longer in Current.Game.Maps)
 			if (Scribe.mode == LoadSaveMode.Saving && Current.Game?.Maps != null && !Current.Game.Maps.Contains(__instance))
@@ -712,5 +751,14 @@ internal static class HarmonyPatches
 	/// <summary>
 	/// Check if a pawn can carry a specific thing
 	/// </summary>
-    // moved to HaulUtils
+	private static bool CanPawnCarryThing(Pawn pawn, Thing thing)
+	{
+		if (pawn == null || thing == null) return false;
+
+		// Check if the thing is too heavy for the pawn
+		float thingMass = thing.GetStatValue(StatDefOf.Mass);
+		float maxCarryMass = pawn.GetStatValue(StatDefOf.CarryingCapacity);
+
+		return thingMass <= maxCarryMass;
+	}
 }

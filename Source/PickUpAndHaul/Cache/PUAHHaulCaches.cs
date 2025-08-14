@@ -316,33 +316,5 @@ namespace PickUpAndHaul.Cache
             
             return $"Map {map.uniqueID}: Haulable={haulableCount}, Unreachable={unreachableCount}, TooHeavy={tooHeavyCount}, StorageLocations={storageLocationCount}, Accessible={accessibleCount}";
         }
-
-		/// <summary>
-		/// Remove a thing from all caches for a map
-		/// </summary>
-		public static void RemoveFromAllCaches(Map map, Thing thing)
-		{
-			if (map == null || thing == null) return;
-			RemoveFromHaulableCache(map, thing);
-			RemoveFromTooHeavyCache(map, thing);
-			RemoveFromUnreachableCache(map, thing);
-			RemoveFromStorageLocationCache(map, thing);
-		}
-
-		/// <summary>
-		/// Classify a thing as haulable or too-heavy and add to the proper cache
-		/// </summary>
-		public static void ClassifyAndAdd(Map map, Thing thing)
-		{
-			if (map == null || thing == null) return;
-			if (HaulUtils.IsTooHeavyForAnyPawn(map, thing))
-			{
-				AddToTooHeavyCache(map, thing);
-			}
-			else
-			{
-				AddToHaulableCache(map, thing);
-			}
-		}
     }
 } 

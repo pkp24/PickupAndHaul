@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using RimWorld;
 using Verse;
-using PickUpAndHaul;
 
 namespace PickUpAndHaul.Cache
 {
@@ -33,10 +32,10 @@ namespace PickUpAndHaul.Cache
 
             foreach (var thing in haulableThings)
             {
-                if (!HaulUtils.ThingIsValid(thing)) continue;
+                if (thing == null || thing.Destroyed) continue;
 
                 // Check if the thing is too heavy for any pawn
-                if (HaulUtils.IsTooHeavyForAnyPawn(map, thing))
+                if (IsTooHeavyForAnyPawn(map, thing))
                 {
                     PUAHHaulCaches.AddToTooHeavyCache(map, thing);
                 }
@@ -70,7 +69,7 @@ namespace PickUpAndHaul.Cache
 
             foreach (var thing in haulableThings)
             {
-                if (!HaulUtils.ThingIsValid(thing)) continue;
+                if (thing == null || thing.Destroyed || !thing.Spawned) continue;
 
                 var currentPriority = StoreUtility.CurrentStoragePriorityOf(thing);
                 
@@ -96,6 +95,36 @@ namespace PickUpAndHaul.Cache
         /// <summary>
         /// Check if a thing is too heavy for any pawn on the map
         /// </summary>
-        // moved to HaulUtils
+        private static bool IsTooHeavyForAnyPawn(Map map, Thing thing)
+        {
+            if (map == null || thing == null) return false;
+
+            foreach (var pawn in map.mapPawns.FreeColonistsSpawned)
+            {
+                if (pawn == null || pawn.Dead || pawn.Downed) continue;
+
+                // Check if pawn can carry the thing
+                if (CanPawnCarryThing(pawn, thing))
+                {
+                    return false; // At least one pawn can carry it
+                }
+            }
+
+            return true; // No pawn can carry it
+        }
+
+        /// <summary>
+        /// Check if a pawn can carry a specific thing
+        /// </summary>
+        private static bool CanPawnCarryThing(Pawn pawn, Thing thing)
+        {
+            if (pawn == null || thing == null) return false;
+
+            // Check if the thing is too heavy for the pawn
+            float thingMass = thing.GetStatValue(StatDefOf.Mass);
+            float maxCarryMass = pawn.GetStatValue(StatDefOf.CarryingCapacity);
+
+            return thingMass <= maxCarryMass;
+        }
     }
 } 
