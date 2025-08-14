@@ -27,18 +27,7 @@ namespace PickUpAndHaul.Cache
                 if (thing == null || thing.Destroyed) continue;
 
                 // Check if any pawn can reach this thing
-                bool canReach = false;
-                foreach (var pawn in map.mapPawns.FreeColonistsSpawned)
-                {
-                    if (pawn == null || pawn.Dead || pawn.Downed) continue;
-
-                    // Check if pawn can reach the thing
-                    if (pawn.CanReach(thing, PathEndMode.Touch, Danger.Deadly))
-                    {
-                        canReach = true;
-                        break;
-                    }
-                }
+                var canReach = HaulUtils.AnyUsablePawnCanReach(map, thing);
 
                 if (!canReach)
                 {
@@ -62,17 +51,7 @@ namespace PickUpAndHaul.Cache
                 if (thing == null || thing.Destroyed) continue;
 
                 // Check if any pawn can now carry this thing
-                bool canCarry = false;
-                foreach (var pawn in map.mapPawns.FreeColonistsSpawned)
-                {
-                    if (pawn == null || pawn.Dead || pawn.Downed) continue;
-
-                    if (CanPawnCarryThing(pawn, thing))
-                    {
-                        canCarry = true;
-                        break;
-                    }
-                }
+                var canCarry = map.mapPawns.FreeColonistsSpawned.Any(p => HaulUtils.PawnIsUsable(p) && HaulUtils.CanPawnCarryThing(p, thing));
 
                 if (canCarry)
                 {
@@ -98,17 +77,7 @@ namespace PickUpAndHaul.Cache
                 if (thing == null || thing.Destroyed) continue;
 
                 // Check if any pawn can still carry this thing
-                bool canCarry = false;
-                foreach (var pawn in map.mapPawns.FreeColonistsSpawned)
-                {
-                    if (pawn == null || pawn.Dead || pawn.Downed) continue;
-
-                    if (CanPawnCarryThing(pawn, thing))
-                    {
-                        canCarry = true;
-                        break;
-                    }
-                }
+                var canCarry = map.mapPawns.FreeColonistsSpawned.Any(p => HaulUtils.PawnIsUsable(p) && HaulUtils.CanPawnCarryThing(p, thing));
 
                 if (!canCarry)
                 {
@@ -135,7 +104,7 @@ namespace PickUpAndHaul.Cache
                 var cache = entry.Value;
 
                 // Check if the thing still exists and is valid
-                if (thing == null || thing.Destroyed || !thing.Spawned)
+                if (!HaulUtils.ThingIsValid(thing))
                 {
                     staleEntries.Add(thing);
                     continue;
@@ -195,16 +164,7 @@ namespace PickUpAndHaul.Cache
         /// <summary>
         /// Check if a pawn can carry a specific thing
         /// </summary>
-        private static bool CanPawnCarryThing(Pawn pawn, Thing thing)
-        {
-            if (pawn == null || thing == null) return false;
-
-            // Check if the thing is too heavy for the pawn
-            float thingMass = thing.GetStatValue(StatDefOf.Mass);
-            float maxCarryMass = pawn.GetStatValue(StatDefOf.CarryingCapacity);
-
-            return thingMass <= maxCarryMass;
-        }
+        // moved to HaulUtils
 
         /// <summary>
         /// Update all caches for a map
